@@ -12,6 +12,8 @@ A simple tool for drawing a single-phase DB (distribution) board.
 - Breaker ratings: trip curve, breaking capacity (kA), earth leakage type, surge arrester and DC voltage ratings
 - Cable sizes for each circuit, based on the SANS 10142-1 current ratings (to be confirmed by a registered electrician)
 - Share a board as a code, or load a board from a code
+- Single-phase and three-phase boards, and circuits that are not on the earth leakage
+- Report mode: an automatic "Problems found" list, a "Make corrected version" button, and a two-page PDF (as found + corrected)
 - Save the drawing as a picture or as an A4 or A3 PDF
 
 Open `index.html` in any web browser to use it. Your board is remembered in that browser.
