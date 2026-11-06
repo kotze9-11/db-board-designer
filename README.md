@@ -11,6 +11,7 @@ A simple tool for drawing a single-phase DB (distribution) board.
 - Show the neutral-earth bond for backup: a bond contactor in the DB, or built into the inverter
 - Breaker ratings: trip curve, breaking capacity (kA), earth leakage type, surge arrester and DC voltage ratings
 - Cable sizes for each circuit, based on the SANS 10142-1 current ratings (to be confirmed by a registered electrician)
+- Share a board as a code, or load a board from a code
 - Save the drawing as a picture
 
 Open `index.html` in any web browser to use it. Your board is remembered in that browser.

@@ -45,7 +45,7 @@ h1 span{color:var(--live)}
 h2{font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0}
 h3{font-family:var(--display);font-weight:700;font-size:15px;margin:0;color:var(--fg)}
 label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
-input[type=text],input[type=number],select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+input[type=text],input[type=number],select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
 .sub-sec input[type=text],.sub-sec input[type=number],.sub-sec select{background:var(--panel)}
 input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -215,6 +215,16 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
         <p class="hint" id="splitHint" hidden>Tap <strong style="color:var(--solar)">&#8644;</strong> to move a circuit between grid only and backup.</p>
         <div class="chips" id="presets"></div>
         <button type="button" class="btn ghost" id="addBlank">Add circuit</button>
+      </div>
+
+      <div class="sec">
+        <h2>Import or share a board</h2>
+        <label>Board code<textarea id="code" rows="3" spellcheck="false" placeholder="Paste a board code here" style="font-family:var(--mono);font-size:12px;resize:vertical"></textarea></label>
+        <div class="toolbar">
+          <button type="button" class="btn" id="importBtn">Load board from code</button>
+          <button type="button" class="btn ghost" id="exportBtn">Show this board's code</button>
+        </div>
+        <p class="hint" id="codeMsg" aria-live="polite">Loading a code replaces the board you have now.</p>
       </div>
 
       <div class="sec">
@@ -445,6 +455,34 @@ $("panel").addEventListener("click",e=>{
       if(j>=0) [arr[i],arr[j]]=[arr[j],arr[i]];
     }
     renderCircuits(); return changed();
+  }
+  if(b.id==="importBtn"){
+    const raw=$("code").value.trim();
+    if(!raw){$("codeMsg").textContent="Paste a board code in the box first."; return}
+    try{
+      let json=raw;
+      if(!raw.startsWith("{")){
+        const b64=raw.replace(/^DBB1:/,"").replace(/\s+/g,"");
+        json=decodeURIComponent(escape(atob(b64)));
+      }
+      const obj=JSON.parse(json);
+      if(!obj||typeof obj!=="object"||!Array.isArray(obj.circuits)) throw new Error("bad");
+      state=normalize(obj); confirming=null; syncControls(); changed();
+      $("codeMsg").textContent=`Loaded "${state.name}" with ${state.circuits.length} circuits.`;
+    }catch(err){
+      $("codeMsg").textContent="That code could not be read. Check that you copied all of it, from DBB1: to the end.";
+    }
+    return;
+  }
+  if(b.id==="exportBtn"){
+    const plain={...state,circuits:state.circuits.map(c=>({name:c.name,a:c.a,backup:c.backup}))};
+    const code="DBB1:"+btoa(unescape(encodeURIComponent(JSON.stringify(plain))));
+    const ta=$("code"); ta.value=code;
+    const fallback=()=>{ta.focus(); ta.select(); $("codeMsg").textContent="The code is in the box. Select it all and copy it."};
+    try{
+      navigator.clipboard.writeText(code).then(()=>{$("codeMsg").textContent="Code copied. You can paste it into WhatsApp, email or a chat with Claude."}).catch(fallback);
+    }catch(err){fallback()}
+    return;
   }
   if(b.dataset.reset){
     const r=b.dataset.reset;
