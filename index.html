@@ -113,6 +113,8 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
             <button type="button" id="colBrown" data-col="brown">Brown / Blue</button>
           </div>
         </div>
+        <label class="toggle"><input type="checkbox" id="cables"> Show cable sizes (SANS 10142-1 guide)</label>
+        <p class="hint" id="cableHint">Sizes follow the SANS 10142-1 current ratings for Surfix cable in conduit. Long runs, hot roof spaces or cables bunched together can need a thicker cable, so a registered electrician must confirm them for the CoC.</p>
       </div>
 
       <div class="sec">
@@ -239,11 +241,11 @@ const PV_ISO=[16,25,32,40,50];
 const PRESETS=[["Lights",10,true],["Plugs",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Pool pump",16,false],["Gate motor",10,true],["Outside lights",10,true],["Borehole",16,false],["TV & Wi-Fi",16,true]];
 const MAX_CIRCUITS=30;
 
-const DEFAULTS={name:"My board",colours:"red",mainA:63,el:{on:true,a:63,ma:30},spd:true,
+const DEFAULTS={name:"My board",colours:"red",cables:true,mainA:63,el:{on:true,a:63,ma:30},spd:true,
   inv:{on:false,kw:5,v:48,mode:"split",feedA:32,bypass:false},
   batt:{on:true,ah:100,prot:"breaker",a:125},
   pv:{on:true,panels:8,isoA:32,spd:true},circuits:[]};
-const EXAMPLE={name:"Example house",colours:"red",mainA:63,el:{on:true,a:63,ma:30},spd:true,
+const EXAMPLE={name:"Example house",colours:"red",cables:true,mainA:63,el:{on:true,a:63,ma:30},spd:true,
   inv:{on:true,kw:5,v:48,mode:"split",feedA:32,bypass:true},
   batt:{on:true,ah:100,prot:"breaker",a:125},
   pv:{on:true,panels:8,isoA:32,spd:true},
@@ -304,6 +306,7 @@ function syncControls(){
   setPressed("colRed",s.colours==="red"); setPressed("colBrown",s.colours==="brown");
   $("invOn").checked=s.inv.on; $("invOpts").hidden=!s.inv.on;
   $("invBypass").checked=s.inv.bypass;
+  $("cables").checked=s.cables; $("cableHint").hidden=!s.cables;
   $("invKw").value=s.inv.kw; $("invV").value=s.inv.v; $("invFeedA").value=s.inv.feedA;
   setPressed("modeSplit",s.inv.mode==="split"); setPressed("modeWhole",s.inv.mode==="whole");
   $("modeHint").textContent=s.inv.mode==="split"
@@ -375,7 +378,7 @@ $("panel").addEventListener("change",e=>{
     battAh:v=>s.batt.ah=+v,battA:v=>s.batt.a=+v,pvIsoA:v=>s.pv.isoA=+v};
   if(map[t.id]){map[t.id](t.value); return changed()}
   if(t.id==="pvPanels"){t.value=s.pv.panels; return}
-  const checks={elOn:v=>s.el.on=v,spd:v=>s.spd=v,invOn:v=>s.inv.on=v,invBypass:v=>s.inv.bypass=v,battOn:v=>s.batt.on=v,pvOn:v=>s.pv.on=v,pvSpd:v=>s.pv.spd=v};
+  const checks={elOn:v=>s.el.on=v,spd:v=>s.spd=v,invOn:v=>s.inv.on=v,invBypass:v=>s.inv.bypass=v,cables:v=>s.cables=v,battOn:v=>s.batt.on=v,pvOn:v=>s.pv.on=v,pvSpd:v=>s.pv.spd=v};
   if(checks[t.id]){checks[t.id](t.checked); syncControls(); return changed()}
   const row=t.closest(".circ");
   if(row&&t.dataset.f==="a"){const c=s.circuits.find(c=>c.id==row.dataset.id); if(c){c.a=+t.value; changed()}}
@@ -434,6 +437,16 @@ function colours(){
     ? {L:"#7b4a22",N:"#2563c7",E:"#2f9a3a",Eband:"#e9c81c",Lname:"AC live (brown)",Nname:"AC neutral (blue)",Ename:"Earth (green/yellow)"}
     : {L:"#cf2a1f",N:"#1c1c1c",E:"#2f9a3a",Eband:null,Lname:"AC live (red)",Nname:"AC neutral (black)",Ename:"Earth (green)"};
 }
+/* Cable sizes: smallest Surfix size whose SANS 10142-1 rating (single phase, in conduit) is at least the breaker size.
+   1.5mm² 16.5A, 2.5mm² 23A, 4mm² 30A, 6mm² 38A, 10mm² 52A, 16mm² 69A, 25mm² 90A. */
+function acCable(a){
+  if(a<=16) return "1.5"; if(a<=20) return "2.5"; if(a<=25) return "4"; if(a<=32) return "6";
+  if(a<=50) return "10"; if(a<=63) return "16"; if(a<=80) return "25"; return null;
+}
+const acTxt=a=>{const c=acCable(a); return c?c+" mm²":"cable: ask electrician"};
+/* DC battery and PV cables: typical copper sizes for short runs (under about 3 m). Not from SANS tables. */
+function battCable(a){return {63:"16",80:"25",100:"35",125:"35",160:"50",200:"70",250:"95"}[a]||null}
+const pvCable=a=>a<=32?"4":"6";
 function wire(d,col,w,band,dash){
   let s=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w||3}" stroke-linejoin="round" stroke-linecap="round"${dash?` stroke-dasharray="${dash}"`:""}/>`;
   if(band) s+=`<path d="${d}" fill="none" stroke="${band}" stroke-width="${(w||3)*0.45}" stroke-dasharray="6 6" stroke-linejoin="round"/>`;
@@ -520,9 +533,11 @@ function buildSvg(){
     G.back.forEach(c=>sec2.push({k:"cb",w:P,c,num:nums.get(c.id)}));
   }
 
-  const outLabel=d=>d.k==="cbinv"?`To inverter AC IN  ${d.a}A`:`${d.num}  ${d.c.name||"Circuit "+d.num}  ${d.c.a}A`;
+  const cab=a=>s.cables?`  ·  ${acTxt(a)}`:"";
+  const outLabel=d=>d.k==="cbinv"?`To inverter AC IN  ${d.a}A${cab(d.a)}`:`${d.num}  ${d.c.name||"Circuit "+d.num}  ${d.c.a}A${cab(d.c.a)}`;
+  const supplyLabel=`Supply  L  230V${cab(s.mainA)}`;
   const allLabels=sec1.concat(sec2).filter(d=>d.k==="cb"||d.k==="cbinv").map(outLabel)
-    .concat(["Supply  L  230V","Earth in","From inverter AC OUT  L"]).concat(inv&&s.inv.bypass?["Grid N  for bypass"]:[]);
+    .concat([supplyLabel,"Earth in","From inverter AC OUT  L"]).concat(inv&&s.inv.bypass?["Grid N  for bypass"]:[]);
   const longest=Math.max(...allLabels.map(t=>t.length));
   const LABEL_H=Math.min(210,Math.max(100,longest*6.4+26));
 
@@ -593,7 +608,7 @@ function buildSvg(){
   // supply in
   const main=sec1[0];
   w+=wire(`M${L1(main)} ${yExt} V${devTop}`,C.L)+wire(`M${N1(main)} ${yExt} V${devTop}`,C.N);
-  w+=vlabel(L1(main)-7,yExt-6,"Supply  L  230V",C.L,true)+vlabel(N1(main)-7,yExt-6,"Supply  N",C.N,true);
+  w+=vlabel(L1(main)-7,yExt-6,supplyLabel,C.L,true)+vlabel(N1(main)-7,yExt-6,"Supply  N",C.N,true);
   w+=wire(`M${eInX} ${yExt} V${barY-46} H${eT("IN")} V${barY-6}`,C.E,3,C.Eband);
   w+=vlabel(eInX-7,yExt-6,"Earth in",C.E,true);
 
@@ -696,7 +711,8 @@ function buildSvg(){
     reg+=txt(invX+invW/2,invTop+(invBot-invTop)-16,"Hybrid inverter",{anchor:"middle",size:9.5,fill:"#56616a"});
     // AC terminals on the left
     const acIn=[invTop+168,invTop+182], acOut=[invTop+214,invTop+228];
-    [[acIn,"AC IN","from DB breaker (INV)"],[acOut,"AC OUT",s.inv.bypass?"to bypass switch":whole?"to board (backup)":"to backup section"]].forEach(([ys,head,sub])=>{
+    const ac2=s.cables?` · ${acTxt(s.inv.feedA)}`:"";
+    [[acIn,"AC IN","from DB breaker (INV)"+ac2],[acOut,"AC OUT",(s.inv.bypass?"to bypass switch":whole?"to board (backup)":"to backup section")+ac2]].forEach(([ys,head,sub])=>{
       reg+=wire(`M${invX} ${ys[0]} H${invX-40}`,C.L)+wire(`M${invX} ${ys[1]} H${invX-40}`,C.N);
       reg+=screw(invX+10,ys[0])+screw(invX+10,ys[1]);
       reg+=txt(invX-48,ys[0]+4,head,{anchor:"end",size:11.5,weight:700,fill:"#8a6400"});
@@ -727,6 +743,7 @@ function buildSvg(){
       const ibP=invX+invW-36, ibN=invX+invW-62;
       dw+=wire(`M${Lp(bt2)} ${dcDevTop} V${routeLo} H${ibP} V${invTop}`,DCP,3.4);
       dw+=wire(`M${Ln(bt2)} ${dcDevTop} V${routeHi} H${ibN} V${invTop}`,DCN,3.4);
+      if(s.cables){const bc=battCable(s.batt.a); dw+=txt((ibP+Lp(bt2))/2,routeHi-8,bc?`Battery cable ${bc} mm² (keep short)`:"Battery cable: ask electrician",{anchor:"middle",size:10.5,weight:700,fill:"#1f2a33"})}
       reg+=screw(ibP,invTop+10)+screw(ibN,invTop+10);
       reg+=txt(ibN,invTop+28,"BAT−",{anchor:"middle",size:8,weight:700,fill:"#56616a"})+txt(ibP,invTop+28,"BAT+",{anchor:"middle",size:8,weight:700,fill:"#56616a"});
     }
@@ -751,6 +768,7 @@ function buildSvg(){
       const iy=invX+invW;
       dw+=wire(`M${Lp(pvI)} ${dcDevBot} V${pvRouteP} H${iy}`,DCP,3.4);
       dw+=wire(`M${Ln(pvI)} ${dcDevBot} V${pvRouteN} H${iy}`,DCN,3.4);
+      if(s.cables) dw+=txt(iy+10,pvRouteP-8,`PV cable ${pvCable(s.pv.isoA)} mm²`,{size:10,weight:700});
       reg+=screw(iy-10,pvRouteP)+screw(iy-10,pvRouteN);
       reg+=txt(iy-20,pvRouteP+4,"PV+",{anchor:"end",size:8,weight:700,fill:"#56616a"})+txt(iy-20,pvRouteN+4,"PV−",{anchor:"end",size:8,weight:700,fill:"#56616a"});
     }
@@ -761,14 +779,15 @@ function buildSvg(){
   // ---- details and circuit list ----
   const ty=regBot+34;
   const rowH=19, perCol=12;
-  const colW=split?300:250;
+  const colW=(split?300:250)+(s.cables?100:0);
+  const sizeX=s.cables?colW-84:colW-12, backX=s.cables?sizeX-118:colW-78;
   const schRowsAll=allNum.map(c=>({no:String(nums.get(c.id)),name:c.name||"Circuit "+nums.get(c.id),a:c.a,b:onBackup(c)}));
   if(inv) schRowsAll.push({no:"INV",name:"Inverter supply",a:s.inv.feedA,b:false,inv:true});
   const nRows=schRowsAll.length;
   const cols=Math.max(1,Math.ceil(nRows/perCol));
   const tbW=330, tbX=M;
   const schX=tbX+tbW+28, schW=cols*colW;
-  const W=Math.max(EX+EW+M, regRight+M, schX+schW+M);
+  const W=Math.max(EX+EW+M, regRight+M, schX+schW+M, s.cables?990:0);
 
   const today=new Date().toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"});
   const rows=[["Board",s.name||"DB board",true],["Supply","Single phase 230 V"],["Main switch",s.mainA+" A double pole"],
@@ -781,7 +800,9 @@ function buildSvg(){
     if(s.pv.on) rows.push(["Solar",`${s.pv.panels} panels, ${s.pv.isoA} A DC isolator`]);
     if(s.pv.on) rows.push(["DC surge arrester",s.pv.spd?"Fitted":"None"]);
   }
-  rows.push(["Circuits",String(s.circuits.length)],["Date",today]);
+  rows.push(["Circuits",String(s.circuits.length)]);
+  if(s.cables) rows.push(["Cable sizes","SANS 10142-1 guide"]);
+  rows.push(["Date",today]);
   const keys=[[C.L,C.Lname,null],[C.N,C.Nname,null],[C.E,C.Ename,C.Eband]];
   if(inv&&(s.batt.on||s.pv.on)) keys.push([DCP,"DC positive + (red)",null],[DCN,"DC negative − (black)",null]);
   const tbH=30+rows.length*19+12+keys.length*16+14;
@@ -803,8 +824,9 @@ function buildSvg(){
     const cx=schX+cI*colW;
     if(cI>0) sc+=`<path d="M${cx} ${ty} V${ty+schH}" stroke="#c9d0d4"/>`;
     sc+=txt(cx+12,ty+20,"NO.",{size:10,weight:700,ls:1,fill:"#3b4650"})+txt(cx+48,ty+20,"CIRCUIT",{size:10,weight:700,ls:1,fill:"#3b4650"});
-    if(split) sc+=txt(cx+colW-78,ty+20,"BACKUP",{size:10,weight:700,ls:1,fill:"#3b4650"});
-    sc+=txt(cx+colW-12,ty+20,"SIZE",{anchor:"end",size:10,weight:700,ls:1,fill:"#3b4650"});
+    if(split) sc+=txt(cx+backX,ty+20,"BACKUP",{size:10,weight:700,ls:1,fill:"#3b4650"});
+    sc+=txt(cx+sizeX,ty+20,"BREAKER",{anchor:"end",size:10,weight:700,ls:1,fill:"#3b4650"});
+    if(s.cables) sc+=txt(cx+colW-12,ty+20,"CABLE",{anchor:"end",size:10,weight:700,ls:1,fill:"#3b4650"});
   }
   if(nRows===0) sc+=txt(schX+12,ty+44,"No circuits yet",{fill:"#5b6670"});
   schRowsAll.forEach((r,i)=>{
@@ -813,11 +835,20 @@ function buildSvg(){
     const maxLen=split?22:26;
     sc+=txt(cx+12,yy,r.no,{size:11.5,weight:700,fill:r.inv?"#8a6400":"#1f2a33"});
     sc+=txt(cx+48,yy,r.name.length>maxLen?r.name.slice(0,maxLen-1)+"…":r.name,{size:11.5});
-    if(split&&r.b) sc+=`<rect x="${cx+colW-78}" y="${yy-10}" width="34" height="13" rx="3" fill="#f6dc8f"/>`+txt(cx+colW-61,yy,"Yes",{anchor:"middle",size:9.5,weight:700,fill:"#5a4300"});
-    sc+=txt(cx+colW-12,yy,r.a+" A",{anchor:"end",size:11.5});
+    if(split&&r.b) sc+=`<rect x="${cx+backX}" y="${yy-10}" width="34" height="13" rx="3" fill="#f6dc8f"/>`+txt(cx+backX+17,yy,"Yes",{anchor:"middle",size:9.5,weight:700,fill:"#5a4300"});
+    sc+=txt(cx+sizeX,yy,r.a+" A",{anchor:"end",size:11.5});
+    if(s.cables){const c=acCable(r.a); sc+=txt(cx+colW-12,yy,c?c+" mm²":"ask",{anchor:"end",size:11.5,weight:700})}
   });
 
-  const H=ty+Math.max(tbH,schH)+M;
+  let note="", noteH=0;
+  if(s.cables){
+    const ny=ty+Math.max(tbH,schH)+22;
+    note=txt(M,ny,"Cable sizes: SANS 10142-1 current ratings for Surfix in conduit (1.5 mm² 16.5 A, 2.5 mm² 23 A, 4 mm² 30 A, 6 mm² 38 A, 10 mm² 52 A, 16 mm² 69 A, 25 mm² 90 A).",{size:10,fill:"#3b4650"})+
+      txt(M,ny+15,"Battery and solar cable sizes are typical for short runs. Long runs, roof spaces or bunched cables may need thicker cable. A registered electrician must confirm all sizes.",{size:10,fill:"#3b4650"});
+    noteH=40;
+  }
+  sc+=note;
+  const H=ty+Math.max(tbH,schH)+noteH+M;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Drawing of ${esc(s.name||"the DB board")}">`+
     `<rect width="${W}" height="${H}" fill="#fbfcfc"/>`+g+w+dv+bt+reg+tb+sc+`</svg>`;
 }
