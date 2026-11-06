@@ -113,6 +113,17 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
     <form class="panel" id="panel" autocomplete="off">
       <div class="sec">
         <h2>Report</h2>
+        <div id="photoArea" class="sub-sec" hidden>
+          <h3>Read a board from a photo</h3>
+          <label>Photo of the board<input type="file" id="photoIn" accept="image/jpeg,image/png,image/webp"></label>
+          <label>Anything the photo can't show (optional)<input type="text" id="photoInfo" maxlength="300" placeholder="For example: 5 kW Sunsynk inverter, three-phase supply"></label>
+          <div class="toolbar">
+            <button type="button" class="btn" id="readPhoto">Read board from photo</button>
+            <button type="button" class="btn ghost" id="stopPhoto" hidden>Stop</button>
+          </div>
+          <p class="hint" id="photoMsg" aria-live="polite">This replaces the board you have now, and any corrected version.</p>
+        </div>
+        <p class="hint" id="photoNo" hidden>Reading a board from a photo works in the Claude version of this designer. Here, you can load a board code instead.</p>
         <div class="seg" role="group" aria-label="Which drawing to show">
           <button type="button" id="viewFound" data-view="found">As found</button>
           <button type="button" id="viewFixed" data-view="fixed">Corrected</button>
@@ -499,6 +510,95 @@ function renderFix(){
   else a.innerHTML=`<button type="button" class="btn" data-fix="make">${boards.fixed?"Remake corrected version":"Make corrected version"}</button>`;
 }
 
+/* ---------- read a board from a photo (Claude version only) ---------- */
+let sampleFn=null, photoCtl=null;
+function nearest(list,v){v=+v; if(!isFinite(v)) return list[0]; return list.reduce((b,x)=>Math.abs(x-v)<Math.abs(b-v)?x:b,list[0])}
+const PHOTO_PROMPT=`You are helping a South African electrician document an existing electrical distribution board (DB board) from a photo.
+Look carefully at the photo and read every device you can see.
+
+Rules:
+- List every circuit breaker (MCB) in order: top row first, left to right, then the next row. Do not list the main switch, earth leakage, surge arrester, timers or contactors as circuits.
+- "a" is the breaker's amp rating as printed (for example 10, 15, 20, 30, 40). If you can't read it, use your best guess and add a line to "unsure".
+- "name": use the circuit label if one is written on or near the breaker; otherwise use "Top 1", "Top 2" ... for the top row and "Bottom 1" ... for the next row (or "Row 3 1" and so on).
+- "noEl": true if that breaker is clearly NOT fed through the earth leakage unit (for example a separate row or busbar fed straight from the main switch). If you can't tell, use false.
+- "phases": 3 if the main switch has 3 or 4 poles or you can see three phase colours (red, yellow/white, blue) coming in; otherwise 1.
+- "ph": for three-phase boards, the phase each breaker is on if you can tell, otherwise spread them L1, L2, L3 in order. For single phase use "L1".
+- "mainA": main switch rating. "el": the earth leakage unit (on, amp rating "a", trip level "ma" in mA, usually 30). "elType": "A" or "AC" if printed, else "AC".
+- "spd": true only if you can see a surge arrester.
+- "curve": breaker trip curve (B, C or D; curve 3 counts as C). "ka": breaking capacity in kA as printed (often 3, 4.5, 6 or 10).
+- "inverter": present true only if you can see an inverter, changeover/bypass switch or clear signs of one.
+- "notes": short, plain-English descriptions of visible problems an electrician should fix, for example burn or scorch marks, melted insulation, taped joints, loose or exposed wires, missing covers or blanking plates, overcrowding, wrong-coloured conductors, signs of water. Only what you can actually see.
+- "unsure": short notes about anything you could not read or had to guess.
+
+Reply with only this JSON, no other text:
+{"name":"Board from photo","phases":1,"mainA":63,"el":{"on":true,"a":63,"ma":30},"elType":"AC","spd":false,"curve":"C","ka":3,
+ "circuits":[{"name":"Top 1","a":20,"noEl":false,"ph":"L1"}],
+ "inverter":{"present":false,"kw":null},
+ "notes":["..."],"unsure":["..."]}`;
+function boardFromReading(r){
+  const phases=+r.phases===3?3:1;
+  const el=r.el&&typeof r.el==="object"?r.el:{};
+  const circuits=(Array.isArray(r.circuits)?r.circuits:[]).slice(0,MAX_CIRCUITS).map((c,i)=>({
+    name:String(c&&c.name||("Circuit "+(i+1))).slice(0,28),
+    a:nearest(CB_SIZES,c&&c.a),
+    backup:false,
+    noEl:!!(c&&c.noEl),
+    ph:PHS.includes(c&&c.ph)?c.ph:PHS[i%3]
+  }));
+  const invP=r.inverter&&r.inverter.present===true;
+  const notes=(Array.isArray(r.notes)?r.notes:[]).map(String).filter(Boolean)
+    .concat((Array.isArray(r.unsure)?r.unsure:[]).map(x=>"Check: "+String(x)).filter(x=>x.length>7));
+  return normalize({
+    name:String(r.name||"Board from photo").slice(0,60),
+    colours:"red", phases, cables:true,
+    specs:{curve:["B","C","D"].includes(r.curve)?r.curve:"C",ka:nearest([3,4.5,6,10],r.ka||3),elType:r.elType==="A"?"A":"AC",spdKa:40},
+    mainA:nearest(MAIN_SIZES,r.mainA||63),
+    el:{on:el.on!==false&&el.on!==undefined?!!el.on:false,a:nearest(EL_SIZES,el.a||63),ma:nearest(EL_MA,el.ma||30)},
+    spd:r.spd===true,
+    inv:{...clone(DEFAULTS.inv),on:invP,kw:invP&&r.inverter.kw?nearest(INV_KW,r.inverter.kw):5},
+    batt:clone(DEFAULTS.batt), pv:clone(DEFAULTS.pv),
+    circuits, notes, changes:[]
+  });
+}
+function photoMsg(t){$("photoMsg").textContent=t}
+async function readPhoto(){
+  const file=$("photoIn").files&&$("photoIn").files[0];
+  if(!file){photoMsg("Choose a photo of the board first."); return}
+  if(!sampleFn){photoMsg("Reading photos isn't available here."); return}
+  const extra=$("photoInfo").value.trim();
+  photoCtl=new AbortController();
+  $("readPhoto").disabled=true; $("stopPhoto").hidden=false;
+  photoMsg("Reading the photo… this can take a minute or two.");
+  try{
+    const r=await sampleFn.json(PHOTO_PROMPT+(extra?`\n\nThe person also says: "${extra.replace(/"/g,"'")}"`:""),{images:[file],modelTier:"complex",signal:photoCtl.signal,cache:false});
+    if(!r||typeof r!=="object"||!Array.isArray(r.circuits)) throw {code:"invalid_json"};
+    const b=boardFromReading(r);
+    setBoards(b,null); confirming=null; syncControls(); changed();
+    photoMsg(`Read ${b.circuits.length} circuit${b.circuits.length===1?"":"s"}. Compare the drawing with the photo and fix anything that's wrong. Lines starting with "Check:" are things that were hard to read.`);
+  }catch(e){
+    const c=e&&e.code;
+    const msgs={cancelled:"Stopped.",not_granted:"Claude wasn't allowed to read the photo. Allow it when asked, or load a board code instead.",
+      image_rejected:"That photo couldn't be used. Try a JPEG or PNG under 20 MB.",rate_limited:"Too many requests right now. Wait a few minutes and try again.",
+      refused:"The photo couldn't be read. Try a clearer photo of the board.",invalid_json:"The answer couldn't be turned into a board. Try again, or with a clearer photo.",
+      session_expired:"Please sign in to Claude again, then try again.",images_unavailable:"Sending photos isn't available here."};
+    photoMsg(msgs[c]||"Something went wrong reading the photo. Try again in a moment.");
+    if(["not_granted","sampling_disabled","images_unavailable","capability_disabled","capability_removed","not_declared"].includes(c)){ $("photoArea").hidden=true; $("photoNo").hidden=false; }
+  }finally{
+    $("readPhoto").disabled=false; $("stopPhoto").hidden=true; photoCtl=null;
+  }
+}
+(async()=>{
+  try{
+    if(!window.claude||typeof window.claude.use!=="function"){ $("photoNo").hidden=false; return }
+    const smp=await window.claude.use("sample");
+    const lim=smp?await smp.limits().catch(()=>null):null;
+    if(!smp||!lim||!lim.images){ $("photoNo").hidden=false; return }
+    sampleFn=smp;
+    if(lim.images.mediaTypes&&lim.images.mediaTypes.length) $("photoIn").accept=lim.images.mediaTypes.join(",");
+    $("photoArea").hidden=false;
+  }catch(e){ $("photoNo").hidden=false }
+})();
+
 /* ---------- settings panel ---------- */
 function setPressed(id,on){$(id).setAttribute("aria-pressed",on)}
 function syncControls(){
@@ -615,6 +715,8 @@ function neighbour(i,dir){
 $("panel").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
   const s=state;
+  if(b.id==="readPhoto"){readPhoto(); return}
+  if(b.id==="stopPhoto"){if(photoCtl) photoCtl.abort(); return}
   if(b.dataset.view){setView(b.dataset.view); return}
   if(b.dataset.fix){
     const f=b.dataset.fix;

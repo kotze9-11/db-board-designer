@@ -14,6 +14,7 @@ A simple tool for drawing a single-phase DB (distribution) board.
 - Share a board as a code, or load a board from a code
 - Single-phase and three-phase boards, and circuits that are not on the earth leakage
 - Report mode: an automatic "Problems found" list, a "Make corrected version" button, and a two-page PDF (as found + corrected)
+- Read a board from a photo (only in the Claude version, because it uses Claude to read the photo)
 - Save the drawing as a picture or as an A4 or A3 PDF
 
 Open `index.html` in any web browser to use it. Your board is remembered in that browser.
