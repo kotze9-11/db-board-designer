@@ -135,6 +135,18 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
       <div class="sec">
         <h2>Surge protection</h2>
         <label class="toggle"><input type="checkbox" id="spd"> Fit an AC surge arrester</label>
+        <label id="spdKaWrap">Surge arrester rating<select id="spdKa"><option value="20">Type 2 · 20 kA · 275 V</option><option value="40">Type 2 · 40 kA · 275 V</option></select></label>
+      </div>
+
+      <div class="sec">
+        <h2>Breaker ratings</h2>
+        <div class="row2">
+          <label>Trip curve<select id="curve"><option value="B">B curve</option><option value="C">C curve</option><option value="D">D curve</option></select></label>
+          <label>Breaking capacity<select id="ka"><option value="3">3 kA</option><option value="4.5">4.5 kA</option><option value="6">6 kA</option><option value="10">10 kA</option></select></label>
+        </div>
+        <p class="hint">Trip curve: B for lights and plugs, C for general use and small motors, D for big motors. Breaking capacity is the biggest fault the breaker can safely switch off. It must be at least the fault level at the board, so ask the electrician or the municipality. 6 kA is common for homes.</p>
+        <label>Earth leakage type<select id="elType"><option value="A">Type A</option><option value="AC">Type AC</option></select></label>
+        <p class="hint">Type A also picks up the pulsing DC leakage that inverters and electronics can cause, so it is the better choice with an inverter.</p>
       </div>
 
       <div class="sec">
@@ -177,6 +189,8 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
                 </div>
               </div>
               <label>Rating<select id="battA"></select></label>
+              <label id="battVWrap">DC voltage rating<select id="battDcV"><option value="125">125 V DC</option><option value="250">250 V DC</option><option value="500">500 V DC</option></select></label>
+              <label id="fuseWrap">Fuse type<select id="fuseType"><option value="NH">NH (blade) fuse</option><option value="ANL">ANL fuse</option><option value="Class T">Class T fuse</option></select></label>
             </div>
           </div>
 
@@ -187,6 +201,7 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
                 <label>Number of panels<input type="number" id="pvPanels" min="1" max="40" step="1"></label>
                 <label>DC isolator<select id="pvIsoA"></select></label>
               </div>
+              <label>DC voltage rating (isolator and surge arrester)<select id="pvV"><option value="600">600 V DC</option><option value="1000">1000 V DC</option></select></label>
               <label class="toggle"><input type="checkbox" id="pvSpd"> DC surge arrester</label>
             </div>
           </div>
@@ -249,21 +264,21 @@ const PV_ISO=[16,25,32,40,50];
 const PRESETS=[["Lights",10,true],["Plugs",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Pool pump",16,false],["Gate motor",10,true],["Outside lights",10,true],["Borehole",16,false],["TV & Wi-Fi",16,true]];
 const MAX_CIRCUITS=30;
 
-const DEFAULTS={name:"My board",colours:"red",cables:true,mainA:63,el:{on:true,a:63,ma:30},spd:true,
+const DEFAULTS={name:"My board",colours:"red",cables:true,specs:{curve:"C",ka:6,elType:"A",spdKa:40},mainA:63,el:{on:true,a:63,ma:30},spd:true,
   inv:{on:false,kw:5,v:48,mode:"split",feedA:32,bypass:false,ne:"contactor"},
-  batt:{on:true,ah:100,prot:"breaker",a:125},
-  pv:{on:true,panels:8,isoA:32,spd:true},circuits:[]};
-const EXAMPLE={name:"Example house",colours:"red",cables:true,mainA:63,el:{on:true,a:63,ma:30},spd:true,
+  batt:{on:true,ah:100,prot:"breaker",a:125,dcV:250,fuse:"NH"},
+  pv:{on:true,panels:8,isoA:32,spd:true,v:1000},circuits:[]};
+const EXAMPLE={name:"Example house",colours:"red",cables:true,specs:{curve:"C",ka:6,elType:"A",spdKa:40},mainA:63,el:{on:true,a:63,ma:30},spd:true,
   inv:{on:true,kw:5,v:48,mode:"split",feedA:32,bypass:true,ne:"contactor"},
-  batt:{on:true,ah:100,prot:"breaker",a:125},
-  pv:{on:true,panels:8,isoA:32,spd:true},
+  batt:{on:true,ah:100,prot:"breaker",a:125,dcV:250,fuse:"NH"},
+  pv:{on:true,panels:8,isoA:32,spd:true,v:1000},
   circuits:[["Lights",10,true],["Plugs kitchen",20,true],["Plugs lounge",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Outside lights",10,true],["Gate motor",10,true]].map(([n,a,b])=>({name:n,a,backup:b}))};
 
 let uid=1;
 function clone(o){return JSON.parse(JSON.stringify(o))}
 function normalize(s){
   const d=clone(DEFAULTS);
-  const out={...d,...s,el:{...d.el,...(s.el||{})},inv:{...d.inv,...(s.inv||{})},batt:{...d.batt,...(s.batt||{})},pv:{...d.pv,...(s.pv||{})}};
+  const out={...d,...s,specs:{...d.specs,...(s.specs||{})},el:{...d.el,...(s.el||{})},inv:{...d.inv,...(s.inv||{})},batt:{...d.batt,...(s.batt||{})},pv:{...d.pv,...(s.pv||{})}};
   out.circuits=(Array.isArray(s.circuits)?s.circuits:[]).map(c=>({id:uid++,name:String(c.name??""),a:+c.a||20,backup:!!c.backup}));
   return out;
 }
@@ -325,6 +340,9 @@ function syncControls(){
   $("battAh").value=s.batt.ah; $("battA").value=s.batt.a;
   setPressed("protBreaker",s.batt.prot==="breaker"); setPressed("protFuse",s.batt.prot==="fuse");
   $("pvOn").checked=s.pv.on; $("pvOpts").hidden=!s.pv.on;
+  $("curve").value=s.specs.curve; $("ka").value=s.specs.ka; $("elType").value=s.specs.elType; $("spdKa").value=s.specs.spdKa; $("spdKaWrap").hidden=!s.spd;
+  $("battDcV").value=s.batt.dcV; $("fuseType").value=s.batt.fuse; $("battVWrap").hidden=s.batt.prot!=="breaker"; $("fuseWrap").hidden=s.batt.prot!=="fuse";
+  $("pvV").value=s.pv.v;
   $("pvPanels").value=s.pv.panels; $("pvIsoA").value=s.pv.isoA; $("pvSpd").checked=s.pv.spd;
   renderCircuits(); renderReset();
 }
@@ -384,6 +402,7 @@ $("panel").addEventListener("input",e=>{
 $("panel").addEventListener("change",e=>{
   const t=e.target, s=state;
   const map={mainA:v=>s.mainA=+v,elA:v=>s.el.a=+v,elMa:v=>s.el.ma=+v,invKw:v=>s.inv.kw=+v,invV:v=>s.inv.v=+v,invFeedA:v=>s.inv.feedA=+v,
+    curve:v=>s.specs.curve=v,ka:v=>s.specs.ka=+v,elType:v=>s.specs.elType=v,spdKa:v=>s.specs.spdKa=+v,battDcV:v=>s.batt.dcV=+v,fuseType:v=>s.batt.fuse=v,pvV:v=>s.pv.v=+v,
     battAh:v=>s.batt.ah=+v,battA:v=>s.batt.a=+v,pvIsoA:v=>s.pv.isoA=+v};
   if(map[t.id]){map[t.id](t.value); return changed()}
   if(t.id==="pvPanels"){t.value=s.pv.panels; return}
@@ -472,6 +491,12 @@ function ground(x,y,col){
   return `<path d="M${x} ${y} v10 M${x-10} ${y+10} h20 M${x-6} ${y+15} h12 M${x-2.5} ${y+20} h5" stroke="${col||"#2f9a3a"}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
 }
 
+let SP={curve:"C",ka:6,elType:"A",spdKa:40};
+const kaTxt=()=>SP.ka+"kA";
+function kaBox(cx,y){
+  const v=String(Math.round(SP.ka*1000));
+  return `<rect x="${cx-13}" y="${y}" width="26" height="11" fill="#ffffff" stroke="#1f2a33" stroke-width="0.9"/>`+txt(cx,y+8.5,v,{anchor:"middle",size:7,weight:700});
+}
 function deviceSvg(d){
   const {x,w,y,h}=d, mod=d.mod||P;
   let s=`<rect x="${x+1}" y="${y}" width="${w-2}" height="${h}" rx="4" fill="#ffffff" stroke="#97a1a8" stroke-width="1.2"/>`;
@@ -481,10 +506,10 @@ function deviceSvg(d){
   const t=(ty,v,size,weight,col)=>txt(cx,ty,v,{anchor:"middle",size,weight:weight||400,fill:col});
   const handle=(col,yy)=>`<rect x="${x+8}" y="${y+(yy||52)}" width="${w-16}" height="44" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+12}" y="${y+(yy||52)+4}" width="${w-24}" height="20" rx="2" fill="${col}"/>`;
   switch(d.k){
-    case "main": s+=t(y+30,"MAIN",9,700)+t(y+42,d.a+"A",10,700)+handle("#d8231b")+t(y+111,"DP ISOLATOR",7,400,"#56616a"); break;
-    case "el": s+=t(y+30,"E/L",9,700)+t(y+42,d.a+"A  "+d.ma+"mA",8.5,700)+handle("#1f5fbf")+
+    case "main": s+=t(y+30,"MAIN",9,700)+t(y+42,d.a+"A",10,700)+handle("#d8231b")+t(y+105,"2P ISOLATOR",6.8,700,"#56616a")+t(y+114,"400V~",6.8,400,"#56616a"); break;
+    case "el": s+=t(y+25,"E/L  TYPE "+SP.elType,8,700)+t(y+36,d.a+"A  "+d.ma+"mA",8.5,700)+t(y+47,kaTxt()+"  2P",7,400,"#56616a")+handle("#1f5fbf")+
       `<rect x="${cx-8}" y="${y+102}" width="16" height="11" rx="2" fill="#f1c40f" stroke="#a9880a"/>`+t(y+111,"T",8,700); break;
-    case "spd": s+=t(y+30,"SURGE",9,700)+t(y+42,"AC",7.5,700,"#56616a")+
+    case "spd": s+=t(y+28,"SURGE  T2",8.5,700)+t(y+40,SP.spdKa+"kA  275V",7.5,700,"#56616a")+
       `<rect x="${x+10}" y="${y+56}" width="${w-20}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/><rect x="${cx-9}" y="${y+60}" width="18" height="8" rx="1.5" fill="#33b04a"/>`+t(y+90,"L  N  E",7.5,700,"#56616a"); break;
     case "nebond":
       s+=t(y+27,"N-E BOND",8.5,700)+t(y+39,"CONTACTOR",7.5,700,"#56616a")+t(y+51,"63A · 230V coil",7,400,"#56616a");
@@ -503,22 +528,22 @@ function deviceSvg(d){
     case "invout": s+=t(y+30,"FROM",8,700)+t(y+41,"INVERTER",7.5,700)+handle("#e8a400")+t(y+111,"BACKUP IN",7,400,"#56616a"); break;
     case "cbinv":
       s+=`<rect x="${x+2}" y="${y+1}" width="${w-4}" height="14" fill="#fff4d6"/>`+screw(cx,y+9);
-      s+=t(y+30,"C"+d.a,9.5,700)+`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`+
+      s+=t(y+28,SP.curve+d.a,9.5,700)+kaBox(cx,y+33)+`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`+
         `<rect x="${x+4}" y="${y+102}" width="${w-8}" height="14" rx="2" fill="#f2b72e" stroke="#b78a10"/>`+t(y+113,"INV",8,700); break;
     case "cb":
-      s+=t(y+30,"C"+d.c.a,9.5,700)+`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`+
+      s+=t(y+28,SP.curve+d.c.a,9.5,700)+kaBox(cx,y+33)+`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`+
         `<rect x="${x+5}" y="${y+102}" width="${w-10}" height="14" rx="2" fill="#f4f6f7" stroke="#c3c9cd"/>`+t(y+113,String(d.num),9,700); break;
-    case "pviso": s+=t(y+28,"PV DC",8.5,700)+t(y+40,"ISOLATOR",7.5,700)+t(y+52,d.a+"A  1000V",7.5,400,"#56616a")+
+    case "pviso": s+=t(y+28,"PV DC",8.5,700)+t(y+40,"ISOLATOR",7.5,700)+t(y+52,d.a+"A  "+state.pv.v+"V DC",7.5,400,"#56616a")+
       `<rect x="${x+14}" y="${y+60}" width="${w-28}" height="30" rx="15" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${cx-22}" y="${y+70}" width="44" height="10" rx="4" fill="#d8231b"/>`+t(y+102,"+       −",9,700,"#56616a"); break;
-    case "dcspd": s+=t(y+28,"SURGE",8.5,700)+t(y+40,"DC (PV)",7.5,700,"#56616a")+
+    case "dcspd": s+=t(y+28,"SURGE",8.5,700)+t(y+40,"T2  "+state.pv.v+"V DC",7.5,700,"#56616a")+
       `<rect x="${x+12}" y="${y+54}" width="${w-24}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/><rect x="${cx-9}" y="${y+58}" width="18" height="8" rx="1.5" fill="#33b04a"/>`+t(y+92,"+    E    −",8,700,"#56616a"); break;
     case "batt":
       if(d.prot==="fuse"){
-        s+=t(y+28,"BATTERY",8.5,700)+t(y+40,"FUSE "+d.a+"A",7.5,700,"#56616a");
+        s+=t(y+28,"BATTERY",8.5,700)+t(y+40,state.batt.fuse+" FUSE",7.5,700,"#56616a")+t(y+50,d.a+"A",8,700);
         s+=`<rect x="${x+10}" y="${y+52}" width="${w-20}" height="34" rx="4" fill="#2b2f33"/><rect x="${x+18}" y="${y+60}" width="${w-36}" height="18" rx="3" fill="#e2e5e7" stroke="#8b949b"/>`;
         s+=t(y+102,"+       −",9,700,"#56616a");
       }else{
-        s+=t(y+28,"BATTERY",8.5,700)+t(y+40,"DC BREAKER",7.5,700,"#56616a")+t(y+52,d.a+"A",8.5,700);
+        s+=t(y+28,"BATTERY",8.5,700)+t(y+40,"DC BREAKER",7.5,700,"#56616a")+t(y+52,d.a+"A  "+state.batt.dcV+"V DC",7.5,700);
         s+=`<rect x="${x+8}" y="${y+58}" width="${w-16}" height="32" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+12}" y="${y+62}" width="${w-24}" height="14" rx="2" fill="#2b2f33"/>`;
         s+=t(y+102,"+       −",9,700,"#56616a");
       }
@@ -529,6 +554,7 @@ function deviceSvg(d){
 
 function buildSvg(){
   const C=colours(), s=state;
+  SP=s.specs;
   const inv=s.inv.on, split=isSplit(), whole=isWhole();
   const G=groups();
   const nums=new Map(); ordered().forEach((c,i)=>nums.set(c.id,i+1));
@@ -805,8 +831,8 @@ function buildSvg(){
   // ---- details and circuit list ----
   const ty=regBot+34;
   const rowH=19, perCol=12;
-  const colW=(split?300:250)+(s.cables?100:0);
-  const sizeX=s.cables?colW-84:colW-12, backX=s.cables?sizeX-118:colW-78;
+  const colW=(split?340:290)+(s.cables?100:0);
+  const sizeX=s.cables?colW-84:colW-12, backX=s.cables?sizeX-118:colW-130;
   const schRowsAll=allNum.map(c=>({no:String(nums.get(c.id)),name:c.name||"Circuit "+nums.get(c.id),a:c.a,b:onBackup(c)}));
   if(inv) schRowsAll.push({no:"INV",name:"Inverter supply",a:s.inv.feedA,b:false,inv:true});
   const nRows=schRowsAll.length;
@@ -817,15 +843,16 @@ function buildSvg(){
 
   const today=new Date().toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"});
   const rows=[["Board",s.name||"DB board",true],["Supply","Single phase 230 V"],["Main switch",s.mainA+" A double pole"],
-    ["Earth leakage",s.el.on?`${s.el.a} A, ${s.el.ma} mA${inv?" (each section)":""}`:"None"],["AC surge arrester",s.spd?"Fitted":"None"]];
+    ["Breakers",`${s.specs.curve} curve, ${s.specs.ka} kA`],
+    ["Earth leakage",s.el.on?`${s.el.a} A, ${s.el.ma} mA, Type ${s.specs.elType}${inv?" (each)":""}`:"None"],["AC surge arrester",s.spd?`Type 2, ${s.specs.spdKa} kA, 275 V`:"None"]];
   if(inv){
     rows.push(["Inverter",`${s.inv.kw} kW, ${s.inv.v} V`]);
     rows.push(["On backup",whole?"Whole board":`${G.back.length} of ${s.circuits.length} circuits`]);
     rows.push(["Bypass switch",s.inv.bypass?"Fitted":"None"]);
     rows.push(["N-E bond on backup",s.inv.ne==="contactor"?"Bond contactor in DB":"Built into inverter"]);
-    if(s.batt.on) rows.push(["Battery",`${s.inv.v} V ${s.batt.ah} Ah, ${s.batt.a} A ${s.batt.prot==="fuse"?"fuse":"DC breaker"}`]);
-    if(s.pv.on) rows.push(["Solar",`${s.pv.panels} panels, ${s.pv.isoA} A DC isolator`]);
-    if(s.pv.on) rows.push(["DC surge arrester",s.pv.spd?"Fitted":"None"]);
+    if(s.batt.on) rows.push(["Battery",`${s.inv.v} V ${s.batt.ah} Ah`],["Battery protection",s.batt.prot==="fuse"?`${s.batt.a} A ${s.batt.fuse} fuse`:`${s.batt.a} A DC breaker, ${s.batt.dcV} V DC`]);
+    if(s.pv.on) rows.push(["Solar",`${s.pv.panels} panels`],["PV isolator",`${s.pv.isoA} A, ${s.pv.v} V DC`]);
+    if(s.pv.on) rows.push(["DC surge arrester",s.pv.spd?`Type 2, ${s.pv.v} V DC`:"None"]);
   }
   rows.push(["Circuits",String(s.circuits.length)]);
   if(s.cables) rows.push(["Cable sizes","SANS 10142-1 guide"]);
@@ -863,7 +890,7 @@ function buildSvg(){
     sc+=txt(cx+12,yy,r.no,{size:11.5,weight:700,fill:r.inv?"#8a6400":"#1f2a33"});
     sc+=txt(cx+48,yy,r.name.length>maxLen?r.name.slice(0,maxLen-1)+"…":r.name,{size:11.5});
     if(split&&r.b) sc+=`<rect x="${cx+backX}" y="${yy-10}" width="34" height="13" rx="3" fill="#f6dc8f"/>`+txt(cx+backX+17,yy,"Yes",{anchor:"middle",size:9.5,weight:700,fill:"#5a4300"});
-    sc+=txt(cx+sizeX,yy,r.a+" A",{anchor:"end",size:11.5});
+    sc+=txt(cx+sizeX,yy,`${s.specs.curve}${r.a} · ${s.specs.ka} kA`,{anchor:"end",size:11.5});
     if(s.cables){const c=acCable(r.a); sc+=txt(cx+colW-12,yy,c?c+" mm²":"ask",{anchor:"end",size:11.5,weight:700})}
   });
 

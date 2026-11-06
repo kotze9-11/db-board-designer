@@ -9,6 +9,7 @@ A simple tool for drawing a single-phase DB (distribution) board.
 - Put the whole board on backup, or split it into grid-only and backup sections
 - Add a bypass (changeover) switch so the backup circuits can run straight from the grid
 - Show the neutral-earth bond for backup: a bond contactor in the DB, or built into the inverter
+- Breaker ratings: trip curve, breaking capacity (kA), earth leakage type, surge arrester and DC voltage ratings
 - Cable sizes for each circuit, based on the SANS 10142-1 current ratings (to be confirmed by a registered electrician)
 - Save the drawing as a picture
 
