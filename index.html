@@ -155,6 +155,14 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
           <p class="hint" id="modeHint"></p>
           <label class="toggle"><input type="checkbox" id="invBypass"> Bypass switch (changeover)</label>
           <p class="hint">Lets you switch the backup circuits straight to the grid, so the inverter can be switched off, worked on or removed.</p>
+          <div>
+            <label style="margin-bottom:4px">Neutral-earth bond on backup</label>
+            <div class="seg" role="group" aria-label="Neutral-earth bond on backup">
+              <button type="button" id="neCont" data-ne="contactor">Bond contactor</button>
+              <button type="button" id="neBuilt" data-ne="builtin">Built into inverter</button>
+            </div>
+          </div>
+          <p class="hint">Joins neutral to earth only while the grid is off, so the backup earth leakage still works. Most single-phase hybrid inverters need the contactor.</p>
           <label>Breaker feeding the inverter<select id="invFeedA"></select></label>
 
           <div class="sub-sec">
@@ -242,11 +250,11 @@ const PRESETS=[["Lights",10,true],["Plugs",20,true],["Geyser",20,false],["Stove"
 const MAX_CIRCUITS=30;
 
 const DEFAULTS={name:"My board",colours:"red",cables:true,mainA:63,el:{on:true,a:63,ma:30},spd:true,
-  inv:{on:false,kw:5,v:48,mode:"split",feedA:32,bypass:false},
+  inv:{on:false,kw:5,v:48,mode:"split",feedA:32,bypass:false,ne:"contactor"},
   batt:{on:true,ah:100,prot:"breaker",a:125},
   pv:{on:true,panels:8,isoA:32,spd:true},circuits:[]};
 const EXAMPLE={name:"Example house",colours:"red",cables:true,mainA:63,el:{on:true,a:63,ma:30},spd:true,
-  inv:{on:true,kw:5,v:48,mode:"split",feedA:32,bypass:true},
+  inv:{on:true,kw:5,v:48,mode:"split",feedA:32,bypass:true,ne:"contactor"},
   batt:{on:true,ah:100,prot:"breaker",a:125},
   pv:{on:true,panels:8,isoA:32,spd:true},
   circuits:[["Lights",10,true],["Plugs kitchen",20,true],["Plugs lounge",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Outside lights",10,true],["Gate motor",10,true]].map(([n,a,b])=>({name:n,a,backup:b}))};
@@ -306,6 +314,7 @@ function syncControls(){
   setPressed("colRed",s.colours==="red"); setPressed("colBrown",s.colours==="brown");
   $("invOn").checked=s.inv.on; $("invOpts").hidden=!s.inv.on;
   $("invBypass").checked=s.inv.bypass;
+  setPressed("neCont",s.inv.ne==="contactor"); setPressed("neBuilt",s.inv.ne==="builtin");
   $("cables").checked=s.cables; $("cableHint").hidden=!s.cables;
   $("invKw").value=s.inv.kw; $("invV").value=s.inv.v; $("invFeedA").value=s.inv.feedA;
   setPressed("modeSplit",s.inv.mode==="split"); setPressed("modeWhole",s.inv.mode==="whole");
@@ -392,6 +401,7 @@ $("panel").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
   const s=state;
   if(b.dataset.col){s.colours=b.dataset.col; syncControls(); return changed()}
+  if(b.dataset.ne){s.inv.ne=b.dataset.ne; syncControls(); return changed()}
   if(b.dataset.mode){s.inv.mode=b.dataset.mode; syncControls(); return changed()}
   if(b.dataset.prot){s.batt.prot=b.dataset.prot; syncControls(); return changed()}
   if(b.dataset.preset!==undefined){
@@ -476,6 +486,11 @@ function deviceSvg(d){
       `<rect x="${cx-8}" y="${y+102}" width="16" height="11" rx="2" fill="#f1c40f" stroke="#a9880a"/>`+t(y+111,"T",8,700); break;
     case "spd": s+=t(y+30,"SURGE",9,700)+t(y+42,"AC",7.5,700,"#56616a")+
       `<rect x="${x+10}" y="${y+56}" width="${w-20}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/><rect x="${cx-9}" y="${y+60}" width="18" height="8" rx="1.5" fill="#33b04a"/>`+t(y+90,"L  N  E",7.5,700,"#56616a"); break;
+    case "nebond":
+      s+=t(y+27,"N-E BOND",8.5,700)+t(y+39,"CONTACTOR",7.5,700,"#56616a")+t(y+51,"63A · 230V coil",7,400,"#56616a");
+      s+=`<rect x="${x+10}" y="${y+58}" width="${w-20}" height="30" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${cx-10}" y="${y+64}" width="20" height="10" rx="2" fill="#2b2f33"/><circle cx="${cx}" cy="${y+81}" r="2.5" fill="#33b04a"/>`;
+      s+=t(y+100,"NC: N to E",7,700,"#56616a")+t(y+109,"when grid off",6.5,400,"#56616a");
+      break;
     case "bypass": {
       s+=t(y+27,"BYPASS SWITCH",8.5,700);
       s+=txt(x+P,y+40,"GRID",{anchor:"middle",size:7.5,weight:700,fill:"#56616a"})+txt(x+3*P,y+40,"INVERTER",{anchor:"middle",size:7.5,weight:700,fill:"#8a6400"});
@@ -531,13 +546,14 @@ function buildSvg(){
     sec2.push(s.inv.bypass?{k:"bypass",w:4*P}:{k:"invout",w:2*P});
     if(s.el.on) sec2.push({k:"el",w:2*P,a:s.el.a,ma:s.el.ma});
     G.back.forEach(c=>sec2.push({k:"cb",w:P,c,num:nums.get(c.id)}));
+    if(s.inv.ne==="contactor") sec2.push({k:"nebond",w:2*P});
   }
 
   const cab=a=>s.cables?`  ·  ${acTxt(a)}`:"";
   const outLabel=d=>d.k==="cbinv"?`To inverter AC IN  ${d.a}A${cab(d.a)}`:`${d.num}  ${d.c.name||"Circuit "+d.num}  ${d.c.a}A${cab(d.c.a)}`;
   const supplyLabel=`Supply  L  230V${cab(s.mainA)}`;
   const allLabels=sec1.concat(sec2).filter(d=>d.k==="cb"||d.k==="cbinv").map(outLabel)
-    .concat([supplyLabel,"Earth in","From inverter AC OUT  L"]).concat(inv&&s.inv.bypass?["Grid N  for bypass"]:[]);
+    .concat([supplyLabel,"Earth in","From inverter AC OUT  L"]).concat(inv&&s.inv.bypass?["Grid N  for bypass"]:[]).concat(inv&&s.inv.ne==="contactor"?["Coil L  from grid (INV breaker)"]:[]);
   const longest=Math.max(...allLabels.map(t=>t.length));
   const LABEL_H=Math.min(210,Math.max(100,longest*6.4+26));
 
@@ -567,8 +583,9 @@ function buildSvg(){
   const pitch=18;
   const spdOn=s.spd;
   const n1Terms=["IN"].concat(spdOn?["SA"]:[]).concat(G.grid.map(c=>String(nums.get(c.id)))).concat(inv?["INV"]:[]).concat(inv&&s.inv.bypass?["BYP"]:[]);
-  const n2Terms=inv?["IN"].concat(G.back.map(c=>String(nums.get(c.id)))):[];
-  const eTerms=allNum.map(c=>String(nums.get(c.id))).concat(inv?["INV"]:[]).concat(spdOn?["SA"]:[]).concat(["IN"]);
+  const neC=inv&&s.inv.ne==="contactor";
+  const n2Terms=inv?["IN"].concat(G.back.map(c=>String(nums.get(c.id)))).concat(neC?["NE"]:[]):[];
+  const eTerms=allNum.map(c=>String(nums.get(c.id))).concat(neC?["NE"]:[]).concat(inv?["INV"]:[]).concat(spdOn?["SA"]:[]).concat(["IN"]);
   const bLen=t=>t.length*pitch+16;
   const nb1=EX+28;
   const nb2=inv?Math.max(nb1+bLen(n1Terms)+34, sec2[0].x-10):0;
@@ -658,6 +675,14 @@ function buildSvg(){
     const drops2=sec2.filter(d=>d.k==="cb").map(d=>d.x+P/2);
     w+=busbar(feed2,drops2);
     sec2.filter(d=>d.k==="cb").forEach(d=>{w+=outgoing(d)});
+    const ne=sec2.find(d=>d.k==="nebond");
+    if(ne){
+      const a1=ne.x+P/2, a2=ne.x+P*1.5;
+      w+=wire(`M${a1} ${yExt} V${devTop}`,C.L)+wire(`M${a2} ${yExt} V${devTop}`,C.N);
+      w+=vlabel(a1-7,yExt-6,"Coil L  from grid (INV breaker)",C.L,true)+vlabel(a2-7,yExt-6,"Coil N  from grid",C.N,true);
+      w+=wire(`M${a1} ${devBot} V${barY-22} H${n2("NE")} V${barY-6}`,C.N);
+      w+=wire(`M${a2} ${devBot} V${barY-14} H${eT("NE")} V${barY-6}`,C.E,3,C.Eband);
+    }
   }
 
   let dv=sec1.concat(sec2).map(deviceSvg).join("");
@@ -709,6 +734,7 @@ function buildSvg(){
     reg+=`<path d="M${wx+8} ${wy-5} h30 M${wx+8} ${wy+3} h8 M${wx+20} ${wy+3} h8 M${wx+32} ${wy+3} h6" stroke="#1c1c1c" stroke-width="2.4"/>`;
     reg+=txt(wx-24,wy+20,"AC",{anchor:"middle",size:9,fill:"#56616a"})+txt(wx+23,wy+20,"DC",{anchor:"middle",size:9,fill:"#56616a"});
     reg+=txt(invX+invW/2,invTop+(invBot-invTop)-16,"Hybrid inverter",{anchor:"middle",size:9.5,fill:"#56616a"});
+    if(s.inv.ne==="builtin") reg+=`<rect x="${invX+invW/2-62}" y="${invBot-46}" width="124" height="18" rx="3" fill="#e3f3e6" stroke="#9ccfa6"/>`+txt(invX+invW/2,invBot-33,"N-E relay built in",{anchor:"middle",size:9.5,weight:700,fill:"#2f6b36"});
     // AC terminals on the left
     const acIn=[invTop+168,invTop+182], acOut=[invTop+214,invTop+228];
     const ac2=s.cables?` · ${acTxt(s.inv.feedA)}`:"";
@@ -796,6 +822,7 @@ function buildSvg(){
     rows.push(["Inverter",`${s.inv.kw} kW, ${s.inv.v} V`]);
     rows.push(["On backup",whole?"Whole board":`${G.back.length} of ${s.circuits.length} circuits`]);
     rows.push(["Bypass switch",s.inv.bypass?"Fitted":"None"]);
+    rows.push(["N-E bond on backup",s.inv.ne==="contactor"?"Bond contactor in DB":"Built into inverter"]);
     if(s.batt.on) rows.push(["Battery",`${s.inv.v} V ${s.batt.ah} Ah, ${s.batt.a} A ${s.batt.prot==="fuse"?"fuse":"DC breaker"}`]);
     if(s.pv.on) rows.push(["Solar",`${s.pv.panels} panels, ${s.pv.isoA} A DC isolator`]);
     if(s.pv.on) rows.push(["DC surge arrester",s.pv.spd?"Fitted":"None"]);
