@@ -151,6 +151,8 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
             </div>
           </div>
           <p class="hint" id="modeHint"></p>
+          <label class="toggle"><input type="checkbox" id="invBypass"> Bypass switch (changeover)</label>
+          <p class="hint">Lets you switch the backup circuits straight to the grid, so the inverter can be switched off, worked on or removed.</p>
           <label>Breaker feeding the inverter<select id="invFeedA"></select></label>
 
           <div class="sub-sec">
@@ -238,11 +240,11 @@ const PRESETS=[["Lights",10,true],["Plugs",20,true],["Geyser",20,false],["Stove"
 const MAX_CIRCUITS=30;
 
 const DEFAULTS={name:"My board",colours:"red",mainA:63,el:{on:true,a:63,ma:30},spd:true,
-  inv:{on:false,kw:5,v:48,mode:"split",feedA:32},
+  inv:{on:false,kw:5,v:48,mode:"split",feedA:32,bypass:false},
   batt:{on:true,ah:100,prot:"breaker",a:125},
   pv:{on:true,panels:8,isoA:32,spd:true},circuits:[]};
 const EXAMPLE={name:"Example house",colours:"red",mainA:63,el:{on:true,a:63,ma:30},spd:true,
-  inv:{on:true,kw:5,v:48,mode:"split",feedA:32},
+  inv:{on:true,kw:5,v:48,mode:"split",feedA:32,bypass:true},
   batt:{on:true,ah:100,prot:"breaker",a:125},
   pv:{on:true,panels:8,isoA:32,spd:true},
   circuits:[["Lights",10,true],["Plugs kitchen",20,true],["Plugs lounge",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Outside lights",10,true],["Gate motor",10,true]].map(([n,a,b])=>({name:n,a,backup:b}))};
@@ -301,6 +303,7 @@ function syncControls(){
   $("spd").checked=s.spd;
   setPressed("colRed",s.colours==="red"); setPressed("colBrown",s.colours==="brown");
   $("invOn").checked=s.inv.on; $("invOpts").hidden=!s.inv.on;
+  $("invBypass").checked=s.inv.bypass;
   $("invKw").value=s.inv.kw; $("invV").value=s.inv.v; $("invFeedA").value=s.inv.feedA;
   setPressed("modeSplit",s.inv.mode==="split"); setPressed("modeWhole",s.inv.mode==="whole");
   $("modeHint").textContent=s.inv.mode==="split"
@@ -372,7 +375,7 @@ $("panel").addEventListener("change",e=>{
     battAh:v=>s.batt.ah=+v,battA:v=>s.batt.a=+v,pvIsoA:v=>s.pv.isoA=+v};
   if(map[t.id]){map[t.id](t.value); return changed()}
   if(t.id==="pvPanels"){t.value=s.pv.panels; return}
-  const checks={elOn:v=>s.el.on=v,spd:v=>s.spd=v,invOn:v=>s.inv.on=v,battOn:v=>s.batt.on=v,pvOn:v=>s.pv.on=v,pvSpd:v=>s.pv.spd=v};
+  const checks={elOn:v=>s.el.on=v,spd:v=>s.spd=v,invOn:v=>s.inv.on=v,invBypass:v=>s.inv.bypass=v,battOn:v=>s.batt.on=v,pvOn:v=>s.pv.on=v,pvSpd:v=>s.pv.spd=v};
   if(checks[t.id]){checks[t.id](t.checked); syncControls(); return changed()}
   const row=t.closest(".circ");
   if(row&&t.dataset.f==="a"){const c=s.circuits.find(c=>c.id==row.dataset.id); if(c){c.a=+t.value; changed()}}
@@ -460,6 +463,15 @@ function deviceSvg(d){
       `<rect x="${cx-8}" y="${y+102}" width="16" height="11" rx="2" fill="#f1c40f" stroke="#a9880a"/>`+t(y+111,"T",8,700); break;
     case "spd": s+=t(y+30,"SURGE",9,700)+t(y+42,"AC",7.5,700,"#56616a")+
       `<rect x="${x+10}" y="${y+56}" width="${w-20}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/><rect x="${cx-9}" y="${y+60}" width="18" height="8" rx="1.5" fill="#33b04a"/>`+t(y+90,"L  N  E",7.5,700,"#56616a"); break;
+    case "bypass": {
+      s+=t(y+27,"BYPASS SWITCH",8.5,700);
+      s+=txt(x+P,y+40,"GRID",{anchor:"middle",size:7.5,weight:700,fill:"#56616a"})+txt(x+3*P,y+40,"INVERTER",{anchor:"middle",size:7.5,weight:700,fill:"#8a6400"});
+      const ky=y+72;
+      s+=`<circle cx="${cx}" cy="${ky}" r="19" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${cx-4}" y="${ky-17}" width="8" height="34" rx="3" fill="#2b2f33" transform="rotate(45 ${cx} ${ky})"/>`;
+      s+=txt(cx-30,ky-10,"II",{anchor:"middle",size:8,weight:700})+txt(cx,ky-23,"0",{anchor:"middle",size:8,weight:700})+txt(cx+30,ky-10,"I",{anchor:"middle",size:8,weight:700});
+      s+=t(y+104,"I = INVERTER   0 = OFF   II = GRID",6.8,400,"#56616a");
+      break;
+    }
     case "invout": s+=t(y+30,"FROM",8,700)+t(y+41,"INVERTER",7.5,700)+handle("#e8a400")+t(y+111,"BACKUP IN",7,400,"#56616a"); break;
     case "cbinv":
       s+=`<rect x="${x+2}" y="${y+1}" width="${w-4}" height="14" fill="#fff4d6"/>`+screw(cx,y+9);
@@ -503,14 +515,14 @@ function buildSvg(){
   if(inv) sec1.push({k:"cbinv",w:P,a:s.inv.feedA});
   const sec2=[];
   if(inv){
-    sec2.push({k:"invout",w:2*P});
+    sec2.push(s.inv.bypass?{k:"bypass",w:4*P}:{k:"invout",w:2*P});
     if(s.el.on) sec2.push({k:"el",w:2*P,a:s.el.a,ma:s.el.ma});
     G.back.forEach(c=>sec2.push({k:"cb",w:P,c,num:nums.get(c.id)}));
   }
 
   const outLabel=d=>d.k==="cbinv"?`To inverter AC IN  ${d.a}A`:`${d.num}  ${d.c.name||"Circuit "+d.num}  ${d.c.a}A`;
   const allLabels=sec1.concat(sec2).filter(d=>d.k==="cb"||d.k==="cbinv").map(outLabel)
-    .concat(["Supply  L  230V","Earth in","From inverter AC OUT  L"]);
+    .concat(["Supply  L  230V","Earth in","From inverter AC OUT  L"]).concat(inv&&s.inv.bypass?["Grid N  for bypass"]:[]);
   const longest=Math.max(...allLabels.map(t=>t.length));
   const LABEL_H=Math.min(210,Math.max(100,longest*6.4+26));
 
@@ -525,7 +537,7 @@ function buildSvg(){
       d.x=x; d.y=devTop; d.h=devH;
       const next=sec[j+1];
       let gap=8;
-      if((d.k==="main"||d.k==="invout")&&next&&next.k==="el") gap=40;
+      if((d.k==="main"||d.k==="invout"||d.k==="bypass")&&next&&next.k==="el") gap=40;
       else if((d.k==="cb"||d.k==="cbinv")&&next&&(next.k==="cb"||next.k==="cbinv")) gap=2;
       x+=d.w+gap;
     });
@@ -539,7 +551,7 @@ function buildSvg(){
   // bars: grid neutral, backup neutral, earth
   const pitch=18;
   const spdOn=s.spd;
-  const n1Terms=["IN"].concat(spdOn?["SA"]:[]).concat(G.grid.map(c=>String(nums.get(c.id)))).concat(inv?["INV"]:[]);
+  const n1Terms=["IN"].concat(spdOn?["SA"]:[]).concat(G.grid.map(c=>String(nums.get(c.id)))).concat(inv?["INV"]:[]).concat(inv&&s.inv.bypass?["BYP"]:[]);
   const n2Terms=inv?["IN"].concat(G.back.map(c=>String(nums.get(c.id)))):[];
   const eTerms=allNum.map(c=>String(nums.get(c.id))).concat(inv?["INV"]:[]).concat(spdOn?["SA"]:[]).concat(["IN"]);
   const bLen=t=>t.length*pitch+16;
@@ -555,6 +567,7 @@ function buildSvg(){
   const eT=k=>tX(ebx,eTerms.indexOf(k));
   const eInX=EX+EW-20;
   const L1=d=>d.x+P/2, N1=d=>d.x+P*1.5;
+  const outL=d=>d.k==="bypass"?d.x+P*2.5:L1(d), outN=d=>d.k==="bypass"?d.x+P*3.5:N1(d);
 
   let g="", w="";
   // enclosure
@@ -586,12 +599,12 @@ function buildSvg(){
 
   const loop=(a,b)=>{
     const g1=a.x+a.w+12, g2=a.x+a.w+26;
-    return wire(`M${N1(a)} ${devBot} V${devBot+30} H${g2} V${devTop-32} H${N1(b)} V${devTop}`,C.N)+
-           wire(`M${L1(a)} ${devBot} V${devBot+16} H${g1} V${devTop-16} H${L1(b)} V${devTop}`,C.L);
+    return wire(`M${outN(a)} ${devBot} V${devBot+30} H${g2} V${devTop-32} H${N1(b)} V${devTop}`,C.N)+
+           wire(`M${outL(a)} ${devBot} V${devBot+16} H${g1} V${devTop-16} H${L1(b)} V${devTop}`,C.L);
   };
   const busbar=(feed,drops)=>{
-    const end=Math.max(L1(feed)+10,...drops);
-    let r=wire(`M${L1(feed)} ${devBot} V${busY} H${end}`,C.L,4.5);
+    const end=Math.max(outL(feed)+10,...drops);
+    let r=wire(`M${outL(feed)} ${devBot} V${busY} H${end}`,C.L,4.5);
     drops.forEach(dx=>{r+=wire(`M${dx} ${devBot} V${busY}`,C.L,3)+dot(dx,busY,C.L)});
     return r;
   };
@@ -614,13 +627,19 @@ function buildSvg(){
 
   // section 2
   if(sec2.length){
-    const io=sec2[0];
-    w+=wire(`M${L1(io)} ${yExt} V${devTop}`,C.L)+wire(`M${N1(io)} ${yExt} V${devTop}`,C.N);
-    w+=vlabel(L1(io)-7,yExt-6,"From inverter AC OUT  L","#8a6400",true)+vlabel(N1(io)-7,yExt-6,"From inverter AC OUT  N","#8a6400",true);
+    const io=sec2[0], byp=io.k==="bypass";
+    const inL=byp?io.x+P*2.5:L1(io), inN=byp?io.x+P*3.5:N1(io);
+    w+=wire(`M${inL} ${yExt} V${devTop}`,C.L)+wire(`M${inN} ${yExt} V${devTop}`,C.N);
+    w+=vlabel(inL-7,yExt-6,"From inverter AC OUT  L","#8a6400",true)+vlabel(inN-7,yExt-6,"From inverter AC OUT  N","#8a6400",true);
+    if(byp){
+      const ib=sec1.find(d=>d.k==="cbinv"), ix=ib.x+P/2, gy=devTop-24;
+      w+=wire(`M${ix} ${gy} H${io.x+P/2} V${devTop}`,C.L)+dot(ix,gy,C.L);
+      w+=wire(`M${io.x+P*1.5} ${yExt} V${devTop}`,C.N)+vlabel(io.x+P*1.5-7,yExt-6,"Grid N  for bypass",C.N,true);
+    }
     const el2=sec2.find(d=>d.k==="el");
     if(el2) w+=loop(io,el2);
     const feed2=el2||io;
-    w+=wire(`M${N1(feed2)} ${devBot} V${barY-30} H${n2("IN")} V${barY-6}`,C.N);
+    w+=wire(`M${outN(feed2)} ${devBot} V${barY-30} H${n2("IN")} V${barY-6}`,C.N);
     const drops2=sec2.filter(d=>d.k==="cb").map(d=>d.x+P/2);
     w+=busbar(feed2,drops2);
     sec2.filter(d=>d.k==="cb").forEach(d=>{w+=outgoing(d)});
@@ -677,7 +696,7 @@ function buildSvg(){
     reg+=txt(invX+invW/2,invTop+(invBot-invTop)-16,"Hybrid inverter",{anchor:"middle",size:9.5,fill:"#56616a"});
     // AC terminals on the left
     const acIn=[invTop+168,invTop+182], acOut=[invTop+214,invTop+228];
-    [[acIn,"AC IN","from DB breaker (INV)"],[acOut,"AC OUT",whole?"to board (backup)":"to backup section"]].forEach(([ys,head,sub])=>{
+    [[acIn,"AC IN","from DB breaker (INV)"],[acOut,"AC OUT",s.inv.bypass?"to bypass switch":whole?"to board (backup)":"to backup section"]].forEach(([ys,head,sub])=>{
       reg+=wire(`M${invX} ${ys[0]} H${invX-40}`,C.L)+wire(`M${invX} ${ys[1]} H${invX-40}`,C.N);
       reg+=screw(invX+10,ys[0])+screw(invX+10,ys[1]);
       reg+=txt(invX-48,ys[0]+4,head,{anchor:"end",size:11.5,weight:700,fill:"#8a6400"});
@@ -757,6 +776,7 @@ function buildSvg(){
   if(inv){
     rows.push(["Inverter",`${s.inv.kw} kW, ${s.inv.v} V`]);
     rows.push(["On backup",whole?"Whole board":`${G.back.length} of ${s.circuits.length} circuits`]);
+    rows.push(["Bypass switch",s.inv.bypass?"Fitted":"None"]);
     if(s.batt.on) rows.push(["Battery",`${s.inv.v} V ${s.batt.ah} Ah, ${s.batt.a} A ${s.batt.prot==="fuse"?"fuse":"DC breaker"}`]);
     if(s.pv.on) rows.push(["Solar",`${s.pv.panels} panels, ${s.pv.isoA} A DC isolator`]);
     if(s.pv.on) rows.push(["DC surge arrester",s.pv.spd?"Fitted":"None"]);
