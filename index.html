@@ -238,7 +238,12 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
       <div class="toolbar">
         <button type="button" class="btn" id="savePic">Save picture</button>
         <button type="button" class="btn ghost" id="fullBtn">Full screen</button>
+        <span class="seg" style="display:inline-flex">
+          <select id="pdfSize" aria-label="PDF page size" style="border:0;border-radius:0;width:auto"><option value="a4">A4</option><option value="a3">A3</option></select>
+          <button type="button" id="pdfBtn" style="font-weight:600">Save as PDF</button>
+        </span>
       </div>
+      <p class="hint" id="pdfMsg" aria-live="polite" hidden></p>
       <div class="sheet" id="sheet"></div>
     </section>
   </div>
@@ -257,6 +262,7 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -949,11 +955,11 @@ function draw(){$("sheet").innerHTML=buildSvg()}
 
 /* ---------- picture and full screen ---------- */
 let picBlob=null;
-function makePng(){
+function makePng(scaleArg){
   return new Promise((resolve,reject)=>{
     const svg=buildSvg();
     const m=svg.match(/width="(\d+(?:\.\d+)?)" height="(\d+(?:\.\d+)?)"/);
-    const W=+m[1], H=+m[2], scale=2;
+    const W=+m[1], H=+m[2], scale=scaleArg||2;
     const img=new Image();
     const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
     img.onload=()=>{
@@ -977,6 +983,41 @@ $("savePic").addEventListener("click",async()=>{
     $("copyMsg").textContent="The picture could not be made in this browser. Use Full screen and take a screenshot instead.";
   }
   $("overlay").hidden=false; $("closePic").focus();
+});
+const inFrame=(()=>{try{return window.self!==window.top}catch(e){return true}})();
+let dlNs=null;
+try{ if(window.claude&&typeof window.claude.use==="function") window.claude.use("downloads").then(ns=>{dlNs=ns}).catch(()=>{}) }catch(e){}
+function pdfNote(t){const el=$("pdfMsg"); el.textContent=t; el.hidden=!t}
+$("pdfBtn").addEventListener("click",async()=>{
+  if(!window.PDFLib||!window.PDFLib.PDFDocument){pdfNote("The PDF maker didn't load. Check your internet connection and refresh the page.");return}
+  pdfNote("Making the PDF…");
+  try{
+    const blob=await makePng(3);
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    const svg=$("sheet").querySelector("svg"); const vb=svg.viewBox.baseVal;
+    const mm=72/25.4;
+    const sizes={a4:[210,297],a3:[297,420]};
+    let [pw,ph]=sizes[$("pdfSize").value].map(v=>v*mm);
+    if(vb.width>vb.height) [pw,ph]=[ph,pw];
+    const doc=await PDFLib.PDFDocument.create();
+    doc.setTitle(state.name||"DB board"); doc.setCreator("DB Board Designer");
+    const img=await doc.embedPng(bytes);
+    const page=doc.addPage([pw,ph]);
+    const mg=10*mm, k=Math.min((pw-2*mg)/vb.width,(ph-2*mg)/vb.height);
+    const w=vb.width*k, h=vb.height*k;
+    page.drawImage(img,{x:(pw-w)/2,y:(ph-h)/2,width:w,height:h});
+    const out=await doc.save();
+    const fname=((state.name||"DB board").replace(/[^\w\- ]+/g,"").trim()||"DB board")+".pdf";
+    if(dlNs){
+      try{ await dlNs.save({filename:fname,data:new Blob([out],{type:"application/pdf"})}); pdfNote("Saved "+fname+"."); }
+      catch(err){ pdfNote(err&&err.code==="declined"?"Save cancelled.":"The PDF could not be saved here. Open the designer from your GitHub website link to save it."); }
+      return;
+    }
+    const url=URL.createObjectURL(new Blob([out],{type:"application/pdf"}));
+    const a=document.createElement("a"); a.href=url; a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    pdfNote(inFrame?"If no file downloaded, open the designer from your GitHub website link. Downloads are blocked inside Claude.":"Saved "+fname+". Check your Downloads folder.");
+  }catch(e){pdfNote("The PDF could not be made in this browser. Try Save picture instead.")}
 });
 $("copyPic").addEventListener("click",()=>{
   if(!picBlob||!window.ClipboardItem||!navigator.clipboard||!navigator.clipboard.write){
