@@ -13,7 +13,7 @@
 /* Layout: tool bench. Settings panel on the left, the drawing sheet on the right (stacked on phones, drawing first). */
 :root{
   --bg:#eef1f3; --panel:#ffffff; --fg:#1d252b; --muted:#5f6b74; --line:#d3dade;
-  --accent:#1f5fbf; --accent-fg:#ffffff; --live:#c9261c; --chip:#e6ecf5;
+  --accent:#1f5fbf; --accent-fg:#ffffff; --live:#c9261c; --chip:#e6ecf5; --solar:#e8a400;
   --sheet:#fbfcfc; --sheet-line:#cfd6db;
   --display:"Saira Semi Condensed","Arial Narrow",Arial,sans-serif;
   --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -21,46 +21,54 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#141a1f; --panel:#1d252c; --fg:#e4e9ed; --muted:#9aa6af; --line:#33404a;
-  --accent:#5b93f0; --accent-fg:#0d1620; --live:#f0675d; --chip:#24324a;
+  --accent:#5b93f0; --accent-fg:#0d1620; --live:#f0675d; --chip:#24324a; --solar:#f2b72e;
   --sheet:#f4f6f7; --sheet-line:#3a4752; color-scheme:dark;}}
 :root[data-theme="dark"]{
   --bg:#141a1f; --panel:#1d252c; --fg:#e4e9ed; --muted:#9aa6af; --line:#33404a;
-  --accent:#5b93f0; --accent-fg:#0d1620; --live:#f0675d; --chip:#24324a;
+  --accent:#5b93f0; --accent-fg:#0d1620; --live:#f0675d; --chip:#24324a; --solar:#f2b72e;
   --sheet:#f4f6f7; --sheet-line:#3a4752; color-scheme:dark;}
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
-.wrap{max-width:1400px;margin:0 auto;display:grid;gap:20px}
+.wrap{max-width:1500px;margin:0 auto;display:grid;gap:20px}
 header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
 h1{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.01em;margin:0;text-wrap:balance}
 h1 span{color:var(--live)}
 .sub{color:var(--muted);margin:0}
-.main{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:20px;align-items:start}
+.main{display:grid;grid-template-columns:minmax(300px,390px) minmax(0,1fr);gap:20px;align-items:start}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:18px}
 .sec{display:grid;gap:10px}
 .sec + .sec{border-top:1px solid var(--line);padding-top:16px}
+.sub-sec{display:grid;gap:10px;padding:12px;border-radius:8px;background:var(--bg)}
 h2{font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0}
+h3{font-family:var(--display);font-weight:700;font-size:15px;margin:0;color:var(--fg)}
 label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
-input[type=text],select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
-input[type=text]:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=text],input[type=number],select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+.sub-sec input[type=text],.sub-sec input[type=number],.sub-sec select{background:var(--panel)}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .toggle{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--fg);cursor:pointer}
-.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+.toggle input{width:18px;height:18px;accent-color:var(--accent);flex:none}
 .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{flex:1;font:inherit;font-size:13px;padding:7px 6px;border:0;background:transparent;color:var(--fg);cursor:pointer}
 .seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);font-weight:600}
 .circuits{display:grid;gap:6px}
+.group-title{font-size:13px;font-weight:600;color:var(--fg);display:flex;align-items:center;gap:8px;margin-top:4px}
+.group-title i{width:10px;height:10px;border-radius:2px;display:inline-block}
 .circ{display:grid;grid-template-columns:26px minmax(0,1fr) 74px auto;gap:6px;align-items:center}
 .num{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:right}
 .iconbtns{display:flex;gap:2px}
-.ib{font:inherit;width:28px;height:32px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:6px;cursor:pointer;line-height:1}
-.ib:hover{color:var(--fg);border-color:var(--muted)}
+.ib{font:inherit;width:28px;height:32px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:6px;cursor:pointer;line-height:1;padding:0}
+.ib:hover:not(:disabled){color:var(--fg);border-color:var(--muted)}
+.ib:disabled{opacity:.35;cursor:default}
 .ib.del:hover{color:var(--live);border-color:var(--live)}
+.ib.mv{color:var(--solar);font-weight:700}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font:inherit;font-size:13px;padding:5px 10px;border-radius:999px;border:1px solid transparent;background:var(--chip);color:var(--fg);cursor:pointer}
 .chip:hover{border-color:var(--accent)}
+.chip:disabled{opacity:.45;cursor:not-allowed}
 .btn{font:inherit;font-weight:600;padding:9px 14px;border-radius:7px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer}
 .btn.ghost{background:transparent;color:var(--fg);border-color:var(--line);font-weight:500}
 .btn.ghost:hover{border-color:var(--muted)}
@@ -69,18 +77,19 @@ input[type=text]:focus,select:focus,button:focus-visible{outline:2px solid var(-
 .confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
 .stage{display:grid;gap:10px;min-width:0;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.sheet{background:var(--sheet);border:1px solid var(--sheet-line);border-radius:10px;overflow:auto;padding:10px}
-.sheet svg{display:block;width:100%;height:auto;min-width:560px}
-.sheet:fullscreen{padding:24px;display:flex;align-items:center;justify-content:center}
+.sheet{background:var(--sheet);border:1px solid var(--sheet-line);border-radius:10px;overflow:auto;padding:10px;max-height:calc(100vh - 90px)}
+.sheet svg{display:block;width:100%;height:auto;min-width:600px}
+.sheet:fullscreen{padding:24px;max-height:none;display:flex;align-items:center;justify-content:center}
 .sheet:fullscreen svg{max-height:100%;width:auto;max-width:100%;min-width:0}
 .overlay{position:fixed;inset:0;background:rgba(10,14,18,.72);display:grid;place-items:center;z-index:20;
   padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .dialog{background:var(--panel);color:var(--fg);border-radius:12px;padding:18px;max-width:min(1100px,100%);max-height:100%;overflow:auto;display:grid;gap:12px}
 .dialog img{background:#fff;border:1px solid var(--line);border-radius:6px;width:100%;height:auto}
 .dialog p{margin:0}
-@media (max-width:860px){
+@media (max-width:900px){
   .main{grid-template-columns:minmax(0,1fr)}
   .stage{position:static;order:-1}
+  .sheet{max-height:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -98,8 +107,8 @@ input[type=text]:focus,select:focus,button:focus-visible{outline:2px solid var(-
         <h2>Board</h2>
         <label>Board name<input type="text" id="name" maxlength="60"></label>
         <div>
-          <label style="margin-bottom:4px">Wire colours</label>
-          <div class="seg" role="group" aria-label="Wire colours">
+          <label style="margin-bottom:4px">AC wire colours</label>
+          <div class="seg" role="group" aria-label="AC wire colours">
             <button type="button" id="colRed" data-col="red">Red / Black</button>
             <button type="button" id="colBrown" data-col="brown">Brown / Blue</button>
           </div>
@@ -118,17 +127,65 @@ input[type=text]:focus,select:focus,button:focus-visible{outline:2px solid var(-
           <label>Size<select id="elA"></select></label>
           <label>Trip level<select id="elMa"></select></label>
         </div>
+        <p class="hint" id="elHint" hidden>With an inverter, the backup section gets its own earth leakage too.</p>
       </div>
 
       <div class="sec">
         <h2>Surge protection</h2>
-        <label class="toggle"><input type="checkbox" id="spd"> Fit a surge arrester</label>
+        <label class="toggle"><input type="checkbox" id="spd"> Fit an AC surge arrester</label>
+      </div>
+
+      <div class="sec">
+        <h2>Inverter and DC</h2>
+        <label class="toggle"><input type="checkbox" id="invOn"> Add an inverter</label>
+        <div id="invOpts" class="sec" style="gap:12px">
+          <div class="row2">
+            <label>Inverter size<select id="invKw"></select></label>
+            <label>Battery voltage<select id="invV"></select></label>
+          </div>
+          <div>
+            <label style="margin-bottom:4px">What runs on the inverter</label>
+            <div class="seg" role="group" aria-label="What runs on the inverter">
+              <button type="button" id="modeSplit" data-mode="split">Backup section</button>
+              <button type="button" id="modeWhole" data-mode="whole">Whole board</button>
+            </div>
+          </div>
+          <p class="hint" id="modeHint"></p>
+          <label>Breaker feeding the inverter<select id="invFeedA"></select></label>
+
+          <div class="sub-sec">
+            <label class="toggle"><input type="checkbox" id="battOn"> Battery</label>
+            <div id="battOpts" class="sec" style="gap:10px">
+              <label>Battery size<select id="battAh"></select></label>
+              <div>
+                <label style="margin-bottom:4px">DC protection</label>
+                <div class="seg" role="group" aria-label="Battery DC protection">
+                  <button type="button" id="protBreaker" data-prot="breaker">DC breaker</button>
+                  <button type="button" id="protFuse" data-prot="fuse">Fuse</button>
+                </div>
+              </div>
+              <label>Rating<select id="battA"></select></label>
+            </div>
+          </div>
+
+          <div class="sub-sec">
+            <label class="toggle"><input type="checkbox" id="pvOn"> Solar panels</label>
+            <div id="pvOpts" class="sec" style="gap:10px">
+              <div class="row2">
+                <label>Number of panels<input type="number" id="pvPanels" min="1" max="40" step="1"></label>
+                <label>DC isolator<select id="pvIsoA"></select></label>
+              </div>
+              <label class="toggle"><input type="checkbox" id="pvSpd"> DC surge arrester</label>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="sec">
         <h2>Circuits</h2>
         <div class="circuits" id="circuits"></div>
         <p class="hint" id="emptyHint" hidden>No circuits yet. Tap one of the quick picks below to add one.</p>
+        <p class="hint" id="splitHint" hidden>Tap <strong style="color:var(--solar)">&#8644;</strong> to move a circuit between grid only and backup.</p>
         <div class="chips" id="presets"></div>
         <button type="button" class="btn ghost" id="addBlank">Add circuit</button>
       </div>
@@ -171,27 +228,39 @@ const MAIN_SIZES=[40,60,63,80,100];
 const EL_SIZES=[40,63,80,100];
 const EL_MA=[30,100,300];
 const CB_SIZES=[6,10,16,20,25,32,40,50,63];
-const PRESETS=[["Lights",10],["Plugs",20],["Geyser",20],["Stove",32],["Aircon",20],["Pool pump",16],["Gate motor",10],["Outside lights",10],["Borehole",16],["Inverter",32]];
+const INV_KW=[3,3.6,5,6,8,10,12,16];
+const INV_V=[12,24,48];
+const FEED_A=[20,25,32,40,50,63];
+const BATT_AH=[50,100,150,200,280,314];
+const BATT_A=[63,80,100,125,160,200,250];
+const PV_ISO=[16,25,32,40,50];
+const PRESETS=[["Lights",10,true],["Plugs",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Pool pump",16,false],["Gate motor",10,true],["Outside lights",10,true],["Borehole",16,false],["TV & Wi-Fi",16,true]];
 const MAX_CIRCUITS=30;
 
+const DEFAULTS={name:"My board",colours:"red",mainA:63,el:{on:true,a:63,ma:30},spd:true,
+  inv:{on:false,kw:5,v:48,mode:"split",feedA:32},
+  batt:{on:true,ah:100,prot:"breaker",a:125},
+  pv:{on:true,panels:8,isoA:32,spd:true},circuits:[]};
 const EXAMPLE={name:"Example house",colours:"red",mainA:63,el:{on:true,a:63,ma:30},spd:true,
-  circuits:[["Lights",10],["Plugs kitchen",20],["Plugs lounge",20],["Geyser",20],["Stove",32],["Aircon",20],["Outside lights",10],["Gate motor",10]].map(([n,a])=>({name:n,a}))};
+  inv:{on:true,kw:5,v:48,mode:"split",feedA:32},
+  batt:{on:true,ah:100,prot:"breaker",a:125},
+  pv:{on:true,panels:8,isoA:32,spd:true},
+  circuits:[["Lights",10,true],["Plugs kitchen",20,true],["Plugs lounge",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Outside lights",10,true],["Gate motor",10,true]].map(([n,a,b])=>({name:n,a,backup:b}))};
 
 let uid=1;
-function withIds(s){s.circuits.forEach(c=>{c.id=uid++});return s}
 function clone(o){return JSON.parse(JSON.stringify(o))}
+function normalize(s){
+  const d=clone(DEFAULTS);
+  const out={...d,...s,el:{...d.el,...(s.el||{})},inv:{...d.inv,...(s.inv||{})},batt:{...d.batt,...(s.batt||{})},pv:{...d.pv,...(s.pv||{})}};
+  out.circuits=(Array.isArray(s.circuits)?s.circuits:[]).map(c=>({id:uid++,name:String(c.name??""),a:+c.a||20,backup:!!c.backup}));
+  return out;
+}
 function load(){
-  try{
-    const raw=localStorage.getItem(KEY);
-    if(raw){
-      const s=JSON.parse(raw);
-      if(s&&Array.isArray(s.circuits)&&s.el) return withIds(s);
-    }
-  }catch(e){}
-  return withIds(clone(EXAMPLE));
+  try{const raw=localStorage.getItem(KEY); if(raw){const s=JSON.parse(raw); if(s&&typeof s==="object") return normalize(s)}}catch(e){}
+  return normalize(clone(EXAMPLE));
 }
 function save(){
-  try{localStorage.setItem(KEY,JSON.stringify({...state,circuits:state.circuits.map(c=>({name:c.name,a:c.a}))}))}catch(e){}
+  try{localStorage.setItem(KEY,JSON.stringify({...state,circuits:state.circuits.map(c=>({name:c.name,a:c.a,backup:c.backup}))}))}catch(e){}
 }
 let state=load();
 
@@ -200,37 +269,81 @@ function fillSelect(sel,values,suffix){sel.innerHTML=values.map(v=>`<option valu
 fillSelect($("mainA"),MAIN_SIZES," A");
 fillSelect($("elA"),EL_SIZES," A");
 fillSelect($("elMa"),EL_MA," mA");
+fillSelect($("invKw"),INV_KW," kW");
+fillSelect($("invV"),INV_V," V");
+fillSelect($("invFeedA"),FEED_A," A");
+fillSelect($("battAh"),BATT_AH," Ah");
+fillSelect($("battA"),BATT_A," A");
+fillSelect($("pvIsoA"),PV_ISO," A");
 $("presets").innerHTML=PRESETS.map(([n,a],i)=>`<button type="button" class="chip" data-preset="${i}">+ ${n} ${a}A</button>`).join("");
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
+/* which circuits are on the inverter */
+const isSplit=()=>state.inv.on&&state.inv.mode==="split";
+const isWhole=()=>state.inv.on&&state.inv.mode==="whole";
+function onBackup(c){return state.inv.on&&(state.inv.mode==="whole"||c.backup)}
+function groups(){
+  if(isSplit()) return {grid:state.circuits.filter(c=>!c.backup),back:state.circuits.filter(c=>c.backup)};
+  if(isWhole()) return {grid:[],back:state.circuits.slice()};
+  return {grid:state.circuits.slice(),back:[]};
+}
+function ordered(){const g=groups(); return g.grid.concat(g.back)}
+
 /* ---------- settings panel ---------- */
+function setPressed(id,on){$(id).setAttribute("aria-pressed",on)}
 function syncControls(){
-  $("name").value=state.name;
-  $("mainA").value=state.mainA;
-  $("elOn").checked=state.el.on;
-  $("elA").value=state.el.a; $("elMa").value=state.el.ma;
-  $("elOpts").hidden=!state.el.on;
-  $("spd").checked=state.spd;
-  $("colRed").setAttribute("aria-pressed",state.colours==="red");
-  $("colBrown").setAttribute("aria-pressed",state.colours==="brown");
+  const s=state;
+  $("name").value=s.name;
+  $("mainA").value=s.mainA;
+  $("elOn").checked=s.el.on; $("elA").value=s.el.a; $("elMa").value=s.el.ma;
+  $("elOpts").hidden=!s.el.on; $("elHint").hidden=!(s.el.on&&s.inv.on);
+  $("spd").checked=s.spd;
+  setPressed("colRed",s.colours==="red"); setPressed("colBrown",s.colours==="brown");
+  $("invOn").checked=s.inv.on; $("invOpts").hidden=!s.inv.on;
+  $("invKw").value=s.inv.kw; $("invV").value=s.inv.v; $("invFeedA").value=s.inv.feedA;
+  setPressed("modeSplit",s.inv.mode==="split"); setPressed("modeWhole",s.inv.mode==="whole");
+  $("modeHint").textContent=s.inv.mode==="split"
+    ? "The board gets a separate backup section. You choose which circuits stay on when the power is off."
+    : "Every circuit runs through the inverter, so the whole board stays on when the power is off.";
+  $("battOn").checked=s.batt.on; $("battOpts").hidden=!s.batt.on;
+  $("battAh").value=s.batt.ah; $("battA").value=s.batt.a;
+  setPressed("protBreaker",s.batt.prot==="breaker"); setPressed("protFuse",s.batt.prot==="fuse");
+  $("pvOn").checked=s.pv.on; $("pvOpts").hidden=!s.pv.on;
+  $("pvPanels").value=s.pv.panels; $("pvIsoA").value=s.pv.isoA; $("pvSpd").checked=s.pv.spd;
   renderCircuits(); renderReset();
 }
-function renderCircuits(){
+function rowHtml(c,num,first,last,split){
   const opts=CB_SIZES.map(v=>`<option value="${v}">${v} A</option>`).join("");
-  $("circuits").innerHTML=state.circuits.map((c,i)=>`
-    <div class="circ" data-id="${c.id}">
-      <span class="num">${i+1}</span>
-      <input type="text" id="cn${c.id}" data-f="name" value="${esc(c.name)}" maxlength="28" aria-label="Circuit ${i+1} name">
-      <select id="ca${c.id}" data-f="a" aria-label="Circuit ${i+1} breaker size">${opts}</select>
+  return `<div class="circ" data-id="${c.id}">
+      <span class="num">${num}</span>
+      <input type="text" id="cn${c.id}" data-f="name" value="${esc(c.name)}" maxlength="28" aria-label="Circuit ${num} name">
+      <select id="ca${c.id}" data-f="a" aria-label="Circuit ${num} breaker size">${opts}</select>
       <span class="iconbtns">
-        <button type="button" class="ib" data-act="up" aria-label="Move circuit ${i+1} left" ${i===0?"disabled":""}>&#8593;</button>
-        <button type="button" class="ib" data-act="down" aria-label="Move circuit ${i+1} right" ${i===state.circuits.length-1?"disabled":""}>&#8595;</button>
-        <button type="button" class="ib del" data-act="del" aria-label="Remove circuit ${i+1}">&#215;</button>
+        ${split?`<button type="button" class="ib mv" data-act="move" aria-label="${c.backup?"Move circuit "+num+" to grid only":"Move circuit "+num+" to backup"}" title="${c.backup?"Move to grid only":"Move to backup"}">&#8644;</button>`:""}
+        <button type="button" class="ib" data-act="up" aria-label="Move circuit ${num} up" ${first?"disabled":""}>&#8593;</button>
+        <button type="button" class="ib" data-act="down" aria-label="Move circuit ${num} down" ${last?"disabled":""}>&#8595;</button>
+        <button type="button" class="ib del" data-act="del" aria-label="Remove circuit ${num}">&#215;</button>
       </span>
-    </div>`).join("");
+    </div>`;
+}
+function renderCircuits(){
+  const split=isSplit();
+  const g=groups();
+  let html="", n=0;
+  const list=(arr)=>arr.map((c,i)=>rowHtml(c,++n,i===0,i===arr.length-1,split)).join("");
+  if(split){
+    html+=`<div class="group-title"><i style="background:#9aa3aa"></i>Grid only (off during load shedding)</div>`;
+    html+=g.grid.length?list(g.grid):`<p class="hint">None</p>`;
+    html+=`<div class="group-title"><i style="background:var(--solar)"></i>On backup (inverter)</div>`;
+    html+=g.back.length?list(g.back):`<p class="hint">None</p>`;
+  }else{
+    html=list(state.circuits);
+  }
+  $("circuits").innerHTML=html;
   state.circuits.forEach(c=>{const s=$("ca"+c.id); if(s) s.value=c.a});
   $("emptyHint").hidden=state.circuits.length>0;
+  $("splitHint").hidden=!(split&&state.circuits.length>0);
   const full=state.circuits.length>=MAX_CIRCUITS;
   $("addBlank").disabled=full;
   document.querySelectorAll("[data-preset]").forEach(b=>b.disabled=full);
@@ -238,7 +351,7 @@ function renderCircuits(){
 let confirming=null;
 function renderReset(){
   const a=$("resetArea");
-  if(confirming==="new") a.innerHTML=`<div class="confirm"><span>Remove all circuits and start an empty board?</span><button type="button" class="btn" data-reset="yes-new">Yes, start empty</button><button type="button" class="btn ghost" data-reset="cancel">Cancel</button></div>`;
+  if(confirming==="new") a.innerHTML=`<div class="confirm"><span>Remove everything and start an empty board?</span><button type="button" class="btn" data-reset="yes-new">Yes, start empty</button><button type="button" class="btn ghost" data-reset="cancel">Cancel</button></div>`;
   else if(confirming==="example") a.innerHTML=`<div class="confirm"><span>Replace your board with the example?</span><button type="button" class="btn" data-reset="yes-example">Yes, load example</button><button type="button" class="btn ghost" data-reset="cancel">Cancel</button></div>`;
   else a.innerHTML=`<div class="toolbar"><button type="button" class="btn ghost" data-reset="new">Empty board</button><button type="button" class="btn ghost" data-reset="example">Load example</button></div>`;
 }
@@ -249,265 +362,444 @@ $("panel").addEventListener("submit",e=>e.preventDefault());
 $("panel").addEventListener("input",e=>{
   const t=e.target;
   if(t.id==="name"){state.name=t.value;return changed()}
+  if(t.id==="pvPanels"){const v=Math.round(+t.value); if(v>=1&&v<=40){state.pv.panels=v; changed()} return}
   const row=t.closest(".circ");
   if(row&&t.dataset.f==="name"){const c=state.circuits.find(c=>c.id==row.dataset.id); if(c){c.name=t.value; changed()}}
 });
 $("panel").addEventListener("change",e=>{
-  const t=e.target;
-  if(t.id==="mainA") state.mainA=+t.value;
-  else if(t.id==="elOn"){state.el.on=t.checked; $("elOpts").hidden=!t.checked}
-  else if(t.id==="elA") state.el.a=+t.value;
-  else if(t.id==="elMa") state.el.ma=+t.value;
-  else if(t.id==="spd") state.spd=t.checked;
-  else {
-    const row=t.closest(".circ");
-    if(row&&t.dataset.f==="a"){const c=state.circuits.find(c=>c.id==row.dataset.id); if(c) c.a=+t.value}
-    else return;
-  }
-  changed();
+  const t=e.target, s=state;
+  const map={mainA:v=>s.mainA=+v,elA:v=>s.el.a=+v,elMa:v=>s.el.ma=+v,invKw:v=>s.inv.kw=+v,invV:v=>s.inv.v=+v,invFeedA:v=>s.inv.feedA=+v,
+    battAh:v=>s.batt.ah=+v,battA:v=>s.batt.a=+v,pvIsoA:v=>s.pv.isoA=+v};
+  if(map[t.id]){map[t.id](t.value); return changed()}
+  if(t.id==="pvPanels"){t.value=s.pv.panels; return}
+  const checks={elOn:v=>s.el.on=v,spd:v=>s.spd=v,invOn:v=>s.inv.on=v,battOn:v=>s.batt.on=v,pvOn:v=>s.pv.on=v,pvSpd:v=>s.pv.spd=v};
+  if(checks[t.id]){checks[t.id](t.checked); syncControls(); return changed()}
+  const row=t.closest(".circ");
+  if(row&&t.dataset.f==="a"){const c=s.circuits.find(c=>c.id==row.dataset.id); if(c){c.a=+t.value; changed()}}
 });
+function neighbour(i,dir){
+  const arr=state.circuits, split=isSplit();
+  for(let j=i+dir;j>=0&&j<arr.length;j+=dir){ if(!split||arr[j].backup===arr[i].backup) return j }
+  return -1;
+}
 $("panel").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
-  if(b.dataset.col){state.colours=b.dataset.col; syncControls(); return changed()}
+  const s=state;
+  if(b.dataset.col){s.colours=b.dataset.col; syncControls(); return changed()}
+  if(b.dataset.mode){s.inv.mode=b.dataset.mode; syncControls(); return changed()}
+  if(b.dataset.prot){s.batt.prot=b.dataset.prot; syncControls(); return changed()}
   if(b.dataset.preset!==undefined){
-    if(state.circuits.length>=MAX_CIRCUITS) return;
-    const [n,a]=PRESETS[+b.dataset.preset];
-    state.circuits.push({id:uid++,name:n,a}); renderCircuits(); return changed();
+    if(s.circuits.length>=MAX_CIRCUITS) return;
+    const [n,a,bk]=PRESETS[+b.dataset.preset];
+    s.circuits.push({id:uid++,name:n,a,backup:bk}); renderCircuits(); return changed();
   }
   if(b.id==="addBlank"){
-    if(state.circuits.length>=MAX_CIRCUITS) return;
-    const c={id:uid++,name:"Circuit "+(state.circuits.length+1),a:20};
-    state.circuits.push(c); renderCircuits(); changed();
+    if(s.circuits.length>=MAX_CIRCUITS) return;
+    const c={id:uid++,name:"Circuit "+(s.circuits.length+1),a:20,backup:false};
+    s.circuits.push(c); renderCircuits(); changed();
     const inp=$("cn"+c.id); if(inp){inp.focus(); inp.select()}
     return;
   }
   if(b.dataset.act){
-    const row=b.closest(".circ"); const i=state.circuits.findIndex(c=>c.id==row.dataset.id); if(i<0) return;
-    const arr=state.circuits;
-    if(b.dataset.act==="del") arr.splice(i,1);
-    else if(b.dataset.act==="up"&&i>0) [arr[i-1],arr[i]]=[arr[i],arr[i-1]];
-    else if(b.dataset.act==="down"&&i<arr.length-1) [arr[i+1],arr[i]]=[arr[i],arr[i+1]];
+    const row=b.closest(".circ"); const arr=s.circuits; const i=arr.findIndex(c=>c.id==row.dataset.id); if(i<0) return;
+    const act=b.dataset.act;
+    if(act==="del") arr.splice(i,1);
+    else if(act==="move"){const c=arr.splice(i,1)[0]; c.backup=!c.backup; arr.push(c)}
+    else{
+      const j=neighbour(i,act==="up"?-1:1);
+      if(j>=0) [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
     renderCircuits(); return changed();
   }
   if(b.dataset.reset){
     const r=b.dataset.reset;
     if(r==="new"||r==="example") confirming=r;
     else if(r==="cancel") confirming=null;
-    else if(r==="yes-new"){confirming=null; state.circuits=[]; state.name="New board"; syncControls(); changed()}
-    else if(r==="yes-example"){confirming=null; state=withIds(clone(EXAMPLE)); syncControls(); changed()}
+    else if(r==="yes-new"){confirming=null; state=normalize({...clone(DEFAULTS),name:"New board"}); syncControls(); changed()}
+    else if(r==="yes-example"){confirming=null; state=normalize(clone(EXAMPLE)); syncControls(); changed()}
     renderReset();
   }
 });
 
 /* ---------- drawing ---------- */
-const P=34;                 // width of one breaker module
+const P=34;            // one AC breaker module
+const PD=40;           // one DC module
 const FONT="Arial, Helvetica, sans-serif";
+const DCP="#cf2a1f", DCN="#1c1c1c";
 function colours(){
   return state.colours==="brown"
-    ? {L:"#7b4a22",N:"#2563c7",E:"#2f9a3a",Eband:"#e9c81c",Lname:"Live (brown)",Nname:"Neutral (blue)",Ename:"Earth (green/yellow)"}
-    : {L:"#cf2a1f",N:"#1c1c1c",E:"#2f9a3a",Eband:null,Lname:"Live (red)",Nname:"Neutral (black)",Ename:"Earth (green)"};
+    ? {L:"#7b4a22",N:"#2563c7",E:"#2f9a3a",Eband:"#e9c81c",Lname:"AC live (brown)",Nname:"AC neutral (blue)",Ename:"Earth (green/yellow)"}
+    : {L:"#cf2a1f",N:"#1c1c1c",E:"#2f9a3a",Eband:null,Lname:"AC live (red)",Nname:"AC neutral (black)",Ename:"Earth (green)"};
 }
-function wire(d,col,w,band){
-  let s=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w||3}" stroke-linejoin="round" stroke-linecap="round"/>`;
+function wire(d,col,w,band,dash){
+  let s=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w||3}" stroke-linejoin="round" stroke-linecap="round"${dash?` stroke-dasharray="${dash}"`:""}/>`;
   if(band) s+=`<path d="${d}" fill="none" stroke="${band}" stroke-width="${(w||3)*0.45}" stroke-dasharray="6 6" stroke-linejoin="round"/>`;
   return s;
 }
 function dot(x,y,col){return `<circle cx="${x}" cy="${y}" r="3.4" fill="${col}"/>`}
 function screw(x,y){return `<circle cx="${x}" cy="${y}" r="4.2" fill="#c9ced2" stroke="#7d868d" stroke-width="1"/><path d="M${x-2.6} ${y}h5.2" stroke="#6b737a" stroke-width="1.2"/>`}
-function vlabel(x,y,txt,col,bold){
-  return `<text transform="translate(${x+4} ${y}) rotate(-90)" font-family="${FONT}" font-size="11.5" ${bold?'font-weight="700"':''} fill="${col||"#27313a"}">${esc(txt)}</text>`;
+function txt(x,y,t,o){o=o||{};return `<text x="${x}" y="${y}"${o.anchor?` text-anchor="${o.anchor}"`:""} font-family="${FONT}" font-size="${o.size||11}"${o.weight?` font-weight="${o.weight}"`:""}${o.ls?` letter-spacing="${o.ls}"`:""} fill="${o.fill||"#1f2a33"}">${esc(t)}</text>`}
+function vlabel(x,y,t,col,bold){
+  return `<text transform="translate(${x+4} ${y}) rotate(-90)" font-family="${FONT}" font-size="11.5" ${bold?'font-weight="700"':''} fill="${col||"#27313a"}">${esc(t)}</text>`;
+}
+function ground(x,y,col){
+  return `<path d="M${x} ${y} v10 M${x-10} ${y+10} h20 M${x-6} ${y+15} h12 M${x-2.5} ${y+20} h5" stroke="${col||"#2f9a3a"}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
 }
 
 function deviceSvg(d){
-  const {x,w}=d, y=d.y, h=d.h;
+  const {x,w,y,h}=d, mod=d.mod||P;
   let s=`<rect x="${x+1}" y="${y}" width="${w-2}" height="${h}" rx="4" fill="#ffffff" stroke="#97a1a8" stroke-width="1.2"/>`;
-  const poles=w/P;
-  for(let k=0;k<poles;k++){const cx=x+P*k+P/2; s+=screw(cx,y+9)+screw(cx,y+h-9)}
+  const poles=Math.round(w/mod);
+  for(let k=0;k<poles;k++){const cx=x+mod*k+mod/2; s+=screw(cx,y+9)+screw(cx,y+h-9)}
   const cx=x+w/2;
-  const t=(ty,txt,size,weight,col)=>`<text x="${cx}" y="${ty}" text-anchor="middle" font-family="${FONT}" font-size="${size}" font-weight="${weight||400}" fill="${col||"#1f2a33"}">${esc(txt)}</text>`;
-  if(d.k==="main"){
-    s+=t(y+30,"MAIN",9,700)+t(y+42,d.a+"A",10,700);
-    s+=`<rect x="${x+8}" y="${y+52}" width="${w-16}" height="44" rx="3" fill="#e9ecee" stroke="#b5bcc1"/>`;
-    s+=`<rect x="${x+12}" y="${y+56}" width="${w-24}" height="20" rx="2" fill="#d8231b"/>`;
-    s+=t(y+111,"DP ISOLATOR",7,400,"#56616a");
-  }else if(d.k==="el"){
-    s+=t(y+30,"E/L",9,700)+t(y+42,d.a+"A  "+d.ma+"mA",8.5,700);
-    s+=`<rect x="${x+8}" y="${y+52}" width="${w-16}" height="44" rx="3" fill="#e9ecee" stroke="#b5bcc1"/>`;
-    s+=`<rect x="${x+12}" y="${y+56}" width="${w-24}" height="20" rx="2" fill="#1f5fbf"/>`;
-    s+=`<rect x="${cx-8}" y="${y+102}" width="16" height="11" rx="2" fill="#f1c40f" stroke="#a9880a"/>`+t(y+111,"T",8,700);
-  }else if(d.k==="spd"){
-    s+=t(y+30,"SURGE",9,700)+t(y+42,"ARRESTER",7,400,"#56616a");
-    s+=`<rect x="${x+10}" y="${y+56}" width="${w-20}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/>`;
-    s+=`<rect x="${cx-9}" y="${y+60}" width="18" height="8" rx="1.5" fill="#33b04a"/>`;
-    s+=t(y+90,"L  N  E",7.5,700,"#56616a");
-  }else{
-    s+=t(y+30,"C"+d.c.a,9.5,700);
-    s+=`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/>`;
-    s+=`<rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`;
-    s+=`<rect x="${x+5}" y="${y+102}" width="${w-10}" height="14" rx="2" fill="#f4f6f7" stroke="#c3c9cd"/>`;
-    s+=t(y+113,String(d.i+1),9,700);
+  const t=(ty,v,size,weight,col)=>txt(cx,ty,v,{anchor:"middle",size,weight:weight||400,fill:col});
+  const handle=(col,yy)=>`<rect x="${x+8}" y="${y+(yy||52)}" width="${w-16}" height="44" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+12}" y="${y+(yy||52)+4}" width="${w-24}" height="20" rx="2" fill="${col}"/>`;
+  switch(d.k){
+    case "main": s+=t(y+30,"MAIN",9,700)+t(y+42,d.a+"A",10,700)+handle("#d8231b")+t(y+111,"DP ISOLATOR",7,400,"#56616a"); break;
+    case "el": s+=t(y+30,"E/L",9,700)+t(y+42,d.a+"A  "+d.ma+"mA",8.5,700)+handle("#1f5fbf")+
+      `<rect x="${cx-8}" y="${y+102}" width="16" height="11" rx="2" fill="#f1c40f" stroke="#a9880a"/>`+t(y+111,"T",8,700); break;
+    case "spd": s+=t(y+30,"SURGE",9,700)+t(y+42,"AC",7.5,700,"#56616a")+
+      `<rect x="${x+10}" y="${y+56}" width="${w-20}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/><rect x="${cx-9}" y="${y+60}" width="18" height="8" rx="1.5" fill="#33b04a"/>`+t(y+90,"L  N  E",7.5,700,"#56616a"); break;
+    case "invout": s+=t(y+30,"FROM",8,700)+t(y+41,"INVERTER",7.5,700)+handle("#e8a400")+t(y+111,"BACKUP IN",7,400,"#56616a"); break;
+    case "cbinv":
+      s+=`<rect x="${x+2}" y="${y+1}" width="${w-4}" height="14" fill="#fff4d6"/>`+screw(cx,y+9);
+      s+=t(y+30,"C"+d.a,9.5,700)+`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`+
+        `<rect x="${x+4}" y="${y+102}" width="${w-8}" height="14" rx="2" fill="#f2b72e" stroke="#b78a10"/>`+t(y+113,"INV",8,700); break;
+    case "cb":
+      s+=t(y+30,"C"+d.c.a,9.5,700)+`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`+
+        `<rect x="${x+5}" y="${y+102}" width="${w-10}" height="14" rx="2" fill="#f4f6f7" stroke="#c3c9cd"/>`+t(y+113,String(d.num),9,700); break;
+    case "pviso": s+=t(y+28,"PV DC",8.5,700)+t(y+40,"ISOLATOR",7.5,700)+t(y+52,d.a+"A  1000V",7.5,400,"#56616a")+
+      `<rect x="${x+14}" y="${y+60}" width="${w-28}" height="30" rx="15" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${cx-22}" y="${y+70}" width="44" height="10" rx="4" fill="#d8231b"/>`+t(y+102,"+       −",9,700,"#56616a"); break;
+    case "dcspd": s+=t(y+28,"SURGE",8.5,700)+t(y+40,"DC (PV)",7.5,700,"#56616a")+
+      `<rect x="${x+12}" y="${y+54}" width="${w-24}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/><rect x="${cx-9}" y="${y+58}" width="18" height="8" rx="1.5" fill="#33b04a"/>`+t(y+92,"+    E    −",8,700,"#56616a"); break;
+    case "batt":
+      if(d.prot==="fuse"){
+        s+=t(y+28,"BATTERY",8.5,700)+t(y+40,"FUSE "+d.a+"A",7.5,700,"#56616a");
+        s+=`<rect x="${x+10}" y="${y+52}" width="${w-20}" height="34" rx="4" fill="#2b2f33"/><rect x="${x+18}" y="${y+60}" width="${w-36}" height="18" rx="3" fill="#e2e5e7" stroke="#8b949b"/>`;
+        s+=t(y+102,"+       −",9,700,"#56616a");
+      }else{
+        s+=t(y+28,"BATTERY",8.5,700)+t(y+40,"DC BREAKER",7.5,700,"#56616a")+t(y+52,d.a+"A",8.5,700);
+        s+=`<rect x="${x+8}" y="${y+58}" width="${w-16}" height="32" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+12}" y="${y+62}" width="${w-24}" height="14" rx="2" fill="#2b2f33"/>`;
+        s+=t(y+102,"+       −",9,700,"#56616a");
+      }
+      break;
   }
   return s;
 }
 
 function buildSvg(){
-  const C=colours(), s=state, n=s.circuits.length;
-  // devices in order along the DIN rail
-  const devs=[{k:"main",w:2*P,a:s.mainA}];
-  if(s.el.on) devs.push({k:"el",w:2*P,a:s.el.a,ma:s.el.ma});
-  if(s.spd) devs.push({k:"spd",w:2*P});
-  s.circuits.forEach((c,i)=>devs.push({k:"cb",w:P,c,i}));
+  const C=colours(), s=state;
+  const inv=s.inv.on, split=isSplit(), whole=isWhole();
+  const G=groups();
+  const nums=new Map(); ordered().forEach((c,i)=>nums.set(c.id,i+1));
+  const allNum=ordered();
 
-  const outLabels=s.circuits.map((c,i)=>`${i+1}  ${c.name||"Circuit "+(i+1)}  ${c.a}A`);
-  const supLabels=["Supply  L  230V","Supply  N","Earth in"];
-  const longest=Math.max(...outLabels.concat(supLabels).map(t=>t.length));
-  const LABEL_H=Math.min(200,Math.max(96,longest*6.4+24));
+  // ---- AC board devices, section by section ----
+  const sec1=[{k:"main",w:2*P,a:s.mainA}];
+  const el1=s.el.on&&(!inv||G.grid.length>0);
+  if(el1) sec1.push({k:"el",w:2*P,a:s.el.a,ma:s.el.ma});
+  if(s.spd) sec1.push({k:"spd",w:2*P});
+  G.grid.forEach(c=>sec1.push({k:"cb",w:P,c,num:nums.get(c.id)}));
+  if(inv) sec1.push({k:"cbinv",w:P,a:s.inv.feedA});
+  const sec2=[];
+  if(inv){
+    sec2.push({k:"invout",w:2*P});
+    if(s.el.on) sec2.push({k:"el",w:2*P,a:s.el.a,ma:s.el.ma});
+    G.back.forEach(c=>sec2.push({k:"cb",w:P,c,num:nums.get(c.id)}));
+  }
 
-  const M=24, EX=M, Y0=M+LABEL_H;          // enclosure top-left
-  const yExt=Y0-22;                         // where outgoing wires end
-  const devTop=Y0+62, devH=124, devBot=devTop+devH;
-  const busY=devBot+16, barY=devBot+92, encBot=barY+52;
+  const outLabel=d=>d.k==="cbinv"?`To inverter AC IN  ${d.a}A`:`${d.num}  ${d.c.name||"Circuit "+d.num}  ${d.c.a}A`;
+  const allLabels=sec1.concat(sec2).filter(d=>d.k==="cb"||d.k==="cbinv").map(outLabel)
+    .concat(["Supply  L  230V","Earth in","From inverter AC OUT  L"]);
+  const longest=Math.max(...allLabels.map(t=>t.length));
+  const LABEL_H=Math.min(210,Math.max(100,longest*6.4+26));
+
+  const M=24, EX=M, Y0=M+LABEL_H;
+  const yExt=Y0-22;
+  const devTop=Y0+76, devH=124, devBot=devTop+devH;
+  const busY=devBot+16, barY=devBot+96, encBot=barY+52;
 
   let x=EX+44;
-  devs.forEach((d,j)=>{
-    d.x=x; d.y=devTop; d.h=devH;
-    const next=devs[j+1];
-    let gap=8;
-    if(d.k==="main"&&s.el.on) gap=40;
-    else if(d.k==="cb"&&next&&next.k==="cb") gap=2;
-    x+=d.w+gap;
-  });
+  const placeSec=(sec)=>{
+    sec.forEach((d,j)=>{
+      d.x=x; d.y=devTop; d.h=devH;
+      const next=sec[j+1];
+      let gap=8;
+      if((d.k==="main"||d.k==="invout")&&next&&next.k==="el") gap=40;
+      else if((d.k==="cb"||d.k==="cbinv")&&next&&(next.k==="cb"||next.k==="cbinv")) gap=2;
+      x+=d.w+gap;
+    });
+  };
+  placeSec(sec1);
+  const sec1End=x;
+  let divX=null;
+  if(sec2.length){x+=34; divX=x-21; placeSec(sec2)}
   const devEnd=x;
-  const terms=n+2;                                   // terminals on each bar
-  const pitch=18, barLen=terms*pitch+16;
-  const EW=Math.max(devEnd-EX+52, 2*barLen+40+70, 360);
-  const nbx=EX+28, ebx=EX+EW-46-barLen;
-  const nT=t=>nbx+8+pitch*t+pitch/2;
-  const eT=t=>ebx+8+pitch*t+pitch/2;
-  const eInX=EX+EW-20;
 
-  const main=devs[0], el=devs.find(d=>d.k==="el"), spd=devs.find(d=>d.k==="spd");
-  const feed=el||main;
+  // bars: grid neutral, backup neutral, earth
+  const pitch=18;
+  const spdOn=s.spd;
+  const n1Terms=["IN"].concat(spdOn?["SA"]:[]).concat(G.grid.map(c=>String(nums.get(c.id)))).concat(inv?["INV"]:[]);
+  const n2Terms=inv?["IN"].concat(G.back.map(c=>String(nums.get(c.id)))):[];
+  const eTerms=allNum.map(c=>String(nums.get(c.id))).concat(inv?["INV"]:[]).concat(spdOn?["SA"]:[]).concat(["IN"]);
+  const bLen=t=>t.length*pitch+16;
+  const nb1=EX+28;
+  const nb2=inv?Math.max(nb1+bLen(n1Terms)+34, sec2[0].x-10):0;
+  const nEnd=inv?nb2+bLen(n2Terms):nb1+bLen(n1Terms);
+  const eLen=bLen(eTerms);
+  const EW=Math.max(devEnd-EX+52, nEnd-EX+34+eLen+46, 380);
+  const ebx=EX+EW-46-eLen;
+  const tX=(bx,i)=>bx+8+pitch*i+pitch/2;
+  const n1=k=>tX(nb1,n1Terms.indexOf(k));
+  const n2=k=>tX(nb2,n2Terms.indexOf(k));
+  const eT=k=>tX(ebx,eTerms.indexOf(k));
+  const eInX=EX+EW-20;
   const L1=d=>d.x+P/2, N1=d=>d.x+P*1.5;
 
-  let g="";
+  let g="", w="";
   // enclosure
   g+=`<rect x="${EX}" y="${Y0}" width="${EW}" height="${encBot-Y0}" rx="10" fill="#f1f3f4" stroke="#9fa8ae" stroke-width="2"/>`;
   g+=`<rect x="${EX+8}" y="${Y0+8}" width="${EW-16}" height="${encBot-Y0-16}" rx="6" fill="none" stroke="#d6dbde" stroke-width="1.5"/>`;
-  // cable entry holes
-  g+=`<rect x="${EX+EW*0.18}" y="${Y0-3}" width="${EW*0.64}" height="6" rx="3" fill="#dfe3e6" stroke="#b9c0c5"/>`;
-  // DIN rail
+  g+=`<rect x="${EX+EW*0.12}" y="${Y0-3}" width="${EW*0.76}" height="6" rx="3" fill="#dfe3e6" stroke="#b9c0c5"/>`;
   g+=`<rect x="${EX+18}" y="${devTop+devH/2-9}" width="${EW-36}" height="18" fill="#c2c8cc" stroke="#a3abb1"/>`;
   g+=`<rect x="${EX+18}" y="${devTop+devH/2-3}" width="${EW-36}" height="6" fill="#aeb5ba"/>`;
-  // bar mounts and bars
-  const bar=(bx,label)=>`<rect x="${bx}" y="${barY-7}" width="${barLen}" height="14" rx="2" fill="#c9a24a" stroke="#8d6f28"/>`+
-    `<rect x="${bx-6}" y="${barY-4}" width="6" height="8" fill="#2b2f33"/><rect x="${bx+barLen}" y="${barY-4}" width="6" height="8" fill="#2b2f33"/>`+
-    `<text x="${bx}" y="${barY+36}" font-family="${FONT}" font-size="10" font-weight="700" fill="#3b4650" letter-spacing="0.6">${label}</text>`;
-  g+=bar(nbx,"NEUTRAL BAR (N)")+bar(ebx,"EARTH BAR (E)");
-
-  let w="";  // wires go on top of the board, under the devices' screws
-  // incoming supply
-  w+=wire(`M${L1(main)} ${yExt} V${devTop}`,C.L);
-  w+=wire(`M${N1(main)} ${yExt} V${devTop}`,C.N);
-  w+=vlabel(L1(main)-7,yExt-6,supLabels[0],C.L,true);
-  w+=vlabel(N1(main)-7,yExt-6,supLabels[1],C.N,true);
-  // incoming earth
-  w+=wire(`M${eInX} ${yExt} V${barY-40} H${eT(terms-1)} V${barY-6}`,C.E,3,C.Eband);
-  w+=vlabel(eInX-7,yExt-6,supLabels[2],C.E,true);
-  // main switch to earth leakage
-  if(el){
-    const g1=main.x+main.w+12, g2=main.x+main.w+26;
-    w+=wire(`M${N1(main)} ${devBot} V${devBot+30} H${g2} V${devTop-32} H${N1(el)} V${devTop}`,C.N);
-    w+=wire(`M${L1(main)} ${devBot} V${devBot+16} H${g1} V${devTop-16} H${L1(el)} V${devTop}`,C.L);
+  if(inv){
+    const t1=whole?"GRID SUPPLY":"GRID ONLY";
+    g+=`<rect x="${sec1[0].x-6}" y="${Y0+16}" width="${Math.max(80,t1.length*7+16)}" height="18" rx="3" fill="#d9dee2"/>`+txt(sec1[0].x+2,Y0+29,t1,{size:10,weight:700,ls:0.8,fill:"#3b4650"});
+    const t2="ON BACKUP (INVERTER)";
+    g+=`<rect x="${sec2[0].x-6}" y="${Y0+16}" width="${t2.length*7+10}" height="18" rx="3" fill="#f6dc8f"/>`+txt(sec2[0].x+2,Y0+29,t2,{size:10,weight:700,ls:0.8,fill:"#5a4300"});
+    g+=`<path d="M${divX} ${Y0+12} V${barY-44}" stroke="#8f989f" stroke-width="1.5" stroke-dasharray="5 5"/>`;
   }
-  // neutral from the feeding device to the neutral bar
-  w+=wire(`M${N1(feed)} ${devBot} V${barY-34} H${nT(0)} V${barY-6}`,C.N);
-  // busbar feeding breakers and surge arrester
-  const drops=devs.filter(d=>d.k==="cb").map(d=>d.x+P/2);
-  if(spd) drops.push(L1(spd));
-  const busEnd=Math.max(L1(feed)+10,...drops);
-  w+=wire(`M${L1(feed)} ${devBot} V${busY} H${busEnd}`,C.L,4.5);
-  drops.forEach(dx=>{w+=wire(`M${dx} ${devBot} V${busY}`,C.L,3)+dot(dx,busY,C.L)});
-  // surge arrester neutral and earth
-  if(spd){
-    w+=wire(`M${N1(spd)} ${devBot} V${barY-26} H${nT(1)} V${barY-6}`,C.N);
-    w+=wire(`M${spd.x+P} ${devBot} V${barY-18} H${eT(terms-2)} V${barY-6}`,C.E,3,C.Eband);
+  const bar=(bx,len,label)=>`<rect x="${bx}" y="${barY-7}" width="${len}" height="14" rx="2" fill="#c9a24a" stroke="#8d6f28"/>`+
+    `<rect x="${bx-6}" y="${barY-4}" width="6" height="8" fill="#2b2f33"/><rect x="${bx+len}" y="${barY-4}" width="6" height="8" fill="#2b2f33"/>`+
+    txt(bx,barY+36,label,{size:10,weight:700,ls:0.6,fill:"#3b4650"});
+  g+=bar(nb1,bLen(n1Terms),inv?"NEUTRAL – GRID":"NEUTRAL BAR (N)");
+  if(inv) g+=bar(nb2,bLen(n2Terms),"NEUTRAL – BACKUP");
+  g+=bar(ebx,eLen,"EARTH BAR (E)");
+
+  // supply in
+  const main=sec1[0];
+  w+=wire(`M${L1(main)} ${yExt} V${devTop}`,C.L)+wire(`M${N1(main)} ${yExt} V${devTop}`,C.N);
+  w+=vlabel(L1(main)-7,yExt-6,"Supply  L  230V",C.L,true)+vlabel(N1(main)-7,yExt-6,"Supply  N",C.N,true);
+  w+=wire(`M${eInX} ${yExt} V${barY-46} H${eT("IN")} V${barY-6}`,C.E,3,C.Eband);
+  w+=vlabel(eInX-7,yExt-6,"Earth in",C.E,true);
+
+  const loop=(a,b)=>{
+    const g1=a.x+a.w+12, g2=a.x+a.w+26;
+    return wire(`M${N1(a)} ${devBot} V${devBot+30} H${g2} V${devTop-32} H${N1(b)} V${devTop}`,C.N)+
+           wire(`M${L1(a)} ${devBot} V${devBot+16} H${g1} V${devTop-16} H${L1(b)} V${devTop}`,C.L);
+  };
+  const busbar=(feed,drops)=>{
+    const end=Math.max(L1(feed)+10,...drops);
+    let r=wire(`M${L1(feed)} ${devBot} V${busY} H${end}`,C.L,4.5);
+    drops.forEach(dx=>{r+=wire(`M${dx} ${devBot} V${busY}`,C.L,3)+dot(dx,busY,C.L)});
+    return r;
+  };
+  const outgoing=(d)=>{const cx=d.x+P/2; return wire(`M${cx} ${devTop} V${yExt}`,C.L)+vlabel(cx-7,yExt-6,outLabel(d),d.k==="cbinv"?"#8a6400":null,d.k==="cbinv")};
+
+  // section 1
+  const el1d=sec1.find(d=>d.k==="el");
+  if(el1d) w+=loop(main,el1d);
+  const feed1=el1d||main;
+  w+=wire(`M${N1(feed1)} ${devBot} V${barY-34} H${n1("IN")} V${barY-6}`,C.N);
+  const spdD=sec1.find(d=>d.k==="spd");
+  const drops1=sec1.filter(d=>d.k==="cb"||d.k==="cbinv").map(d=>d.x+P/2);
+  if(spdD) drops1.push(L1(spdD));
+  w+=busbar(feed1,drops1);
+  if(spdD){
+    w+=wire(`M${N1(spdD)} ${devBot} V${barY-26} H${n1("SA")} V${barY-6}`,C.N);
+    w+=wire(`M${spdD.x+P} ${devBot} V${barY-18} H${eT("SA")} V${barY-6}`,C.E,3,C.Eband);
   }
-  // outgoing circuits
-  devs.filter(d=>d.k==="cb").forEach((d,k)=>{
-    const cx=d.x+P/2;
-    w+=wire(`M${cx} ${devTop} V${yExt}`,C.L);
-    w+=vlabel(cx-7,yExt-6,outLabels[k]);
-  });
+  sec1.filter(d=>d.k==="cb"||d.k==="cbinv").forEach(d=>{w+=outgoing(d)});
 
-  // devices
-  let dv=devs.map(deviceSvg).join("");
+  // section 2
+  if(sec2.length){
+    const io=sec2[0];
+    w+=wire(`M${L1(io)} ${yExt} V${devTop}`,C.L)+wire(`M${N1(io)} ${yExt} V${devTop}`,C.N);
+    w+=vlabel(L1(io)-7,yExt-6,"From inverter AC OUT  L","#8a6400",true)+vlabel(N1(io)-7,yExt-6,"From inverter AC OUT  N","#8a6400",true);
+    const el2=sec2.find(d=>d.k==="el");
+    if(el2) w+=loop(io,el2);
+    const feed2=el2||io;
+    w+=wire(`M${N1(feed2)} ${devBot} V${barY-30} H${n2("IN")} V${barY-6}`,C.N);
+    const drops2=sec2.filter(d=>d.k==="cb").map(d=>d.x+P/2);
+    w+=busbar(feed2,drops2);
+    sec2.filter(d=>d.k==="cb").forEach(d=>{w+=outgoing(d)});
+  }
 
-  // bar screws and terminal numbers
+  let dv=sec1.concat(sec2).map(deviceSvg).join("");
+
+  // bar screws and numbers
   let bt="";
-  for(let t=0;t<terms;t++){
-    bt+=screw(nT(t),barY)+screw(eT(t),barY);
-  }
-  const tl=(x,txt)=>`<text x="${x}" y="${barY+20}" text-anchor="middle" font-family="${FONT}" font-size="8.5" fill="#4a5560">${txt}</text>`;
-  bt+=tl(nT(0),"IN")+(spd?tl(nT(1),"SA"):"");
-  s.circuits.forEach((c,i)=>{bt+=tl(nT(i+2),i+1)+tl(eT(i),i+1)});
-  bt+=(spd?tl(eT(terms-2),"SA"):"")+tl(eT(terms-1),"IN");
+  const terms=(bx,list)=>list.forEach((k,i)=>{const tx=tX(bx,i); bt+=screw(tx,barY)+txt(tx,barY+20,k,{anchor:"middle",size:8.5,fill:"#4a5560"})});
+  terms(nb1,n1Terms); if(inv) terms(nb2,n2Terms); terms(ebx,eTerms);
 
-  // ----- schedule and title block below the board -----
-  const ty=encBot+34;
-  const rowH=19, perCol=12, colW=250;
-  const cols=Math.max(1,Math.ceil(n/perCol));
-  const tbW=270, tbX=M;
-  const schX=tbX+tbW+28;
-  const schW=cols*colW;
-  const W=Math.max(EX+EW+M, schX+schW+M);
-  let tb="";
-  const tline=(y,k,v,bold)=>`<text x="${tbX+12}" y="${y}" font-family="${FONT}" font-size="11" fill="#5b6670">${esc(k)}</text><text x="${tbX+122}" y="${y}" font-family="${FONT}" font-size="11.5" ${bold?'font-weight="700"':''} fill="#1f2a33">${esc(v)}</text>`;
+  // ---- inverter and DC region ----
+  let reg="", regBot=encBot, regRight=EX+EW;
+  if(inv){
+    const rY0=encBot+40;
+    const dcDevs=[];
+    if(s.pv.on) dcDevs.push({k:"pviso",a:s.pv.isoA});
+    if(s.pv.on&&s.pv.spd) dcDevs.push({k:"dcspd"});
+    if(s.batt.on) dcDevs.push({k:"batt",a:s.batt.a,prot:s.batt.prot});
+    const invX=EX+210, invW=180;
+    const routeHi=rY0+40, routeLo=rY0+54;      // battery wires
+    const pvTop=rY0+76, pvH=64, pvBot=pvTop+pvH;
+    const dcBoxTop=pvBot+36, dcDevTop=dcBoxTop+42, dcDevH=112, dcDevBot=dcDevTop+dcDevH;
+    const pvRouteP=dcDevBot+18, pvRouteN=dcDevBot+30;
+    const dcBoxBot=dcDevBot+48;
+    const battTop=dcBoxBot+40, battH=80, battBot=battTop+battH;
+    const invTop=rY0+92, invBot=Math.max(dcBoxBot+24, invTop+250);
+    const dcBoxX=invX+invW+110;
+    let xx=dcBoxX+34;
+    dcDevs.forEach(d=>{d.mod=PD; d.w=2*PD; d.x=xx; d.y=dcDevTop; d.h=dcDevH; xx+=2*PD+12});
+    const dcBoxW=Math.max(xx-12-dcBoxX+34,180);
+    const hasDc=dcDevs.length>0;
+    const Lp=d=>d.x+PD/2, Ln=d=>d.x+PD*1.5;
+
+    // region frame
+    let bottom=Math.max(invBot, hasDc?dcBoxBot:0, s.batt.on?battBot+22:0)+24;
+    let right=Math.max(invX+invW, hasDc?dcBoxX+dcBoxW:0)+30;
+    const pvI=dcDevs.find(d=>d.k==="pviso"), sp=dcDevs.find(d=>d.k==="dcspd"), bt2=dcDevs.find(d=>d.k==="batt");
+    let pvX0=0,pvW=0;
+    if(pvI){pvW=sp?2*(2*PD)+12+30:150; pvX0=(pvI.x+(sp?sp.x+sp.w:pvI.x+pvI.w))/2-pvW/2; right=Math.max(right,pvX0+pvW+30)}
+    reg+=`<rect x="${EX}" y="${rY0}" width="${right-EX}" height="${bottom-rY0}" rx="10" fill="none" stroke="#b7c0c6" stroke-width="1.5" stroke-dasharray="7 6"/>`;
+    reg+=txt(EX+16,rY0+22,"INVERTER AND DC",{size:10.5,weight:700,ls:1,fill:"#3b4650"});
+
+    // inverter box
+    reg+=`<rect x="${invX}" y="${invTop}" width="${invW}" height="${invBot-invTop}" rx="10" fill="#ffffff" stroke="#7f8a92" stroke-width="2"/>`;
+    reg+=`<rect x="${invX+24}" y="${invTop+36}" width="${invW-48}" height="40" rx="4" fill="#1d2b36"/>`;
+    reg+=txt(invX+invW/2,invTop+61,s.inv.kw+" kW  "+s.inv.v+" V",{anchor:"middle",size:13,weight:700,fill:"#7fe3a0"});
+    reg+=txt(invX+invW/2,invTop+102,"INVERTER",{anchor:"middle",size:14,weight:700,ls:1.5});
+    const wy=invTop+128, wx=invX+invW/2;
+    reg+=`<path d="M${wx-46} ${wy} q11 -14 22 0 t22 0" fill="none" stroke="#2563c7" stroke-width="2.4"/>`;
+    reg+=`<path d="M${wx+8} ${wy-5} h30 M${wx+8} ${wy+3} h8 M${wx+20} ${wy+3} h8 M${wx+32} ${wy+3} h6" stroke="#1c1c1c" stroke-width="2.4"/>`;
+    reg+=txt(wx-24,wy+20,"AC",{anchor:"middle",size:9,fill:"#56616a"})+txt(wx+23,wy+20,"DC",{anchor:"middle",size:9,fill:"#56616a"});
+    reg+=txt(invX+invW/2,invTop+(invBot-invTop)-16,"Hybrid inverter",{anchor:"middle",size:9.5,fill:"#56616a"});
+    // AC terminals on the left
+    const acIn=[invTop+168,invTop+182], acOut=[invTop+214,invTop+228];
+    [[acIn,"AC IN","from DB breaker (INV)"],[acOut,"AC OUT",whole?"to board (backup)":"to backup section"]].forEach(([ys,head,sub])=>{
+      reg+=wire(`M${invX} ${ys[0]} H${invX-40}`,C.L)+wire(`M${invX} ${ys[1]} H${invX-40}`,C.N);
+      reg+=screw(invX+10,ys[0])+screw(invX+10,ys[1]);
+      reg+=txt(invX-48,ys[0]+4,head,{anchor:"end",size:11.5,weight:700,fill:"#8a6400"});
+      reg+=txt(invX-48,ys[1]+8,sub,{anchor:"end",size:10,fill:"#56616a"});
+      reg+=txt(invX+20,ys[0]+4,"L",{size:8.5,weight:700,fill:"#56616a"})+txt(invX+20,ys[1]+4,"N",{size:8.5,weight:700,fill:"#56616a"});
+    });
+    // inverter earth
+    const ieX=invX+34;
+    reg+=wire(`M${ieX} ${invBot} V${invBot+10}`,C.E,3,C.Eband)+ground(ieX,invBot+10,C.E);
+    reg+=txt(ieX+16,invBot+22,"Earth",{size:9.5,fill:"#2f6b36"});
+
+    if(hasDc){
+      // DC box
+      reg+=`<rect x="${dcBoxX}" y="${dcBoxTop}" width="${dcBoxW}" height="${dcBoxBot-dcBoxTop}" rx="8" fill="#f1f3f4" stroke="#9fa8ae" stroke-width="2"/>`;
+      reg+=txt(dcBoxX+12,dcBoxTop+18,"DC BOX",{size:10,weight:700,ls:0.8,fill:"#3b4650"});
+      reg+=`<rect x="${dcBoxX+14}" y="${dcDevTop+dcDevH/2-8}" width="${dcBoxW-28}" height="16" fill="#c2c8cc" stroke="#a3abb1"/>`;
+    }
+    let dw="";
+    // battery: from below into the bottom, out of the top, over the panels and into the inverter top
+    if(bt2){
+      const bx=bt2.x-6, bw=bt2.w+12;
+      reg+=`<rect x="${bx}" y="${battTop}" width="${bw}" height="${battH}" rx="6" fill="#2c3e50" stroke="#1b2733" stroke-width="1.5"/>`;
+      reg+=`<rect x="${bx+bw*0.2}" y="${battTop-6}" width="12" height="6" fill="#cf2a1f"/><rect x="${bx+bw*0.8-12}" y="${battTop-6}" width="12" height="6" fill="#1c1c1c"/>`;
+      reg+=txt(bx+bw/2,battTop+28,"BATTERY",{anchor:"middle",size:10,weight:700,ls:1,fill:"#ffffff"});
+      reg+=txt(bx+bw/2,battTop+46,s.inv.v+" V  "+s.batt.ah+" Ah",{anchor:"middle",size:10.5,weight:700,fill:"#f2b72e"});
+      reg+=txt(bx+bw/2,battTop+62,"LiFePO4",{anchor:"middle",size:9,fill:"#c9d3db"});
+      dw+=wire(`M${Lp(bt2)} ${battTop-6} V${dcDevBot}`,DCP,3.4)+wire(`M${Ln(bt2)} ${battTop-6} V${dcDevBot}`,DCN,3.4);
+      const ibP=invX+invW-36, ibN=invX+invW-62;
+      dw+=wire(`M${Lp(bt2)} ${dcDevTop} V${routeLo} H${ibP} V${invTop}`,DCP,3.4);
+      dw+=wire(`M${Ln(bt2)} ${dcDevTop} V${routeHi} H${ibN} V${invTop}`,DCN,3.4);
+      reg+=screw(ibP,invTop+10)+screw(ibN,invTop+10);
+      reg+=txt(ibN,invTop+28,"BAT−",{anchor:"middle",size:8,weight:700,fill:"#56616a"})+txt(ibP,invTop+28,"BAT+",{anchor:"middle",size:8,weight:700,fill:"#56616a"});
+    }
+    // solar panels: from above into the isolator, out of the bottom into the inverter side
+    if(pvI){
+      const cnt=Math.min(s.pv.panels,6), pw=Math.min(24,(pvW-12)/cnt-4);
+      reg+=`<rect x="${pvX0}" y="${pvTop}" width="${pvW}" height="${pvH}" rx="4" fill="#ffffff" stroke="#97a1a8"/>`;
+      for(let i=0;i<cnt;i++){
+        const px=pvX0+6+i*((pvW-12)/cnt)+((pvW-12)/cnt-pw)/2;
+        reg+=`<rect x="${px}" y="${pvTop+8}" width="${pw}" height="${pvH-30}" fill="#1f4f8f" stroke="#0f2f57"/>`;
+        reg+=`<path d="M${px} ${pvTop+8+(pvH-30)/2} h${pw} M${px+pw/2} ${pvTop+8} v${pvH-30}" stroke="#7fa8dc" stroke-width="0.8"/>`;
+      }
+      reg+=txt(pvX0+pvW/2,pvTop+pvH-8,s.pv.panels+" solar panels",{anchor:"middle",size:10,weight:700});
+      dw+=wire(`M${Lp(pvI)} ${pvBot} V${dcDevTop}`,DCP,3.4)+wire(`M${Ln(pvI)} ${pvBot} V${dcDevTop}`,DCN,3.4);
+      dw+=txt(Lp(pvI)-6,pvBot+16,"+",{anchor:"end",size:12,weight:700,fill:DCP})+txt(Ln(pvI)+6,pvBot+16,"−",{size:12,weight:700});
+      if(sp){
+        dw+=wire(`M${Ln(pvI)} ${dcDevTop-28} H${Ln(sp)} V${dcDevTop}`,DCN,3)+dot(Ln(pvI),dcDevTop-28,DCN);
+        dw+=wire(`M${Lp(pvI)} ${dcDevTop-16} H${Lp(sp)} V${dcDevTop}`,DCP,3)+dot(Lp(pvI),dcDevTop-16,DCP);
+        const sx=sp.x+PD;
+        dw+=wire(`M${sx} ${dcDevBot} V${dcBoxBot+8}`,C.E,3,C.Eband)+ground(sx,dcBoxBot+8,C.E);
+      }
+      const iy=invX+invW;
+      dw+=wire(`M${Lp(pvI)} ${dcDevBot} V${pvRouteP} H${iy}`,DCP,3.4);
+      dw+=wire(`M${Ln(pvI)} ${dcDevBot} V${pvRouteN} H${iy}`,DCN,3.4);
+      reg+=screw(iy-10,pvRouteP)+screw(iy-10,pvRouteN);
+      reg+=txt(iy-20,pvRouteP+4,"PV+",{anchor:"end",size:8,weight:700,fill:"#56616a"})+txt(iy-20,pvRouteN+4,"PV−",{anchor:"end",size:8,weight:700,fill:"#56616a"});
+    }
+    reg+=dw+dcDevs.map(deviceSvg).join("");
+    regBot=bottom; regRight=right;
+  }
+
+  // ---- details and circuit list ----
+  const ty=regBot+34;
+  const rowH=19, perCol=12;
+  const colW=split?300:250;
+  const schRowsAll=allNum.map(c=>({no:String(nums.get(c.id)),name:c.name||"Circuit "+nums.get(c.id),a:c.a,b:onBackup(c)}));
+  if(inv) schRowsAll.push({no:"INV",name:"Inverter supply",a:s.inv.feedA,b:false,inv:true});
+  const nRows=schRowsAll.length;
+  const cols=Math.max(1,Math.ceil(nRows/perCol));
+  const tbW=330, tbX=M;
+  const schX=tbX+tbW+28, schW=cols*colW;
+  const W=Math.max(EX+EW+M, regRight+M, schX+schW+M);
+
   const today=new Date().toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"});
   const rows=[["Board",s.name||"DB board",true],["Supply","Single phase 230 V"],["Main switch",s.mainA+" A double pole"],
-    ["Earth leakage",s.el.on?`${s.el.a} A, ${s.el.ma} mA`:"None"],["Surge arrester",s.spd?"Fitted":"None"],["Circuits",String(n)],["Date",today]];
-  const tbH=30+rows.length*19+64;
-  tb+=`<rect x="${tbX}" y="${ty}" width="${tbW}" height="${tbH}" fill="#ffffff" stroke="#9fa8ae" stroke-width="1.2"/>`;
-  tb+=`<text x="${tbX+12}" y="${ty+20}" font-family="${FONT}" font-size="10" font-weight="700" letter-spacing="1" fill="#3b4650">BOARD DETAILS</text>`;
-  rows.forEach((r,i)=>{tb+=tline(ty+42+i*19,r[0],r[1],r[2])});
-  // wire key
-  const ky=ty+42+rows.length*19+6;
-  [[C.L,C.Lname,null],[C.N,C.Nname,null],[C.E,C.Ename,C.Eband]].forEach(([col,nm,band],i)=>{
-    const yy=ky+i*16;
-    tb+=wire(`M${tbX+12} ${yy} H${tbX+40}`,col,3,band);
-    tb+=`<text x="${tbX+48}" y="${yy+4}" font-family="${FONT}" font-size="10.5" fill="#1f2a33">${esc(nm)}</text>`;
-  });
-  // danger sign
-  const dx=tbX+tbW-46, dy=ty+tbH-50;
+    ["Earth leakage",s.el.on?`${s.el.a} A, ${s.el.ma} mA${inv?" (each section)":""}`:"None"],["AC surge arrester",s.spd?"Fitted":"None"]];
+  if(inv){
+    rows.push(["Inverter",`${s.inv.kw} kW, ${s.inv.v} V`]);
+    rows.push(["On backup",whole?"Whole board":`${G.back.length} of ${s.circuits.length} circuits`]);
+    if(s.batt.on) rows.push(["Battery",`${s.inv.v} V ${s.batt.ah} Ah, ${s.batt.a} A ${s.batt.prot==="fuse"?"fuse":"DC breaker"}`]);
+    if(s.pv.on) rows.push(["Solar",`${s.pv.panels} panels, ${s.pv.isoA} A DC isolator`]);
+    if(s.pv.on) rows.push(["DC surge arrester",s.pv.spd?"Fitted":"None"]);
+  }
+  rows.push(["Circuits",String(s.circuits.length)],["Date",today]);
+  const keys=[[C.L,C.Lname,null],[C.N,C.Nname,null],[C.E,C.Ename,C.Eband]];
+  if(inv&&(s.batt.on||s.pv.on)) keys.push([DCP,"DC positive + (red)",null],[DCN,"DC negative − (black)",null]);
+  const tbH=30+rows.length*19+12+keys.length*16+14;
+  let tb=`<rect x="${tbX}" y="${ty}" width="${tbW}" height="${tbH}" fill="#ffffff" stroke="#9fa8ae" stroke-width="1.2"/>`;
+  tb+=txt(tbX+12,ty+20,"BOARD DETAILS",{size:10,weight:700,ls:1,fill:"#3b4650"});
+  rows.forEach((r,i)=>{const yy=ty+42+i*19; tb+=txt(tbX+12,yy,r[0],{size:11,fill:"#5b6670"})+txt(tbX+128,yy,r[1],{size:11.5,weight:r[2]?700:400})});
+  const ky=ty+42+rows.length*19+4;
+  keys.forEach(([col,nm,band],i)=>{const yy=ky+i*16; tb+=wire(`M${tbX+12} ${yy} H${tbX+40}`,col,3,band)+txt(tbX+48,yy+4,nm,{size:10.5})});
+  const dx=tbX+tbW-46, dy=ty+tbH-52;
   tb+=`<path d="M${dx+17} ${dy} L${dx+34} ${dy+30} H${dx} Z" fill="#f2c318" stroke="#1c1c1c" stroke-width="1.6" stroke-linejoin="round"/>`;
   tb+=`<path d="M${dx+19} ${dy+9} L${dx+13} ${dy+19} H${dx+18} L${dx+15} ${dy+27} L${dx+22} ${dy+16} H${dx+17} Z" fill="#1c1c1c"/>`;
-  tb+=`<text x="${dx+17}" y="${dy+42}" text-anchor="middle" font-family="${FONT}" font-size="8" font-weight="700" fill="#1c1c1c">230 V</text>`;
+  tb+=txt(dx+17,dy+42,"230 V",{anchor:"middle",size:8,weight:700,fill:"#1c1c1c"});
 
-  // circuit schedule
   let sc="";
-  const schRows=Math.min(Math.max(n,1),perCol);
+  const schRows=Math.min(Math.max(nRows,1),perCol);
   const schH=30+schRows*rowH+8;
   sc+=`<rect x="${schX}" y="${ty}" width="${schW}" height="${schH}" fill="#ffffff" stroke="#9fa8ae" stroke-width="1.2"/>`;
   for(let cI=0;cI<cols;cI++){
     const cx=schX+cI*colW;
     if(cI>0) sc+=`<path d="M${cx} ${ty} V${ty+schH}" stroke="#c9d0d4"/>`;
-    sc+=`<text x="${cx+12}" y="${ty+20}" font-family="${FONT}" font-size="10" font-weight="700" letter-spacing="1" fill="#3b4650">NO.</text>`;
-    sc+=`<text x="${cx+44}" y="${ty+20}" font-family="${FONT}" font-size="10" font-weight="700" letter-spacing="1" fill="#3b4650">CIRCUIT</text>`;
-    sc+=`<text x="${cx+colW-12}" y="${ty+20}" text-anchor="end" font-family="${FONT}" font-size="10" font-weight="700" letter-spacing="1" fill="#3b4650">BREAKER</text>`;
+    sc+=txt(cx+12,ty+20,"NO.",{size:10,weight:700,ls:1,fill:"#3b4650"})+txt(cx+48,ty+20,"CIRCUIT",{size:10,weight:700,ls:1,fill:"#3b4650"});
+    if(split) sc+=txt(cx+colW-78,ty+20,"BACKUP",{size:10,weight:700,ls:1,fill:"#3b4650"});
+    sc+=txt(cx+colW-12,ty+20,"SIZE",{anchor:"end",size:10,weight:700,ls:1,fill:"#3b4650"});
   }
-  if(n===0) sc+=`<text x="${schX+12}" y="${ty+44}" font-family="${FONT}" font-size="11" fill="#5b6670">No circuits yet</text>`;
-  s.circuits.forEach((c,i)=>{
-    const cI=Math.floor(i/perCol), r=i%perCol, cx=schX+cI*colW, yy=ty+42+r*rowH;
-    if(r%2===0) sc+=`<rect x="${cx+1}" y="${yy-13}" width="${colW-2}" height="${rowH}" fill="#f2f5f7"/>`;
-    const nm=(c.name||"Circuit "+(i+1));
-    sc+=`<text x="${cx+12}" y="${yy}" font-family="${FONT}" font-size="11.5" font-weight="700" fill="#1f2a33">${i+1}</text>`;
-    sc+=`<text x="${cx+44}" y="${yy}" font-family="${FONT}" font-size="11.5" fill="#1f2a33">${esc(nm.length>26?nm.slice(0,25)+"…":nm)}</text>`;
-    sc+=`<text x="${cx+colW-12}" y="${yy}" text-anchor="end" font-family="${FONT}" font-size="11.5" fill="#1f2a33">${c.a} A</text>`;
+  if(nRows===0) sc+=txt(schX+12,ty+44,"No circuits yet",{fill:"#5b6670"});
+  schRowsAll.forEach((r,i)=>{
+    const cI=Math.floor(i/perCol), k=i%perCol, cx=schX+cI*colW, yy=ty+42+k*rowH;
+    if(k%2===0) sc+=`<rect x="${cx+1}" y="${yy-13}" width="${colW-2}" height="${rowH}" fill="#f2f5f7"/>`;
+    const maxLen=split?22:26;
+    sc+=txt(cx+12,yy,r.no,{size:11.5,weight:700,fill:r.inv?"#8a6400":"#1f2a33"});
+    sc+=txt(cx+48,yy,r.name.length>maxLen?r.name.slice(0,maxLen-1)+"…":r.name,{size:11.5});
+    if(split&&r.b) sc+=`<rect x="${cx+colW-78}" y="${yy-10}" width="34" height="13" rx="3" fill="#f6dc8f"/>`+txt(cx+colW-61,yy,"Yes",{anchor:"middle",size:9.5,weight:700,fill:"#5a4300"});
+    sc+=txt(cx+colW-12,yy,r.a+" A",{anchor:"end",size:11.5});
   });
 
   const H=ty+Math.max(tbH,schH)+M;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Drawing of ${esc(s.name||"the DB board")}">`+
-    `<rect width="${W}" height="${H}" fill="#fbfcfc"/>`+g+w+dv+bt+tb+sc+`</svg>`;
+    `<rect width="${W}" height="${H}" fill="#fbfcfc"/>`+g+w+dv+bt+reg+tb+sc+`</svg>`;
 }
 
 function draw(){$("sheet").innerHTML=buildSvg()}
