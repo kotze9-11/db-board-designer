@@ -511,7 +511,8 @@ function renderFix(){
 }
 
 /* ---------- read a board from a photo (Claude version only) ---------- */
-let sampleFn=null, photoCtl=null;
+let sampleFn=null, photoCtl=null, photoReader=null;
+const changeHooks=[];
 function nearest(list,v){v=+v; if(!isFinite(v)) return list[0]; return list.reduce((b,x)=>Math.abs(x-v)<Math.abs(b-v)?x:b,list[0])}
 const PHOTO_PROMPT=`You are helping a South African electrician document an existing electrical distribution board (DB board) from a photo.
 Look carefully at the photo and read every device you can see.
@@ -564,13 +565,13 @@ function photoMsg(t){$("photoMsg").textContent=t}
 async function readPhoto(){
   const file=$("photoIn").files&&$("photoIn").files[0];
   if(!file){photoMsg("Choose a photo of the board first."); return}
-  if(!sampleFn){photoMsg("Reading photos isn't available here."); return}
+  if(!sampleFn&&!photoReader){photoMsg("Reading photos isn't available here."); return}
   const extra=$("photoInfo").value.trim();
   photoCtl=new AbortController();
   $("readPhoto").disabled=true; $("stopPhoto").hidden=false;
   photoMsg("Reading the photo… this can take a minute or two.");
   try{
-    const r=await sampleFn.json(PHOTO_PROMPT+(extra?`\n\nThe person also says: "${extra.replace(/"/g,"'")}"`:""),{images:[file],modelTier:"complex",signal:photoCtl.signal,cache:false});
+    const r=photoReader?await photoReader(file,extra,photoCtl.signal):await sampleFn.json(PHOTO_PROMPT+(extra?`\n\nThe person also says: "${extra.replace(/"/g,"'")}"`:""),{images:[file],modelTier:"complex",signal:photoCtl.signal,cache:false});
     if(!r||typeof r!=="object"||!Array.isArray(r.circuits)) throw {code:"invalid_json"};
     const b=boardFromReading(r);
     setBoards(b,null); confirming=null; syncControls(); changed();
@@ -581,7 +582,7 @@ async function readPhoto(){
       image_rejected:"That photo couldn't be used. Try a JPEG or PNG under 20 MB.",rate_limited:"Too many requests right now. Wait a few minutes and try again.",
       refused:"The photo couldn't be read. Try a clearer photo of the board.",invalid_json:"The answer couldn't be turned into a board. Try again, or with a clearer photo.",
       session_expired:"Please sign in to Claude again, then try again.",images_unavailable:"Sending photos isn't available here."};
-    photoMsg(msgs[c]||"Something went wrong reading the photo. Try again in a moment.");
+    photoMsg(msgs[c]||(e&&e.userMessage)||"Something went wrong reading the photo. Try again in a moment.");
     if(["not_granted","sampling_disabled","images_unavailable","capability_disabled","capability_removed","not_declared"].includes(c)){ $("photoArea").hidden=true; $("photoNo").hidden=false; }
   }finally{
     $("readPhoto").disabled=false; $("stopPhoto").hidden=true; photoCtl=null;
@@ -589,14 +590,14 @@ async function readPhoto(){
 }
 (async()=>{
   try{
-    if(!window.claude||typeof window.claude.use!=="function"){ $("photoNo").hidden=false; return }
+    if(!window.claude||typeof window.claude.use!=="function"){ if(!photoReader) $("photoNo").hidden=false; return }
     const smp=await window.claude.use("sample");
     const lim=smp?await smp.limits().catch(()=>null):null;
-    if(!smp||!lim||!lim.images){ $("photoNo").hidden=false; return }
-    sampleFn=smp;
+    if(!smp||!lim||!lim.images){ if(!photoReader) $("photoNo").hidden=false; return }
+    sampleFn=smp; if(photoReader) return;
     if(lim.images.mediaTypes&&lim.images.mediaTypes.length) $("photoIn").accept=lim.images.mediaTypes.join(",");
     $("photoArea").hidden=false;
-  }catch(e){ $("photoNo").hidden=false }
+  }catch(e){ if(!photoReader) $("photoNo").hidden=false }
 })();
 
 /* ---------- settings panel ---------- */
@@ -683,7 +684,7 @@ function renderReset(){
   else a.innerHTML=`<div class="toolbar"><button type="button" class="btn ghost" data-reset="new">Empty board</button><button type="button" class="btn ghost" data-reset="example">Load example</button></div>`;
 }
 
-function changed(){save();draw();renderProblems()}
+function changed(){save();draw();renderProblems();changeHooks.forEach(f=>{try{f()}catch(e){}})}
 
 $("panel").addEventListener("submit",e=>e.preventDefault());
 $("panel").addEventListener("input",e=>{
@@ -1414,6 +1415,20 @@ $("fullBtn").addEventListener("click",()=>{
   }catch(e){$("fullBtn").textContent="Full screen not available here"}
 });
 
+/* hooks for the website version (saving boards to an account, reading photos on a server) */
+window.DBB={
+  exportAll:()=>({v:2,found:plainBoard(boards.found),fixed:boards.fixed?plainBoard(boards.fixed):null,view}),
+  importAll:obj=>{
+    if(obj&&obj.found) setBoards(normalize(obj.found),obj.fixed?normalize(obj.fixed):null);
+    else setBoards(normalize(obj||{...clone(DEFAULTS),name:"New board"}),null);
+    if(obj&&obj.view==="fixed"&&boards.fixed){view="fixed"; state=boards.fixed}
+    confirming=null; syncControls(); save(); draw(); renderProblems();
+  },
+  newBoard:()=>{setBoards(normalize({...clone(DEFAULTS),name:"New board"}),null); syncControls(); changed()},
+  boardName:()=>boards.found.name||"DB board",
+  onChange:f=>changeHooks.push(f),
+  setPhotoReader:fn=>{photoReader=fn; $("photoNo").hidden=true; $("photoArea").hidden=false}
+};
 syncControls(); draw();
 })();
 </script>

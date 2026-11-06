@@ -1,0 +1,1441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>DB Board Designer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: tool bench. Settings panel on the left, the drawing sheet on the right (stacked on phones, drawing first). */
+:root{
+  --bg:#eef1f3; --panel:#ffffff; --fg:#1d252b; --muted:#5f6b74; --line:#d3dade;
+  --accent:#1f5fbf; --accent-fg:#ffffff; --live:#c9261c; --chip:#e6ecf5; --solar:#e8a400;
+  --sheet:#fbfcfc; --sheet-line:#cfd6db;
+  --display:"Saira Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a1f; --panel:#1d252c; --fg:#e4e9ed; --muted:#9aa6af; --line:#33404a;
+  --accent:#5b93f0; --accent-fg:#0d1620; --live:#f0675d; --chip:#24324a; --solar:#f2b72e;
+  --sheet:#f4f6f7; --sheet-line:#3a4752; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#141a1f; --panel:#1d252c; --fg:#e4e9ed; --muted:#9aa6af; --line:#33404a;
+  --accent:#5b93f0; --accent-fg:#0d1620; --live:#f0675d; --chip:#24324a; --solar:#f2b72e;
+  --sheet:#f4f6f7; --sheet-line:#3a4752; color-scheme:dark;}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1500px;margin:0 auto;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.01em;margin:0;text-wrap:balance}
+h1 span{color:var(--live)}
+.sub{color:var(--muted);margin:0}
+.main{display:grid;grid-template-columns:minmax(300px,390px) minmax(0,1fr);gap:20px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:18px}
+.sec{display:grid;gap:10px}
+.sec + .sec{border-top:1px solid var(--line);padding-top:16px}
+.sub-sec{display:grid;gap:10px;padding:12px;border-radius:8px;background:var(--bg)}
+h2{font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0}
+h3{font-family:var(--display);font-weight:700;font-size:15px;margin:0;color:var(--fg)}
+label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+input[type=text],input[type=number],select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+.sub-sec input[type=text],.sub-sec input[type=number],.sub-sec select{background:var(--panel)}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toggle{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--fg);cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;font:inherit;font-size:13px;padding:7px 6px;border:0;background:transparent;color:var(--fg);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.circuits{display:grid;gap:6px}
+.group-title{font-size:13px;font-weight:600;color:var(--fg);display:flex;align-items:center;gap:8px;margin-top:4px}
+.group-title i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.circ{display:grid;grid-template-columns:26px minmax(0,1fr) 74px auto;gap:6px;align-items:center}
+.circ.ph3{grid-template-columns:26px minmax(0,1fr) 70px 58px}
+.circ.wide .iconbtns{grid-column:2/-1;justify-content:flex-end}
+.ib.el{width:40px;font-size:11px;font-weight:700;color:var(--accent)}
+.ib.el.off{color:var(--muted);text-decoration:line-through}
+.num{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:right}
+.iconbtns{display:flex;gap:2px}
+.ib{font:inherit;width:28px;height:32px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:6px;cursor:pointer;line-height:1;padding:0}
+.ib:hover:not(:disabled){color:var(--fg);border-color:var(--muted)}
+.ib:disabled{opacity:.35;cursor:default}
+.ib.del:hover{color:var(--live);border-color:var(--live)}
+.ib.mv{color:var(--solar);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.probs{margin:0;padding-left:22px;display:grid;gap:6px;font-size:14px}
+.probs li::marker{font-weight:700;color:var(--live)}
+.probs.fixed li::marker{color:#2f8a3e}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.chip{font:inherit;font-size:13px;padding:5px 10px;border-radius:999px;border:1px solid transparent;background:var(--chip);color:var(--fg);cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip:disabled{opacity:.45;cursor:not-allowed}
+.btn{font:inherit;font-weight:600;padding:9px 14px;border-radius:7px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line);font-weight:500}
+.btn.ghost:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
+.stage{display:grid;gap:10px;min-width:0;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sheet{background:var(--sheet);border:1px solid var(--sheet-line);border-radius:10px;overflow:auto;padding:10px;max-height:calc(100vh - 90px)}
+.sheet svg{display:block;width:100%;height:auto;min-width:600px}
+.sheet:fullscreen{padding:24px;max-height:none;display:flex;align-items:center;justify-content:center}
+.sheet:fullscreen svg{max-height:100%;width:auto;max-width:100%;min-width:0}
+.overlay{position:fixed;inset:0;background:rgba(10,14,18,.72);display:grid;place-items:center;z-index:20;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dialog{background:var(--panel);color:var(--fg);border-radius:12px;padding:18px;max-width:min(1100px,100%);max-height:100%;overflow:auto;display:grid;gap:12px}
+.dialog img{background:#fff;border:1px solid var(--line);border-radius:6px;width:100%;height:auto}
+.dialog p{margin:0}
+@media (max-width:900px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .stage{position:static;order:-1}
+  .sheet{max-height:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="stylesheet" href="cloud.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>DB Board <span>Designer</span></h1>
+    <p class="sub">Choose the parts and name your circuits. The drawing updates as you go.</p>
+  </header>
+
+  <div class="main">
+    <form class="panel" id="panel" autocomplete="off">
+      <div class="sec">
+        <h2>Report</h2>
+        <div id="photoArea" class="sub-sec" hidden>
+          <h3>Read a board from a photo</h3>
+          <label>Photo of the board<input type="file" id="photoIn" accept="image/jpeg,image/png,image/webp"></label>
+          <label>Anything the photo can't show (optional)<input type="text" id="photoInfo" maxlength="300" placeholder="For example: 5 kW Sunsynk inverter, three-phase supply"></label>
+          <div class="toolbar">
+            <button type="button" class="btn" id="readPhoto">Read board from photo</button>
+            <button type="button" class="btn ghost" id="stopPhoto" hidden>Stop</button>
+          </div>
+          <p class="hint" id="photoMsg" aria-live="polite">This replaces the board you have now, and any corrected version.</p>
+        </div>
+        <p class="hint" id="photoNo" hidden>Reading a board from a photo works in the Claude version of this designer. Here, you can load a board code instead.</p>
+        <div class="seg" role="group" aria-label="Which drawing to show">
+          <button type="button" id="viewFound" data-view="found">As found</button>
+          <button type="button" id="viewFixed" data-view="fixed">Corrected</button>
+        </div>
+        <div id="fixArea"></div>
+        <p class="hint" id="viewHint"></p>
+      </div>
+
+      <div class="sec">
+        <h2 id="probTitle">Problems found</h2>
+        <ol class="probs" id="probList"></ol>
+        <label id="notesLabel">Your notes from the photo, one per line<textarea id="notes" rows="4" spellcheck="true" placeholder="For example: Burn marks at the neutral bar"></textarea></label>
+      </div>
+
+      <div class="sec">
+        <h2>Board</h2>
+        <label>Board name<input type="text" id="name" maxlength="60"></label>
+        <div>
+          <label style="margin-bottom:4px">AC wire colours</label>
+          <div class="seg" role="group" aria-label="AC wire colours">
+            <button type="button" id="colRed" data-col="red">Red / Black</button>
+            <button type="button" id="colBrown" data-col="brown">Brown / Blue</button>
+          </div>
+        </div>
+        <div>
+          <label style="margin-bottom:4px">Supply</label>
+          <div class="seg" role="group" aria-label="Supply">
+            <button type="button" id="ph1" data-phases="1">Single phase</button>
+            <button type="button" id="ph3" data-phases="3">Three phase</button>
+          </div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="cables"> Show cable sizes (SANS 10142-1 guide)</label>
+        <p class="hint" id="cableHint">Sizes follow the SANS 10142-1 current ratings for Surfix cable in conduit. Long runs, hot roof spaces or cables bunched together can need a thicker cable, so a registered electrician must confirm them for the CoC.</p>
+      </div>
+
+      <div class="sec">
+        <h2>Main switch</h2>
+        <label>Size<select id="mainA"></select></label>
+      </div>
+
+      <div class="sec">
+        <h2>Earth leakage</h2>
+        <label class="toggle"><input type="checkbox" id="elOn"> Fit an earth leakage</label>
+        <div class="row2" id="elOpts">
+          <label>Size<select id="elA"></select></label>
+          <label>Trip level<select id="elMa"></select></label>
+        </div>
+        <p class="hint" id="elHint" hidden>With an inverter, the backup section gets its own earth leakage too.</p>
+      </div>
+
+      <div class="sec">
+        <h2>Surge protection</h2>
+        <label class="toggle"><input type="checkbox" id="spd"> Fit an AC surge arrester</label>
+        <label id="spdKaWrap">Surge arrester rating<select id="spdKa"><option value="20">Type 2 · 20 kA · 275 V</option><option value="40">Type 2 · 40 kA · 275 V</option></select></label>
+      </div>
+
+      <div class="sec">
+        <h2>Breaker ratings</h2>
+        <div class="row2">
+          <label>Trip curve<select id="curve"><option value="B">B curve</option><option value="C">C curve</option><option value="D">D curve</option></select></label>
+          <label>Breaking capacity<select id="ka"><option value="3">3 kA</option><option value="4.5">4.5 kA</option><option value="6">6 kA</option><option value="10">10 kA</option></select></label>
+        </div>
+        <p class="hint">Trip curve: B for lights and plugs, C for general use and small motors, D for big motors. Breaking capacity is the biggest fault the breaker can safely switch off. It must be at least the fault level at the board, so ask the electrician or the municipality. 6 kA is common for homes.</p>
+        <label>Earth leakage type<select id="elType"><option value="A">Type A</option><option value="AC">Type AC</option></select></label>
+        <p class="hint">Type A also picks up the pulsing DC leakage that inverters and electronics can cause, so it is the better choice with an inverter.</p>
+      </div>
+
+      <div class="sec">
+        <h2>Inverter and DC</h2>
+        <label class="toggle"><input type="checkbox" id="invOn"> Add an inverter</label>
+        <div id="invOpts" class="sec" style="gap:12px">
+          <div class="row2">
+            <label>Inverter size<select id="invKw"></select></label>
+            <label>Battery voltage<select id="invV"></select></label>
+          </div>
+          <div>
+            <label style="margin-bottom:4px">What runs on the inverter</label>
+            <div class="seg" role="group" aria-label="What runs on the inverter">
+              <button type="button" id="modeSplit" data-mode="split">Backup section</button>
+              <button type="button" id="modeWhole" data-mode="whole">Whole board</button>
+            </div>
+          </div>
+          <p class="hint" id="modeHint"></p>
+          <label class="toggle"><input type="checkbox" id="invBypass"> Bypass switch (changeover)</label>
+          <p class="hint">Lets you switch the backup circuits straight to the grid, so the inverter can be switched off, worked on or removed.</p>
+          <div>
+            <label style="margin-bottom:4px">Neutral-earth bond on backup</label>
+            <div class="seg" role="group" aria-label="Neutral-earth bond on backup">
+              <button type="button" id="neCont" data-ne="contactor">Bond contactor</button>
+              <button type="button" id="neBuilt" data-ne="builtin">Built into inverter</button>
+            </div>
+          </div>
+          <p class="hint">Joins neutral to earth only while the grid is off, so the backup earth leakage still works. Most single-phase hybrid inverters need the contactor.</p>
+          <label>Breaker feeding the inverter<select id="invFeedA"></select></label>
+          <label id="invPhWrap">Inverter fed from phase<select id="invPh"><option>L1</option><option>L2</option><option>L3</option></select></label>
+
+          <div class="sub-sec">
+            <label class="toggle"><input type="checkbox" id="battOn"> Battery</label>
+            <div id="battOpts" class="sec" style="gap:10px">
+              <label>Battery size<select id="battAh"></select></label>
+              <div>
+                <label style="margin-bottom:4px">DC protection</label>
+                <div class="seg" role="group" aria-label="Battery DC protection">
+                  <button type="button" id="protBreaker" data-prot="breaker">DC breaker</button>
+                  <button type="button" id="protFuse" data-prot="fuse">Fuse</button>
+                </div>
+              </div>
+              <label>Rating<select id="battA"></select></label>
+              <label id="battVWrap">DC voltage rating<select id="battDcV"><option value="125">125 V DC</option><option value="250">250 V DC</option><option value="500">500 V DC</option></select></label>
+              <label id="fuseWrap">Fuse type<select id="fuseType"><option value="NH">NH (blade) fuse</option><option value="ANL">ANL fuse</option><option value="Class T">Class T fuse</option></select></label>
+            </div>
+          </div>
+
+          <div class="sub-sec">
+            <label class="toggle"><input type="checkbox" id="pvOn"> Solar panels</label>
+            <div id="pvOpts" class="sec" style="gap:10px">
+              <div class="row2">
+                <label>Number of panels<input type="number" id="pvPanels" min="1" max="40" step="1"></label>
+                <label>DC isolator<select id="pvIsoA"></select></label>
+              </div>
+              <label>DC voltage rating (isolator and surge arrester)<select id="pvV"><option value="600">600 V DC</option><option value="1000">1000 V DC</option></select></label>
+              <label class="toggle"><input type="checkbox" id="pvSpd"> DC surge arrester</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Circuits</h2>
+        <div class="circuits" id="circuits"></div>
+        <p class="hint" id="emptyHint" hidden>No circuits yet. Tap one of the quick picks below to add one.</p>
+        <p class="hint" id="elRowHint" hidden>Tap <strong>E/L</strong> on a circuit to show it as not on the earth leakage (fed straight from the main switch).</p>
+        <p class="hint" id="splitHint" hidden>Tap <strong style="color:var(--solar)">&#8644;</strong> to move a circuit between grid only and backup.</p>
+        <div class="chips" id="presets"></div>
+        <button type="button" class="btn ghost" id="addBlank">Add circuit</button>
+      </div>
+
+      <div class="sec">
+        <h2>Import or share a board</h2>
+        <label>Board code<textarea id="code" rows="3" spellcheck="false" placeholder="Paste a board code here" style="font-family:var(--mono);font-size:12px;resize:vertical"></textarea></label>
+        <div class="toolbar">
+          <button type="button" class="btn" id="importBtn">Load board from code</button>
+          <button type="button" class="btn ghost" id="exportBtn">Show this board's code</button>
+        </div>
+        <p class="hint" id="codeMsg" aria-live="polite">Loading a code replaces the board you have now.</p>
+      </div>
+
+      <div class="sec">
+        <h2>Start again</h2>
+        <div id="resetArea"></div>
+        <p class="hint">Your board is kept in this browser, so it is still here when you come back on the same device.</p>
+      </div>
+    </form>
+
+    <section class="stage" aria-label="Board drawing">
+      <div class="toolbar">
+        <button type="button" class="btn" id="savePic">Save picture</button>
+        <button type="button" class="btn ghost" id="fullBtn">Full screen</button>
+        <span class="seg" style="display:inline-flex">
+          <select id="pdfSize" aria-label="PDF page size" style="border:0;border-radius:0;width:auto"><option value="a4">A4</option><option value="a3">A3</option></select>
+          <button type="button" id="pdfBtn" style="font-weight:600">Save as PDF</button>
+        </span>
+      </div>
+      <p class="hint" id="pdfMsg" aria-live="polite" hidden></p>
+      <div class="sheet" id="sheet"></div>
+    </section>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <p id="dlgTitle"><strong>Your board picture</strong></p>
+    <p class="hint">On a computer, right-click the picture and choose <strong>Save image as</strong>. On a phone, press and hold the picture and choose <strong>Save image</strong>.</p>
+    <img id="picImg" alt="Drawing of the DB board">
+    <div class="toolbar">
+      <button type="button" class="btn ghost" id="copyPic">Copy picture</button>
+      <button type="button" class="btn" id="closePic">Close</button>
+      <span class="hint" id="copyMsg" aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+(function(){
+"use strict";
+const KEY="dbboard.v1";
+const MAIN_SIZES=[40,60,63,80,100];
+const EL_SIZES=[40,63,80,100];
+const EL_MA=[30,100,300];
+const CB_SIZES=[6,10,15,16,20,25,30,32,40,50,63];
+const INV_KW=[3,3.6,5,6,8,10,12,16];
+const INV_V=[12,24,48];
+const FEED_A=[20,25,32,40,50,63];
+const BATT_AH=[50,100,150,200,280,314];
+const BATT_A=[63,80,100,125,160,200,250];
+const PV_ISO=[16,25,32,40,50];
+const PRESETS=[["Lights",10,true],["Plugs",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Pool pump",16,false],["Gate motor",10,true],["Outside lights",10,true],["Borehole",16,false],["TV & Wi-Fi",16,true]];
+const MAX_CIRCUITS=30;
+
+const DEFAULTS={name:"My board",colours:"red",phases:1,cables:true,specs:{curve:"C",ka:6,elType:"A",spdKa:40},mainA:63,el:{on:true,a:63,ma:30},spd:true,
+  inv:{on:false,kw:5,v:48,mode:"split",feedA:32,bypass:false,ne:"contactor",ph:"L1"},
+  batt:{on:true,ah:100,prot:"breaker",a:125,dcV:250,fuse:"NH"},
+  pv:{on:true,panels:8,isoA:32,spd:true,v:1000},circuits:[]};
+const EXAMPLE={name:"Example house",colours:"red",phases:1,cables:true,specs:{curve:"C",ka:6,elType:"A",spdKa:40},mainA:63,el:{on:true,a:63,ma:30},spd:true,
+  inv:{on:true,kw:5,v:48,mode:"split",feedA:32,bypass:true,ne:"contactor",ph:"L1"},
+  batt:{on:true,ah:100,prot:"breaker",a:125,dcV:250,fuse:"NH"},
+  pv:{on:true,panels:8,isoA:32,spd:true,v:1000},
+  circuits:[["Lights",10,true],["Plugs kitchen",20,true],["Plugs lounge",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Outside lights",10,true],["Gate motor",10,true]].map(([n,a,b])=>({name:n,a,backup:b}))};
+
+let uid=1;
+const PHS=["L1","L2","L3"];
+const plainCircuit=c=>({name:c.name,a:c.a,backup:c.backup,noEl:c.noEl,ph:c.ph});
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function normalize(s){
+  const d=clone(DEFAULTS);
+  const out={...d,...s,specs:{...d.specs,...(s.specs||{})},el:{...d.el,...(s.el||{})},inv:{...d.inv,...(s.inv||{})},batt:{...d.batt,...(s.batt||{})},pv:{...d.pv,...(s.pv||{})}};
+  out.phases=+out.phases===3?3:1;
+  out.notes=Array.isArray(s.notes)?s.notes.map(String).filter(Boolean):[];
+  out.changes=Array.isArray(s.changes)?s.changes.map(String):[];
+  if(!PHS.includes(out.inv.ph)) out.inv.ph="L1";
+  out.circuits=(Array.isArray(s.circuits)?s.circuits:[]).map((c,i)=>({id:uid++,name:String(c.name??""),a:+c.a||20,backup:!!c.backup,
+    noEl:!!c.noEl,ph:PHS.includes(c.ph)?c.ph:PHS[i%3]}));
+  return out;
+}
+const KEY2="dbboard.v2";
+const plainBoard=b=>({...b,circuits:b.circuits.map(plainCircuit)});
+let boards, view="found";
+function load(){
+  try{
+    const raw2=localStorage.getItem(KEY2);
+    if(raw2){const o=JSON.parse(raw2); if(o&&o.found){boards={found:normalize(o.found),fixed:o.fixed?normalize(o.fixed):null}; view=o.view==="fixed"&&o.fixed?"fixed":"found"; return boards[view]}}
+    const raw=localStorage.getItem(KEY); if(raw){const s=JSON.parse(raw); if(s&&typeof s==="object"){boards={found:normalize(s),fixed:null}; return boards.found}}
+  }catch(e){}
+  boards={found:normalize(clone(EXAMPLE)),fixed:null};
+  return boards.found;
+}
+function save(){
+  try{localStorage.setItem(KEY2,JSON.stringify({found:plainBoard(boards.found),fixed:boards.fixed?plainBoard(boards.fixed):null,view}))}catch(e){}
+}
+function setBoards(found,fixed){boards={found,fixed:fixed||null}; view="found"; state=boards.found; fixConfirm=false}
+function setView(v){if(v==="fixed"&&!boards.fixed) return; view=v; state=boards[v]; syncControls(); changed()}
+let fixConfirm=false;
+let state=load();
+
+const $=id=>document.getElementById(id);
+function fillSelect(sel,values,suffix){sel.innerHTML=values.map(v=>`<option value="${v}">${v}${suffix}</option>`).join("")}
+fillSelect($("mainA"),MAIN_SIZES," A");
+fillSelect($("elA"),EL_SIZES," A");
+fillSelect($("elMa"),EL_MA," mA");
+fillSelect($("invKw"),INV_KW," kW");
+fillSelect($("invV"),INV_V," V");
+fillSelect($("invFeedA"),FEED_A," A");
+fillSelect($("battAh"),BATT_AH," Ah");
+fillSelect($("battA"),BATT_A," A");
+fillSelect($("pvIsoA"),PV_ISO," A");
+$("presets").innerHTML=PRESETS.map(([n,a],i)=>`<button type="button" class="chip" data-preset="${i}">+ ${n} ${a}A</button>`).join("");
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+/* which circuits are on the inverter */
+const isSplit=()=>state.inv.on&&state.inv.mode==="split";
+const isWhole=()=>state.inv.on&&state.inv.mode==="whole";
+function onBackup(c){return state.inv.on&&(state.inv.mode==="whole"||c.backup)}
+function groups(){
+  if(isSplit()) return {grid:state.circuits.filter(c=>!c.backup),back:state.circuits.filter(c=>c.backup)};
+  if(isWhole()) return {grid:[],back:state.circuits.slice()};
+  return {grid:state.circuits.slice(),back:[]};
+}
+/* groups as shown in the list and drawn on the board (same order, same numbers) */
+function elFirstSection(){const g=groups(); return state.el.on&&(!state.inv.on||g.grid.length>0)}
+function dispGroups(){
+  const s=state, split=isSplit();
+  if(isWhole()) return [{t:null,key:"bk",list:s.circuits.slice()}];
+  const grid=split?s.circuits.filter(c=>!c.backup):s.circuits.slice();
+  const elOn=elFirstSection();
+  const ne=elOn?grid.filter(c=>c.noEl):[], ye=elOn?grid.filter(c=>!c.noEl):grid;
+  const out=[];
+  if(ne.length){
+    const pre=split?"Grid only – ":"";
+    out.push({t:pre+"not on earth leakage",key:"ne",dot:"#9aa3aa",list:ne});
+    out.push({t:pre+"on earth leakage",key:"ye",dot:"#1f5fbf",list:ye});
+  }else out.push({t:split?"Grid only (off during load shedding)":null,key:"ye",dot:"#9aa3aa",list:ye});
+  if(split) out.push({t:"On backup (inverter)",key:"bk",dot:"var(--solar)",list:s.circuits.filter(c=>c.backup)});
+  return out;
+}
+function groupKey(c){
+  if(isWhole()) return "bk";
+  if(isSplit()&&c.backup) return "bk";
+  return elFirstSection()&&c.noEl?"ne":"ye";
+}
+function ordered(){return dispGroups().flatMap(g=>g.list)}
+
+/* ---------- problems and the corrected version ---------- */
+const GENERIC=/^(top|bottom|circuit|row|cb)\s*\d+$/i;
+function phaseTotals(b){
+  const t=[0,0,0];
+  b.circuits.forEach(c=>{if(!onBackup(c)) t[Math.max(0,PHS.indexOf(c.ph))]+=c.a});
+  if(b.inv.on) t[Math.max(0,PHS.indexOf(b.inv.ph))]+=b.inv.feedA;
+  return t;
+}
+function checks(){
+  const s=state, out=[], all=ordered(), num=c=>all.indexOf(c)+1, pl=(n,a,b)=>n>1?b:a;
+  const ne=(dispGroups().find(x=>x.key==="ne")||{list:[]}).list;
+  if(!s.el.on) out.push("No earth leakage fitted. Plug and light circuits must be protected by a 30 mA earth leakage.");
+  else{
+    if(ne.length) out.push(`${ne.length} ${pl(ne.length,"circuit is","circuits are")} not on the earth leakage (no. ${ne.map(num).join(", ")}). Plug circuits must be on a 30 mA earth leakage.`);
+    if(s.el.ma>30) out.push(`The earth leakage trips at ${s.el.ma} mA. Use 30 mA for plugs and lights.`);
+    if(!s.inv.on&&s.el.a<s.mainA) out.push(`The earth leakage (${s.el.a} A) is smaller than the main switch (${s.mainA} A), so it can be overloaded.`);
+    if(s.inv.on&&s.specs.elType==="AC") out.push("The earth leakage is Type AC. With an inverter, Type A is recommended.");
+  }
+  if(!s.spd) out.push("No AC surge arrester fitted.");
+  if(s.specs.ka<6) out.push(`The breakers are rated ${s.specs.ka} kA. Check the fault level at the board; 6 kA is common on newer installations.`);
+  const old=all.filter(c=>c.a===15||c.a===30);
+  if(old.length) out.push(`Old breaker sizes (15 A or 30 A) on ${pl(old.length,"circuit","circuits")} ${old.map(num).join(", ")}. Check the cables and change to 16 A or 32 A where the cable allows.`);
+  if(s.phases===3){
+    const t=phaseTotals(s), mx=Math.max(...t), mn=Math.min(...t);
+    if(mx>0&&(mx-mn)>0.4*mx) out.push(`The phases are unbalanced (breakers on L1 ${t[0]} A, L2 ${t[1]} A, L3 ${t[2]} A).`);
+  }
+  const unl=all.filter(c=>!c.name.trim()||GENERIC.test(c.name.trim()));
+  if(unl.length) out.push(`${unl.length} ${pl(unl.length,"circuit is","circuits are")} not labelled. Every circuit should be labelled at the board.`);
+  if(s.inv.on){
+    if(!s.inv.bypass) out.push("No bypass switch. If the inverter fails, the backup circuits can't be switched to the grid.");
+    if(s.pv.on&&!s.pv.spd) out.push("No DC surge arrester on the solar side.");
+  }
+  return out;
+}
+function makeFixed(){
+  const found=boards.found;
+  const f=JSON.parse(JSON.stringify(plainBoard(found))), ch=[];
+  const elFor=a=>EL_SIZES.find(v=>v>=a)||EL_SIZES[EL_SIZES.length-1];
+  const poles=f.phases===3?"4-pole":"2-pole";
+  const an=n=>/^(8|11|18)/.test(String(n))?"an":"a";
+  const bk=c=>f.inv.on&&(f.inv.mode==="whole"||c.backup);
+  const names=list=>list.map(c=>c.name||"unnamed").join(", ");
+  if(!f.el.on){
+    f.el={on:true,a:elFor(f.mainA),ma:30}; f.specs.elType="A";
+    ch.push(`Fit ${an(f.el.a)} ${f.el.a} A, 30 mA, Type A ${poles} earth leakage.`);
+  }else{
+    let repl=false;
+    if(!f.inv.on&&f.el.a<f.mainA){f.el.a=elFor(f.mainA); repl=true}
+    if(f.el.ma>30){f.el.ma=30; repl=true}
+    if(f.inv.on&&f.specs.elType==="AC") repl=true;
+    if(repl){f.specs.elType="A"; ch.push(`Replace the earth leakage with ${an(f.el.a)} ${f.el.a} A, 30 mA, Type A ${poles} unit.`)}
+  }
+  const ne=f.circuits.filter(c=>c.noEl&&!bk(c));
+  if(ne.length){ne.forEach(c=>c.noEl=false); ch.push(`Move ${ne.length} ${ne.length>1?"circuits":"circuit"} onto the earth leakage (${names(ne)}).`)}
+  if(!f.spd){f.spd=true; f.specs.spdKa=40; ch.push(`Fit a Type 2, 40 kA ${poles} AC surge arrester.`)}
+  const old=f.circuits.filter(c=>c.a===15||c.a===30);
+  if(old.length){old.forEach(c=>{c.a=c.a===15?16:32}); ch.push(`Replace ${old.length} old 15 A / 30 A ${old.length>1?"breakers":"breaker"} with 16 A / 32 A (check each cable first).`)}
+  if(f.specs.ka<6) ch.push(`Check the fault level at the board. If it is above ${f.specs.ka} kA, replace the breakers with 6 kA units.`);
+  if(f.phases===3){
+    const grid=f.circuits.filter(c=>!bk(c)).sort((a,b)=>b.a-a.a);
+    const t=[0,0,0]; if(f.inv.on) t[Math.max(0,PHS.indexOf(f.inv.ph))]+=f.inv.feedA;
+    let moved=0;
+    grid.forEach(c=>{const k=t.indexOf(Math.min(...t)); if(c.ph!==PHS[k]) moved++; c.ph=PHS[k]; t[k]+=c.a});
+    if(moved) ch.push(`Spread the circuits evenly over L1, L2 and L3 (L1 ${t[0]} A, L2 ${t[1]} A, L3 ${t[2]} A of breakers).`);
+  }
+  if(f.inv.on){
+    if(!f.inv.bypass){f.inv.bypass=true; ch.push("Fit a bypass (changeover) switch for the backup section.")}
+    if(f.pv.on&&!f.pv.spd){f.pv.spd=true; ch.push("Fit a DC surge arrester on the solar side.")}
+  }
+  const unl=f.circuits.filter(c=>!String(c.name).trim()||GENERIC.test(String(c.name).trim()));
+  if(unl.length) ch.push("Label every circuit and put a circuit list inside the board door.");
+  ch.push("Check and tighten all connections, test the earth leakage and earthing, and issue a Certificate of Compliance (CoC).");
+  f.changes=ch;
+  f.notes=(found.notes||[]).map(n=>"Repair: "+n);
+  f.name=(found.name||"Board").replace(/ – corrected$/,"")+" – corrected";
+  boards.fixed=normalize(f);
+  fixConfirm=false;
+  setView("fixed");
+}
+function renderProblems(){
+  const fixed=view==="fixed";
+  const items=fixed?state.changes:checks();
+  const list=$("probList");
+  list.className="probs"+(fixed?" fixed":"");
+  list.innerHTML=items.length?items.map(t=>`<li>${esc(t)}</li>`).join(""):`<li style="list-style:none;margin-left:-22px;color:var(--muted)">${fixed?"No changes listed.":"The automatic checks found nothing. Add anything you see in the photo below."}</li>`;
+}
+function renderFix(){
+  const a=$("fixArea");
+  if(view==="fixed"){a.innerHTML=""; return}
+  if(boards.fixed&&fixConfirm) a.innerHTML=`<div class="confirm"><span>This replaces the corrected drawing, including any changes you made to it.</span><button type="button" class="btn" data-fix="yes">Yes, remake it</button><button type="button" class="btn ghost" data-fix="cancel">Cancel</button></div>`;
+  else a.innerHTML=`<button type="button" class="btn" data-fix="make">${boards.fixed?"Remake corrected version":"Make corrected version"}</button>`;
+}
+
+/* ---------- read a board from a photo (Claude version only) ---------- */
+let sampleFn=null, photoCtl=null, photoReader=null;
+const changeHooks=[];
+function nearest(list,v){v=+v; if(!isFinite(v)) return list[0]; return list.reduce((b,x)=>Math.abs(x-v)<Math.abs(b-v)?x:b,list[0])}
+const PHOTO_PROMPT=`You are helping a South African electrician document an existing electrical distribution board (DB board) from a photo.
+Look carefully at the photo and read every device you can see.
+
+Rules:
+- List every circuit breaker (MCB) in order: top row first, left to right, then the next row. Do not list the main switch, earth leakage, surge arrester, timers or contactors as circuits.
+- "a" is the breaker's amp rating as printed (for example 10, 15, 20, 30, 40). If you can't read it, use your best guess and add a line to "unsure".
+- "name": use the circuit label if one is written on or near the breaker; otherwise use "Top 1", "Top 2" ... for the top row and "Bottom 1" ... for the next row (or "Row 3 1" and so on).
+- "noEl": true if that breaker is clearly NOT fed through the earth leakage unit (for example a separate row or busbar fed straight from the main switch). If you can't tell, use false.
+- "phases": 3 if the main switch has 3 or 4 poles or you can see three phase colours (red, yellow/white, blue) coming in; otherwise 1.
+- "ph": for three-phase boards, the phase each breaker is on if you can tell, otherwise spread them L1, L2, L3 in order. For single phase use "L1".
+- "mainA": main switch rating. "el": the earth leakage unit (on, amp rating "a", trip level "ma" in mA, usually 30). "elType": "A" or "AC" if printed, else "AC".
+- "spd": true only if you can see a surge arrester.
+- "curve": breaker trip curve (B, C or D; curve 3 counts as C). "ka": breaking capacity in kA as printed (often 3, 4.5, 6 or 10).
+- "inverter": present true only if you can see an inverter, changeover/bypass switch or clear signs of one.
+- "notes": short, plain-English descriptions of visible problems an electrician should fix, for example burn or scorch marks, melted insulation, taped joints, loose or exposed wires, missing covers or blanking plates, overcrowding, wrong-coloured conductors, signs of water. Only what you can actually see.
+- "unsure": short notes about anything you could not read or had to guess.
+
+Reply with only this JSON, no other text:
+{"name":"Board from photo","phases":1,"mainA":63,"el":{"on":true,"a":63,"ma":30},"elType":"AC","spd":false,"curve":"C","ka":3,
+ "circuits":[{"name":"Top 1","a":20,"noEl":false,"ph":"L1"}],
+ "inverter":{"present":false,"kw":null},
+ "notes":["..."],"unsure":["..."]}`;
+function boardFromReading(r){
+  const phases=+r.phases===3?3:1;
+  const el=r.el&&typeof r.el==="object"?r.el:{};
+  const circuits=(Array.isArray(r.circuits)?r.circuits:[]).slice(0,MAX_CIRCUITS).map((c,i)=>({
+    name:String(c&&c.name||("Circuit "+(i+1))).slice(0,28),
+    a:nearest(CB_SIZES,c&&c.a),
+    backup:false,
+    noEl:!!(c&&c.noEl),
+    ph:PHS.includes(c&&c.ph)?c.ph:PHS[i%3]
+  }));
+  const invP=r.inverter&&r.inverter.present===true;
+  const notes=(Array.isArray(r.notes)?r.notes:[]).map(String).filter(Boolean)
+    .concat((Array.isArray(r.unsure)?r.unsure:[]).map(x=>"Check: "+String(x)).filter(x=>x.length>7));
+  return normalize({
+    name:String(r.name||"Board from photo").slice(0,60),
+    colours:"red", phases, cables:true,
+    specs:{curve:["B","C","D"].includes(r.curve)?r.curve:"C",ka:nearest([3,4.5,6,10],r.ka||3),elType:r.elType==="A"?"A":"AC",spdKa:40},
+    mainA:nearest(MAIN_SIZES,r.mainA||63),
+    el:{on:el.on!==false&&el.on!==undefined?!!el.on:false,a:nearest(EL_SIZES,el.a||63),ma:nearest(EL_MA,el.ma||30)},
+    spd:r.spd===true,
+    inv:{...clone(DEFAULTS.inv),on:invP,kw:invP&&r.inverter.kw?nearest(INV_KW,r.inverter.kw):5},
+    batt:clone(DEFAULTS.batt), pv:clone(DEFAULTS.pv),
+    circuits, notes, changes:[]
+  });
+}
+function photoMsg(t){$("photoMsg").textContent=t}
+async function readPhoto(){
+  const file=$("photoIn").files&&$("photoIn").files[0];
+  if(!file){photoMsg("Choose a photo of the board first."); return}
+  if(!sampleFn&&!photoReader){photoMsg("Reading photos isn't available here."); return}
+  const extra=$("photoInfo").value.trim();
+  photoCtl=new AbortController();
+  $("readPhoto").disabled=true; $("stopPhoto").hidden=false;
+  photoMsg("Reading the photo… this can take a minute or two.");
+  try{
+    const r=photoReader?await photoReader(file,extra,photoCtl.signal):await sampleFn.json(PHOTO_PROMPT+(extra?`\n\nThe person also says: "${extra.replace(/"/g,"'")}"`:""),{images:[file],modelTier:"complex",signal:photoCtl.signal,cache:false});
+    if(!r||typeof r!=="object"||!Array.isArray(r.circuits)) throw {code:"invalid_json"};
+    const b=boardFromReading(r);
+    setBoards(b,null); confirming=null; syncControls(); changed();
+    photoMsg(`Read ${b.circuits.length} circuit${b.circuits.length===1?"":"s"}. Compare the drawing with the photo and fix anything that's wrong. Lines starting with "Check:" are things that were hard to read.`);
+  }catch(e){
+    const c=e&&e.code;
+    const msgs={cancelled:"Stopped.",not_granted:"Claude wasn't allowed to read the photo. Allow it when asked, or load a board code instead.",
+      image_rejected:"That photo couldn't be used. Try a JPEG or PNG under 20 MB.",rate_limited:"Too many requests right now. Wait a few minutes and try again.",
+      refused:"The photo couldn't be read. Try a clearer photo of the board.",invalid_json:"The answer couldn't be turned into a board. Try again, or with a clearer photo.",
+      session_expired:"Please sign in to Claude again, then try again.",images_unavailable:"Sending photos isn't available here."};
+    photoMsg(msgs[c]||(e&&e.userMessage)||"Something went wrong reading the photo. Try again in a moment.");
+    if(["not_granted","sampling_disabled","images_unavailable","capability_disabled","capability_removed","not_declared"].includes(c)){ $("photoArea").hidden=true; $("photoNo").hidden=false; }
+  }finally{
+    $("readPhoto").disabled=false; $("stopPhoto").hidden=true; photoCtl=null;
+  }
+}
+(async()=>{
+  try{
+    if(!window.claude||typeof window.claude.use!=="function"){ if(!photoReader) $("photoNo").hidden=false; return }
+    const smp=await window.claude.use("sample");
+    const lim=smp?await smp.limits().catch(()=>null):null;
+    if(!smp||!lim||!lim.images){ if(!photoReader) $("photoNo").hidden=false; return }
+    sampleFn=smp; if(photoReader) return;
+    if(lim.images.mediaTypes&&lim.images.mediaTypes.length) $("photoIn").accept=lim.images.mediaTypes.join(",");
+    $("photoArea").hidden=false;
+  }catch(e){ if(!photoReader) $("photoNo").hidden=false }
+})();
+
+/* ---------- settings panel ---------- */
+function setPressed(id,on){$(id).setAttribute("aria-pressed",on)}
+function syncControls(){
+  const s=state;
+  $("name").value=s.name;
+  $("mainA").value=s.mainA;
+  $("elOn").checked=s.el.on; $("elA").value=s.el.a; $("elMa").value=s.el.ma;
+  $("elOpts").hidden=!s.el.on; $("elHint").hidden=!(s.el.on&&s.inv.on);
+  $("spd").checked=s.spd;
+  setPressed("ph1",s.phases===1); setPressed("ph3",s.phases===3);
+  $("invPh").value=s.inv.ph; $("invPhWrap").hidden=s.phases!==3;
+  setPressed("colRed",s.colours==="red"); setPressed("colBrown",s.colours==="brown");
+  $("invOn").checked=s.inv.on; $("invOpts").hidden=!s.inv.on;
+  $("invBypass").checked=s.inv.bypass;
+  setPressed("neCont",s.inv.ne==="contactor"); setPressed("neBuilt",s.inv.ne==="builtin");
+  $("cables").checked=s.cables; $("cableHint").hidden=!s.cables;
+  $("invKw").value=s.inv.kw; $("invV").value=s.inv.v; $("invFeedA").value=s.inv.feedA;
+  setPressed("modeSplit",s.inv.mode==="split"); setPressed("modeWhole",s.inv.mode==="whole");
+  $("modeHint").textContent=s.inv.mode==="split"
+    ? "The board gets a separate backup section. You choose which circuits stay on when the power is off."
+    : "Every circuit runs through the inverter, so the whole board stays on when the power is off.";
+  $("battOn").checked=s.batt.on; $("battOpts").hidden=!s.batt.on;
+  $("battAh").value=s.batt.ah; $("battA").value=s.batt.a;
+  setPressed("protBreaker",s.batt.prot==="breaker"); setPressed("protFuse",s.batt.prot==="fuse");
+  $("pvOn").checked=s.pv.on; $("pvOpts").hidden=!s.pv.on;
+  $("curve").value=s.specs.curve; $("ka").value=s.specs.ka; $("elType").value=s.specs.elType; $("spdKa").value=s.specs.spdKa; $("spdKaWrap").hidden=!s.spd;
+  $("battDcV").value=s.batt.dcV; $("fuseType").value=s.batt.fuse; $("battVWrap").hidden=s.batt.prot!=="breaker"; $("fuseWrap").hidden=s.batt.prot!=="fuse";
+  $("pvV").value=s.pv.v;
+  $("pvPanels").value=s.pv.panels; $("pvIsoA").value=s.pv.isoA; $("pvSpd").checked=s.pv.spd;
+  setPressed("viewFound",view==="found"); setPressed("viewFixed",view==="fixed"); $("viewFixed").disabled=!boards.fixed;
+  $("viewHint").textContent=view==="fixed"
+    ? "You are editing the corrected (proposed) board. Changes here don't affect the as-found drawing."
+    : boards.fixed?"You are editing the board as found. The PDF includes both drawings.":"Draw the board as it is now, then make a corrected version.";
+  $("probTitle").textContent=view==="fixed"?"Work to be done":"Problems found";
+  $("notesLabel").firstChild.textContent=view==="fixed"?"Extra work, one per line":"Your notes from the photo, one per line";
+  $("notes").value=(state.notes||[]).join("\n");
+  renderFix(); renderProblems();
+  $("pdfBtn").textContent=boards.fixed?"Save report PDF":"Save as PDF";
+  renderCircuits(); renderReset();
+}
+function rowHtml(c,num,first,last,split){
+  const opts=CB_SIZES.map(v=>`<option value="${v}">${v} A</option>`).join("");
+  const ph3=state.phases===3;
+  const elBtn=state.el.on&&!isWhole()&&!(isSplit()&&c.backup);
+  const nBtns=3+(split?1:0)+(elBtn?1:0);
+  const wide=ph3||nBtns>4;
+  return `<div class="circ${ph3?" ph3":""}${wide?" wide":""}" data-id="${c.id}">
+      <span class="num">${num}</span>
+      <input type="text" id="cn${c.id}" data-f="name" value="${esc(c.name)}" maxlength="28" aria-label="Circuit ${num} name">
+      <select id="ca${c.id}" data-f="a" aria-label="Circuit ${num} breaker size">${opts}</select>
+      ${ph3?`<select id="cp${c.id}" data-f="ph" aria-label="Circuit ${num} phase">${PHS.map(p=>`<option>${p}</option>`).join("")}</select>`:""}
+      <span class="iconbtns">
+        ${elBtn?`<button type="button" class="ib el${c.noEl?" off":""}" data-act="el" aria-pressed="${!c.noEl}" title="${c.noEl?"Not on earth leakage. Tap to put it on.":"On earth leakage. Tap to take it off."}">E/L</button>`:""}
+        ${split?`<button type="button" class="ib mv" data-act="move" aria-label="${c.backup?"Move circuit "+num+" to grid only":"Move circuit "+num+" to backup"}" title="${c.backup?"Move to grid only":"Move to backup"}">&#8644;</button>`:""}
+        <button type="button" class="ib" data-act="up" aria-label="Move circuit ${num} up" ${first?"disabled":""}>&#8593;</button>
+        <button type="button" class="ib" data-act="down" aria-label="Move circuit ${num} down" ${last?"disabled":""}>&#8595;</button>
+        <button type="button" class="ib del" data-act="del" aria-label="Remove circuit ${num}">&#215;</button>
+      </span>
+    </div>`;
+}
+function renderCircuits(){
+  const split=isSplit();
+  let html="", n=0;
+  dispGroups().forEach(g=>{
+    if(g.t) html+=`<div class="group-title"><i style="background:${g.dot}"></i>${esc(g.t.charAt(0).toUpperCase()+g.t.slice(1))}</div>`;
+    html+=g.list.length?g.list.map((c,i)=>rowHtml(c,++n,i===0,i===g.list.length-1,split)).join(""):(g.t?`<p class="hint">None</p>`:"");
+  });
+  $("circuits").innerHTML=html;
+  state.circuits.forEach(c=>{const s=$("ca"+c.id); if(s) s.value=c.a; const p=$("cp"+c.id); if(p) p.value=c.ph});
+  $("emptyHint").hidden=state.circuits.length>0;
+  $("splitHint").hidden=!(split&&state.circuits.length>0);
+  $("elRowHint").hidden=!(state.el.on&&!isWhole()&&state.circuits.length>0);
+  const full=state.circuits.length>=MAX_CIRCUITS;
+  $("addBlank").disabled=full;
+  document.querySelectorAll("[data-preset]").forEach(b=>b.disabled=full);
+}
+let confirming=null;
+function renderReset(){
+  const a=$("resetArea");
+  if(confirming==="new") a.innerHTML=`<div class="confirm"><span>Remove everything, including any corrected version, and start an empty board?</span><button type="button" class="btn" data-reset="yes-new">Yes, start empty</button><button type="button" class="btn ghost" data-reset="cancel">Cancel</button></div>`;
+  else if(confirming==="example") a.innerHTML=`<div class="confirm"><span>Replace your board with the example?</span><button type="button" class="btn" data-reset="yes-example">Yes, load example</button><button type="button" class="btn ghost" data-reset="cancel">Cancel</button></div>`;
+  else a.innerHTML=`<div class="toolbar"><button type="button" class="btn ghost" data-reset="new">Empty board</button><button type="button" class="btn ghost" data-reset="example">Load example</button></div>`;
+}
+
+function changed(){save();draw();renderProblems();changeHooks.forEach(f=>{try{f()}catch(e){}})}
+
+$("panel").addEventListener("submit",e=>e.preventDefault());
+$("panel").addEventListener("input",e=>{
+  const t=e.target;
+  if(t.id==="name"){state.name=t.value;return changed()}
+  if(t.id==="notes"){state.notes=t.value.split("\n").map(x=>x.trim()).filter(Boolean); return changed()}
+  if(t.id==="pvPanels"){const v=Math.round(+t.value); if(v>=1&&v<=40){state.pv.panels=v; changed()} return}
+  const row=t.closest(".circ");
+  if(row&&t.dataset.f==="name"){const c=state.circuits.find(c=>c.id==row.dataset.id); if(c){c.name=t.value; changed()}}
+});
+$("panel").addEventListener("change",e=>{
+  const t=e.target, s=state;
+  const map={mainA:v=>s.mainA=+v,elA:v=>s.el.a=+v,elMa:v=>s.el.ma=+v,invKw:v=>s.inv.kw=+v,invV:v=>s.inv.v=+v,invFeedA:v=>s.inv.feedA=+v,
+    invPh:v=>s.inv.ph=v,curve:v=>s.specs.curve=v,ka:v=>s.specs.ka=+v,elType:v=>s.specs.elType=v,spdKa:v=>s.specs.spdKa=+v,battDcV:v=>s.batt.dcV=+v,fuseType:v=>s.batt.fuse=v,pvV:v=>s.pv.v=+v,
+    battAh:v=>s.batt.ah=+v,battA:v=>s.batt.a=+v,pvIsoA:v=>s.pv.isoA=+v};
+  if(map[t.id]){map[t.id](t.value); return changed()}
+  if(t.id==="pvPanels"){t.value=s.pv.panels; return}
+  const checks={elOn:v=>s.el.on=v,spd:v=>s.spd=v,invOn:v=>s.inv.on=v,invBypass:v=>s.inv.bypass=v,cables:v=>s.cables=v,battOn:v=>s.batt.on=v,pvOn:v=>s.pv.on=v,pvSpd:v=>s.pv.spd=v};
+  if(checks[t.id]){checks[t.id](t.checked); syncControls(); return changed()}
+  const row=t.closest(".circ");
+  if(row&&t.dataset.f==="a"){const c=s.circuits.find(c=>c.id==row.dataset.id); if(c){c.a=+t.value; changed()}}
+  if(row&&t.dataset.f==="ph"){const c=s.circuits.find(c=>c.id==row.dataset.id); if(c){c.ph=t.value; changed()}}
+});
+function neighbour(i,dir){
+  const arr=state.circuits, k=groupKey(arr[i]);
+  for(let j=i+dir;j>=0&&j<arr.length;j+=dir){ if(groupKey(arr[j])===k) return j }
+  return -1;
+}
+$("panel").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  const s=state;
+  if(b.id==="readPhoto"){readPhoto(); return}
+  if(b.id==="stopPhoto"){if(photoCtl) photoCtl.abort(); return}
+  if(b.dataset.view){setView(b.dataset.view); return}
+  if(b.dataset.fix){
+    const f=b.dataset.fix;
+    if(f==="make"){ if(boards.fixed){fixConfirm=true; renderFix()} else makeFixed() }
+    else if(f==="yes") makeFixed();
+    else {fixConfirm=false; renderFix()}
+    return;
+  }
+  if(b.dataset.phases){s.phases=+b.dataset.phases; syncControls(); return changed()}
+  if(b.dataset.col){s.colours=b.dataset.col; syncControls(); return changed()}
+  if(b.dataset.ne){s.inv.ne=b.dataset.ne; syncControls(); return changed()}
+  if(b.dataset.mode){s.inv.mode=b.dataset.mode; syncControls(); return changed()}
+  if(b.dataset.prot){s.batt.prot=b.dataset.prot; syncControls(); return changed()}
+  if(b.dataset.preset!==undefined){
+    if(s.circuits.length>=MAX_CIRCUITS) return;
+    const [n,a,bk]=PRESETS[+b.dataset.preset];
+    s.circuits.push({id:uid++,name:n,a,backup:bk,noEl:false,ph:PHS[s.circuits.length%3]}); renderCircuits(); return changed();
+  }
+  if(b.id==="addBlank"){
+    if(s.circuits.length>=MAX_CIRCUITS) return;
+    const c={id:uid++,name:"Circuit "+(s.circuits.length+1),a:20,backup:false,noEl:false,ph:PHS[s.circuits.length%3]};
+    s.circuits.push(c); renderCircuits(); changed();
+    const inp=$("cn"+c.id); if(inp){inp.focus(); inp.select()}
+    return;
+  }
+  if(b.dataset.act){
+    const row=b.closest(".circ"); const arr=s.circuits; const i=arr.findIndex(c=>c.id==row.dataset.id); if(i<0) return;
+    const act=b.dataset.act;
+    if(act==="del") arr.splice(i,1);
+    else if(act==="el"){arr[i].noEl=!arr[i].noEl}
+    else if(act==="move"){const c=arr.splice(i,1)[0]; c.backup=!c.backup; arr.push(c)}
+    else{
+      const j=neighbour(i,act==="up"?-1:1);
+      if(j>=0) [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+    renderCircuits(); return changed();
+  }
+  if(b.id==="importBtn"){
+    const raw=$("code").value.trim();
+    if(!raw){$("codeMsg").textContent="Paste a board code in the box first."; return}
+    try{
+      let json=raw;
+      if(!raw.startsWith("{")){
+        const b64=raw.replace(/^DBB1:/,"").replace(/\s+/g,"");
+        json=decodeURIComponent(escape(atob(b64)));
+      }
+      const obj=JSON.parse(json);
+      if(!obj||typeof obj!=="object") throw new Error("bad");
+      if(obj.found&&Array.isArray(obj.found.circuits)) setBoards(normalize(obj.found),obj.fixed&&Array.isArray(obj.fixed.circuits)?normalize(obj.fixed):null);
+      else if(Array.isArray(obj.circuits)) setBoards(normalize(obj),null);
+      else throw new Error("bad");
+      confirming=null; syncControls(); changed();
+      $("codeMsg").textContent=`Loaded "${state.name}" with ${state.circuits.length} circuits${boards.fixed?" and a corrected version":""}.`;
+    }catch(err){
+      $("codeMsg").textContent="That code could not be read. Check that you copied all of it, from DBB1: to the end.";
+    }
+    return;
+  }
+  if(b.id==="exportBtn"){
+    const plain=boards.fixed?{v:2,found:plainBoard(boards.found),fixed:plainBoard(boards.fixed)}:plainBoard(boards.found);
+    const code="DBB1:"+btoa(unescape(encodeURIComponent(JSON.stringify(plain))));
+    const ta=$("code"); ta.value=code;
+    const fallback=()=>{ta.focus(); ta.select(); $("codeMsg").textContent="The code is in the box. Select it all and copy it."};
+    try{
+      navigator.clipboard.writeText(code).then(()=>{$("codeMsg").textContent="Code copied. You can paste it into WhatsApp, email or a chat with Claude."}).catch(fallback);
+    }catch(err){fallback()}
+    return;
+  }
+  if(b.dataset.reset){
+    const r=b.dataset.reset;
+    if(r==="new"||r==="example") confirming=r;
+    else if(r==="cancel") confirming=null;
+    else if(r==="yes-new"){confirming=null; setBoards(normalize({...clone(DEFAULTS),name:"New board"}),null); syncControls(); changed()}
+    else if(r==="yes-example"){confirming=null; setBoards(normalize(clone(EXAMPLE)),null); syncControls(); changed()}
+    renderReset();
+  }
+});
+
+/* ---------- drawing ---------- */
+const P=34;            // one AC breaker module
+const PD=40;           // one DC module
+const FONT="Arial, Helvetica, sans-serif";
+const DCP="#cf2a1f", DCN="#1c1c1c";
+function phaseColours(){return state.colours==="brown"?["#7b4a22","#1c1c1c","#8a9096"]:["#cf2a1f","#d9a400","#2563c7"]}
+function colours(){
+  return state.colours==="brown"
+    ? {L:"#7b4a22",N:"#2563c7",E:"#2f9a3a",Eband:"#e9c81c",Lname:"AC live (brown)",Nname:"AC neutral (blue)",Ename:"Earth (green/yellow)"}
+    : {L:"#cf2a1f",N:"#1c1c1c",E:"#2f9a3a",Eband:null,Lname:"AC live (red)",Nname:"AC neutral (black)",Ename:"Earth (green)"};
+}
+/* Cable sizes: smallest Surfix size whose SANS 10142-1 rating (single phase, in conduit) is at least the breaker size.
+   1.5mm² 16.5A, 2.5mm² 23A, 4mm² 30A, 6mm² 38A, 10mm² 52A, 16mm² 69A, 25mm² 90A. */
+function acCable(a){
+  if(a<=16) return "1.5"; if(a<=20) return "2.5"; if(a<=25) return "4"; if(a<=32) return "6";
+  if(a<=50) return "10"; if(a<=63) return "16"; if(a<=80) return "25"; return null;
+}
+const acTxt=a=>{const c=acCable(a); return c?c+" mm²":"cable: ask electrician"};
+/* DC battery and PV cables: typical copper sizes for short runs (under about 3 m). Not from SANS tables. */
+function battCable(a){return {63:"16",80:"25",100:"35",125:"35",160:"50",200:"70",250:"95"}[a]||null}
+const pvCable=a=>a<=32?"4":"6";
+function wire(d,col,w,band,dash){
+  let s=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w||3}" stroke-linejoin="round" stroke-linecap="round"${dash?` stroke-dasharray="${dash}"`:""}/>`;
+  if(band) s+=`<path d="${d}" fill="none" stroke="${band}" stroke-width="${(w||3)*0.45}" stroke-dasharray="6 6" stroke-linejoin="round"/>`;
+  return s;
+}
+function dot(x,y,col){return `<circle cx="${x}" cy="${y}" r="3.4" fill="${col}"/>`}
+function screw(x,y){return `<circle cx="${x}" cy="${y}" r="4.2" fill="#c9ced2" stroke="#7d868d" stroke-width="1"/><path d="M${x-2.6} ${y}h5.2" stroke="#6b737a" stroke-width="1.2"/>`}
+function txt(x,y,t,o){o=o||{};return `<text x="${x}" y="${y}"${o.anchor?` text-anchor="${o.anchor}"`:""} font-family="${FONT}" font-size="${o.size||11}"${o.weight?` font-weight="${o.weight}"`:""}${o.ls?` letter-spacing="${o.ls}"`:""} fill="${o.fill||"#1f2a33"}">${esc(t)}</text>`}
+function vlabel(x,y,t,col,bold){
+  return `<text transform="translate(${x+4} ${y}) rotate(-90)" font-family="${FONT}" font-size="11.5" ${bold?'font-weight="700"':''} fill="${col||"#27313a"}">${esc(t)}</text>`;
+}
+function ground(x,y,col){
+  return `<path d="M${x} ${y} v10 M${x-10} ${y+10} h20 M${x-6} ${y+15} h12 M${x-2.5} ${y+20} h5" stroke="${col||"#2f9a3a"}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+}
+
+let SP={curve:"C",ka:6,elType:"A",spdKa:40};
+const kaTxt=()=>SP.ka+"kA";
+function kaBox(cx,y){
+  const v=String(Math.round(SP.ka*1000));
+  return `<rect x="${cx-13}" y="${y}" width="26" height="11" fill="#ffffff" stroke="#1f2a33" stroke-width="0.9"/>`+txt(cx,y+8.5,v,{anchor:"middle",size:7,weight:700});
+}
+function deviceSvg(d){
+  const {x,w,y,h}=d, mod=d.mod||P;
+  let s=`<rect x="${x+1}" y="${y}" width="${w-2}" height="${h}" rx="4" fill="#ffffff" stroke="#97a1a8" stroke-width="1.2"/>`;
+  const poles=Math.round(w/mod);
+  for(let k=0;k<poles;k++){const cx=x+mod*k+mod/2; s+=screw(cx,y+9)+screw(cx,y+h-9)}
+  const cx=x+w/2;
+  const t=(ty,v,size,weight,col)=>txt(cx,ty,v,{anchor:"middle",size,weight:weight||400,fill:col});
+  const handle=(col,yy)=>`<rect x="${x+8}" y="${y+(yy||52)}" width="${w-16}" height="44" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+12}" y="${y+(yy||52)+4}" width="${w-24}" height="20" rx="2" fill="${col}"/>`;
+  switch(d.k){
+    case "main": s+=t(y+30,"MAIN",9,700)+t(y+42,d.a+"A",10,700)+handle("#d8231b")+t(y+105,d.poles===4?"3P + N ISOLATOR":"2P ISOLATOR",6.8,700,"#56616a")+t(y+114,"400V~",6.8,400,"#56616a"); break;
+    case "el": s+=t(y+25,"E/L  TYPE "+SP.elType,8,700)+t(y+36,d.a+"A  "+d.ma+"mA",8.5,700)+t(y+47,kaTxt()+"  "+(d.poles===4?"4P":"2P"),7,400,"#56616a")+handle("#1f5fbf")+
+      `<rect x="${cx-8}" y="${y+102}" width="16" height="11" rx="2" fill="#f1c40f" stroke="#a9880a"/>`+t(y+111,"T",8,700); break;
+    case "spd": s+=t(y+28,"SURGE  T2",8.5,700)+t(y+40,SP.spdKa+"kA  275V",7.5,700,"#56616a")+
+      `<rect x="${x+10}" y="${y+56}" width="${w-20}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/><rect x="${cx-9}" y="${y+60}" width="18" height="8" rx="1.5" fill="#33b04a"/>`+t(y+90,d.poles===4?"L1 L2 L3 N E":"L  N  E",7.5,700,"#56616a"); break;
+    case "nebond":
+      s+=t(y+27,"N-E BOND",8.5,700)+t(y+39,"CONTACTOR",7.5,700,"#56616a")+t(y+51,"63A · 230V coil",7,400,"#56616a");
+      s+=`<rect x="${x+10}" y="${y+58}" width="${w-20}" height="30" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${cx-10}" y="${y+64}" width="20" height="10" rx="2" fill="#2b2f33"/><circle cx="${cx}" cy="${y+81}" r="2.5" fill="#33b04a"/>`;
+      s+=t(y+100,"NC: N to E",7,700,"#56616a")+t(y+109,"when grid off",6.5,400,"#56616a");
+      break;
+    case "bypass": {
+      s+=t(y+27,"BYPASS SWITCH",8.5,700);
+      s+=txt(x+P,y+40,"GRID",{anchor:"middle",size:7.5,weight:700,fill:"#56616a"})+txt(x+3*P,y+40,"INVERTER",{anchor:"middle",size:7.5,weight:700,fill:"#8a6400"});
+      const ky=y+72;
+      s+=`<circle cx="${cx}" cy="${ky}" r="19" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${cx-4}" y="${ky-17}" width="8" height="34" rx="3" fill="#2b2f33" transform="rotate(45 ${cx} ${ky})"/>`;
+      s+=txt(cx-30,ky-10,"II",{anchor:"middle",size:8,weight:700})+txt(cx,ky-23,"0",{anchor:"middle",size:8,weight:700})+txt(cx+30,ky-10,"I",{anchor:"middle",size:8,weight:700});
+      s+=t(y+104,"I = INVERTER   0 = OFF   II = GRID",6.8,400,"#56616a");
+      break;
+    }
+    case "invout": s+=t(y+30,"FROM",8,700)+t(y+41,"INVERTER",7.5,700)+handle("#e8a400")+t(y+111,"BACKUP IN",7,400,"#56616a"); break;
+    case "cbinv":
+      s+=`<rect x="${x+2}" y="${y+1}" width="${w-4}" height="14" fill="#fff4d6"/>`+screw(cx,y+9);
+      s+=t(y+28,SP.curve+d.a,9.5,700)+kaBox(cx,y+33)+`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`+
+        `<rect x="${x+4}" y="${y+102}" width="${w-8}" height="14" rx="2" fill="#f2b72e" stroke="#b78a10"/>`+t(y+113,"INV",8,700); break;
+    case "cb":
+      s+=t(y+28,SP.curve+d.c.a,9.5,700)+kaBox(cx,y+33)+`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`+
+        `<rect x="${x+5}" y="${y+102}" width="${w-10}" height="14" rx="2" fill="#f4f6f7" stroke="#c3c9cd"/>`+t(y+113,String(d.num),9,700); break;
+    case "pviso": s+=t(y+28,"PV DC",8.5,700)+t(y+40,"ISOLATOR",7.5,700)+t(y+52,d.a+"A  "+state.pv.v+"V DC",7.5,400,"#56616a")+
+      `<rect x="${x+14}" y="${y+60}" width="${w-28}" height="30" rx="15" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${cx-22}" y="${y+70}" width="44" height="10" rx="4" fill="#d8231b"/>`+t(y+102,"+       −",9,700,"#56616a"); break;
+    case "dcspd": s+=t(y+28,"SURGE",8.5,700)+t(y+40,"T2  "+state.pv.v+"V DC",7.5,700,"#56616a")+
+      `<rect x="${x+12}" y="${y+54}" width="${w-24}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/><rect x="${cx-9}" y="${y+58}" width="18" height="8" rx="1.5" fill="#33b04a"/>`+t(y+92,"+    E    −",8,700,"#56616a"); break;
+    case "batt":
+      if(d.prot==="fuse"){
+        s+=t(y+28,"BATTERY",8.5,700)+t(y+40,state.batt.fuse+" FUSE",7.5,700,"#56616a")+t(y+50,d.a+"A",8,700);
+        s+=`<rect x="${x+10}" y="${y+52}" width="${w-20}" height="34" rx="4" fill="#2b2f33"/><rect x="${x+18}" y="${y+60}" width="${w-36}" height="18" rx="3" fill="#e2e5e7" stroke="#8b949b"/>`;
+        s+=t(y+102,"+       −",9,700,"#56616a");
+      }else{
+        s+=t(y+28,"BATTERY",8.5,700)+t(y+40,"DC BREAKER",7.5,700,"#56616a")+t(y+52,d.a+"A  "+state.batt.dcV+"V DC",7.5,700);
+        s+=`<rect x="${x+8}" y="${y+58}" width="${w-16}" height="32" rx="3" fill="#e9ecee" stroke="#b5bcc1"/><rect x="${x+12}" y="${y+62}" width="${w-24}" height="14" rx="2" fill="#2b2f33"/>`;
+        s+=t(y+102,"+       −",9,700,"#56616a");
+      }
+      break;
+  }
+  return s;
+}
+
+function buildSvg(){
+  const C=colours(), s=state;
+  SP=s.specs;
+  const inv=s.inv.on, split=isSplit(), whole=isWhole();
+  const G=groups();
+  const nums=new Map(); ordered().forEach((c,i)=>nums.set(c.id,i+1));
+  const allNum=ordered();
+
+  // ---- AC board devices, section by section ----
+  const nP=s.phases===3?3:1, poles=nP+1;
+  const phCols=phaseColours();
+  const colOf=k=>nP===3?phCols[k]:C.L;
+  const phIdx=c=>nP===3?Math.max(0,PHS.indexOf(c.ph)):0;
+  const invPh=nP===3?Math.max(0,PHS.indexOf(s.inv.ph)):0;
+  const LB=colOf(invPh);
+  const el1=elFirstSection();
+  const gridNoEl=el1?G.grid.filter(c=>c.noEl):[];
+  const gridEl=el1?G.grid.filter(c=>!c.noEl):G.grid;
+  const sec1=[{k:"main",w:poles*P,a:s.mainA,poles}];
+  gridNoEl.forEach(c=>sec1.push({k:"cb",w:P,c,num:nums.get(c.id),noEl:true}));
+  if(el1) sec1.push({k:"el",w:poles*P,a:s.el.a,ma:s.el.ma,poles});
+  if(s.spd) sec1.push({k:"spd",w:poles*P,poles});
+  gridEl.forEach(c=>sec1.push({k:"cb",w:P,c,num:nums.get(c.id)}));
+  if(inv) sec1.push({k:"cbinv",w:P,a:s.inv.feedA});
+  const sec2=[];
+  if(inv){
+    sec2.push(s.inv.bypass?{k:"bypass",w:4*P}:{k:"invout",w:2*P});
+    if(s.el.on) sec2.push({k:"el",w:2*P,a:s.el.a,ma:s.el.ma,poles:2});
+    G.back.forEach(c=>sec2.push({k:"cb",w:P,c,num:nums.get(c.id)}));
+    if(s.inv.ne==="contactor") sec2.push({k:"nebond",w:2*P});
+  }
+
+  const cab=a=>s.cables?`  ·  ${acTxt(a)}`:"";
+  const phTag=d=>nP===3&&!(d.c&&onBackup(d.c))?`  ·  ${PHS[d.k==="cbinv"?invPh:phIdx(d.c)]}`:"";
+  const outLabel=d=>d.k==="cbinv"?`To inverter AC IN  ${d.a}A${phTag(d)}${cab(d.a)}`:`${d.num}  ${d.c.name||"Circuit "+d.num}  ${d.c.a}A${phTag(d)}${d.noEl?"  ·  no E/L":""}${cab(d.c.a)}`;
+  const supLabels=nP===3?["Supply  L1  400V","Supply  L2","Supply  L3","Supply  N"]:[`Supply  L  230V${cab(s.mainA)}`,"Supply  N"];
+  const allLabels=sec1.concat(sec2).filter(d=>d.k==="cb"||d.k==="cbinv").map(outLabel)
+    .concat(supLabels).concat(["Earth in","From inverter AC OUT  L"]).concat(inv&&s.inv.bypass?["Grid N  for bypass"]:[]).concat(inv&&s.inv.ne==="contactor"?["Coil L  from grid (INV breaker)"]:[]);
+  const longest=Math.max(...allLabels.map(t=>t.length));
+  const LABEL_H=Math.min(220,Math.max(100,longest*6.4+26));
+
+  const M=24, EX=M, Y0=M+LABEL_H;
+  const yExt=Y0-22;
+  const devTop=Y0+76, devH=124, devBot=devTop+devH;
+  const busYk=k=>devBot+16+9*k;
+  const deep=nP===3||gridNoEl.length>0;
+  const barY=devBot+(deep?140:96), encBot=barY+52;
+
+  let x=EX+44;
+  const placeSec=(sec)=>{
+    sec.forEach((d,j)=>{
+      d.x=x; d.y=devTop; d.h=devH;
+      const next=sec[j+1];
+      let gap=8;
+      if(next&&next.k==="el") gap=16+11*(next.poles||2);
+      else if((d.k==="cb"||d.k==="cbinv")&&next&&(next.k==="cb"||next.k==="cbinv")) gap=2;
+      x+=d.w+gap;
+    });
+  };
+  placeSec(sec1);
+  let divX=null;
+  if(sec2.length){x+=34; divX=x-21; placeSec(sec2)}
+  const devEnd=x;
+
+  // bars: neutral (no E/L), neutral (grid / E/L), neutral (backup), earth
+  const pitch=18;
+  const spdOn=s.spd;
+  const numS=c=>String(nums.get(c.id));
+  const n0Terms=gridNoEl.length?["IN"].concat(gridNoEl.map(numS)):[];
+  const n1Terms=["IN"].concat(spdOn?["SA"]:[]).concat(gridEl.map(numS)).concat(inv?["INV"]:[]).concat(inv&&s.inv.bypass?["BYP"]:[]);
+  const neC=inv&&s.inv.ne==="contactor";
+  const n2Terms=inv?["IN"].concat(G.back.map(numS)).concat(neC?["NE"]:[]):[];
+  const eTerms=allNum.map(numS).concat(neC?["NE"]:[]).concat(inv?["INV"]:[]).concat(spdOn?["SA"]:[]).concat(["IN"]);
+  const bLen=t=>t.length*pitch+16;
+  let bx=EX+28;
+  const nb0=bx; if(n0Terms.length) bx=nb0+bLen(n0Terms)+34;
+  const elD=sec1.find(d=>d.k==="el");
+  const nb1=n0Terms.length&&elD?Math.max(bx,elD.x-10):bx;
+  bx=nb1+bLen(n1Terms)+34;
+  const nb2=inv?Math.max(bx, sec2[0].x-10):0;
+  const nEnd=inv?nb2+bLen(n2Terms):nb1+bLen(n1Terms);
+  const eLen=bLen(eTerms);
+  const EW=Math.max(devEnd-EX+52, nEnd-EX+34+eLen+46, 380);
+  const ebx=EX+EW-46-eLen;
+  const tX=(bx,i)=>bx+8+pitch*i+pitch/2;
+  const n0=k=>tX(nb0,n0Terms.indexOf(k));
+  const n1=k=>tX(nb1,n1Terms.indexOf(k));
+  const n2=k=>tX(nb2,n2Terms.indexOf(k));
+  const eT=k=>tX(ebx,eTerms.indexOf(k));
+  const eInX=EX+EW-20;
+  const tm=(d,k)=>d.k==="bypass"?d.x+P*(2.5+k):d.x+P*(k+0.5);
+  const tN=d=>tm(d,(d.k==="bypass"?2:(d.poles||2))-1);
+
+  let g="", w="";
+  // enclosure
+  g+=`<rect x="${EX}" y="${Y0}" width="${EW}" height="${encBot-Y0}" rx="10" fill="#f1f3f4" stroke="#9fa8ae" stroke-width="2"/>`;
+  g+=`<rect x="${EX+8}" y="${Y0+8}" width="${EW-16}" height="${encBot-Y0-16}" rx="6" fill="none" stroke="#d6dbde" stroke-width="1.5"/>`;
+  g+=`<rect x="${EX+EW*0.12}" y="${Y0-3}" width="${EW*0.76}" height="6" rx="3" fill="#dfe3e6" stroke="#b9c0c5"/>`;
+  g+=`<rect x="${EX+18}" y="${devTop+devH/2-9}" width="${EW-36}" height="18" fill="#c2c8cc" stroke="#a3abb1"/>`;
+  g+=`<rect x="${EX+18}" y="${devTop+devH/2-3}" width="${EW-36}" height="6" fill="#aeb5ba"/>`;
+  if(inv){
+    const t1=whole?"GRID SUPPLY":"GRID ONLY";
+    g+=`<rect x="${sec1[0].x-6}" y="${Y0+16}" width="${Math.max(80,t1.length*7+16)}" height="18" rx="3" fill="#d9dee2"/>`+txt(sec1[0].x+2,Y0+29,t1,{size:10,weight:700,ls:0.8,fill:"#3b4650"});
+    const t2="ON BACKUP (INVERTER)";
+    g+=`<rect x="${sec2[0].x-6}" y="${Y0+16}" width="${t2.length*7+10}" height="18" rx="3" fill="#f6dc8f"/>`+txt(sec2[0].x+2,Y0+29,t2,{size:10,weight:700,ls:0.8,fill:"#5a4300"});
+    g+=`<path d="M${divX} ${Y0+12} V${barY-48}" stroke="#8f989f" stroke-width="1.5" stroke-dasharray="5 5"/>`;
+  }
+  if(gridNoEl.length){
+    const fx=sec1[1].x-4, t="NOT ON E/L";
+    g+=`<rect x="${fx}" y="${Y0+40}" width="${t.length*7+10}" height="16" rx="3" fill="#e4e7ea"/>`+txt(fx+6,Y0+52,t,{size:9,weight:700,ls:0.6,fill:"#56616a"});
+  }
+  const bar=(bx,len,label)=>`<rect x="${bx}" y="${barY-7}" width="${len}" height="14" rx="2" fill="#c9a24a" stroke="#8d6f28"/>`+
+    `<rect x="${bx-6}" y="${barY-4}" width="6" height="8" fill="#2b2f33"/><rect x="${bx+len}" y="${barY-4}" width="6" height="8" fill="#2b2f33"/>`+
+    txt(bx,barY+36,label,{size:10,weight:700,ls:0.6,fill:"#3b4650"});
+  if(n0Terms.length) g+=bar(nb0,bLen(n0Terms),"NEUTRAL – NO E/L");
+  g+=bar(nb1,bLen(n1Terms),inv?(n0Terms.length?"NEUTRAL – GRID E/L":"NEUTRAL – GRID"):(n0Terms.length?"NEUTRAL – E/L":"NEUTRAL BAR (N)"));
+  if(inv) g+=bar(nb2,bLen(n2Terms),"NEUTRAL – BACKUP");
+  g+=bar(ebx,eLen,"EARTH BAR (E)");
+
+  // supply in
+  const main=sec1[0];
+  for(let k=0;k<poles;k++){
+    const cx=tm(main,k), col=k<nP?colOf(k):C.N;
+    w+=wire(`M${cx} ${yExt} V${devTop}`,col)+vlabel(cx-7,yExt-6,supLabels[k],col==="#d9a400"?"#9a7400":col,true);
+  }
+  w+=wire(`M${eInX} ${yExt} V${barY-50} H${eT("IN")} V${barY-6}`,C.E,3,C.Eband);
+  w+=vlabel(eInX-7,yExt-6,"Earth in",C.E,true);
+
+  const loop=(a,b,n,cols)=>{
+    let r="";
+    for(let k=0;k<n;k++){
+      const sx=tm(a,k), dx=b.x+P*(k+0.5), yb=devBot+46+10*k, gx=b.x-8-11*k, yt=devTop-12-11*k;
+      r+=wire(`M${sx} ${devBot} V${yb} H${gx} V${yt} H${dx} V${devTop}`,cols[k]);
+    }
+    return r;
+  };
+  const bus=(feed,items)=>{
+    let r="";
+    for(let k=0;k<nP;k++){
+      const its=items.filter(i=>i.k===k); if(!its.length) continue;
+      const y=busYk(k), sx=tm(feed,k), end=Math.max(sx+10,...its.map(i=>i.x));
+      r+=wire(`M${sx} ${devBot} V${y} H${end}`,colOf(k),4.5);
+      its.forEach(i=>{r+=wire(`M${i.x} ${devBot} V${y}`,colOf(k),3)+dot(i.x,y,colOf(k))});
+    }
+    return r;
+  };
+  const outgoing=(d,col)=>{const cx=d.x+P/2; return wire(`M${cx} ${devTop} V${yExt}`,col)+vlabel(cx-7,yExt-6,outLabel(d),d.k==="cbinv"?"#8a6400":(d.noEl?"#6b7680":null),d.k==="cbinv")};
+
+  // section 1
+  const mainCols=[...Array(nP)].map((_,k)=>colOf(k)).concat([C.N]);
+  if(elD) w+=loop(main,elD,poles,mainCols);
+  if(gridNoEl.length){
+    w+=bus(main,sec1.filter(d=>d.noEl).map(d=>({x:d.x+P/2,k:phIdx(d.c)})));
+    w+=wire(`M${tN(main)} ${devBot} V${barY-42} H${n0("IN")} V${barY-6}`,C.N);
+  }
+  const feed1=elD||main;
+  w+=wire(`M${tN(feed1)} ${devBot} V${barY-34} H${n1("IN")} V${barY-6}`,C.N);
+  const spdD=sec1.find(d=>d.k==="spd");
+  const items1=sec1.filter(d=>(d.k==="cb"&&!d.noEl)||d.k==="cbinv").map(d=>({x:d.x+P/2,k:d.k==="cbinv"?invPh:phIdx(d.c)}));
+  if(spdD) for(let k=0;k<nP;k++) items1.push({x:tm(spdD,k),k});
+  w+=bus(feed1,items1);
+  if(spdD){
+    w+=wire(`M${tN(spdD)} ${devBot} V${barY-26} H${n1("SA")} V${barY-6}`,C.N);
+    w+=wire(`M${spdD.x+spdD.w/2} ${devBot} V${barY-18} H${eT("SA")} V${barY-6}`,C.E,3,C.Eband);
+  }
+  sec1.filter(d=>d.k==="cb"||d.k==="cbinv").forEach(d=>{w+=outgoing(d,colOf(d.k==="cbinv"?invPh:phIdx(d.c)))});
+
+  // section 2 (single phase, from the inverter)
+  if(sec2.length){
+    const io=sec2[0], byp=io.k==="bypass";
+    const inL=byp?io.x+P*2.5:tm(io,0), inN=byp?io.x+P*3.5:tm(io,1);
+    w+=wire(`M${inL} ${yExt} V${devTop}`,LB)+wire(`M${inN} ${yExt} V${devTop}`,C.N);
+    w+=vlabel(inL-7,yExt-6,"From inverter AC OUT  L","#8a6400",true)+vlabel(inN-7,yExt-6,"From inverter AC OUT  N","#8a6400",true);
+    if(byp){
+      const ib=sec1.find(d=>d.k==="cbinv"), ix=ib.x+P/2, gy=devTop-24;
+      w+=wire(`M${ix} ${gy} H${io.x+P/2} V${devTop}`,LB)+dot(ix,gy,LB);
+      w+=wire(`M${io.x+P*1.5} ${yExt} V${devTop}`,C.N)+vlabel(io.x+P*1.5-7,yExt-6,"Grid N  for bypass",C.N,true);
+    }
+    const el2=sec2.find(d=>d.k==="el");
+    if(el2) w+=loop(io,el2,2,[LB,C.N]);
+    const feed2=el2||io;
+    w+=wire(`M${tN(feed2)} ${devBot} V${barY-30} H${n2("IN")} V${barY-6}`,C.N);
+    const drops2=sec2.filter(d=>d.k==="cb").map(d=>d.x+P/2);
+    if(drops2.length){
+      const sx=tm(feed2,0), y=busYk(0);
+      w+=wire(`M${sx} ${devBot} V${y} H${Math.max(sx+10,...drops2)}`,LB,4.5);
+      drops2.forEach(dx=>{w+=wire(`M${dx} ${devBot} V${y}`,LB,3)+dot(dx,y,LB)});
+    }
+    sec2.filter(d=>d.k==="cb").forEach(d=>{w+=outgoing(d,LB)});
+    const ne=sec2.find(d=>d.k==="nebond");
+    if(ne){
+      const a1=ne.x+P/2, a2=ne.x+P*1.5;
+      w+=wire(`M${a1} ${yExt} V${devTop}`,LB)+wire(`M${a2} ${yExt} V${devTop}`,C.N);
+      w+=vlabel(a1-7,yExt-6,"Coil L  from grid (INV breaker)",LB==="#d9a400"?"#9a7400":LB,true)+vlabel(a2-7,yExt-6,"Coil N  from grid",C.N,true);
+      w+=wire(`M${a1} ${devBot} V${barY-22} H${n2("NE")} V${barY-6}`,C.N);
+      w+=wire(`M${a2} ${devBot} V${barY-14} H${eT("NE")} V${barY-6}`,C.E,3,C.Eband);
+    }
+  }
+
+  let dv=sec1.concat(sec2).map(deviceSvg).join("");
+
+  // bar screws and numbers
+  let bt="";
+  const terms=(bx,list)=>list.forEach((k,i)=>{const tx=tX(bx,i); bt+=screw(tx,barY)+txt(tx,barY+20,k,{anchor:"middle",size:8.5,fill:"#4a5560"})});
+  if(n0Terms.length) terms(nb0,n0Terms);
+  terms(nb1,n1Terms); if(inv) terms(nb2,n2Terms); terms(ebx,eTerms);
+
+  // ---- inverter and DC region ----
+  let reg="", regBot=encBot, regRight=EX+EW;
+  if(inv){
+    const rY0=encBot+40;
+    const dcDevs=[];
+    if(s.pv.on) dcDevs.push({k:"pviso",a:s.pv.isoA});
+    if(s.pv.on&&s.pv.spd) dcDevs.push({k:"dcspd"});
+    if(s.batt.on) dcDevs.push({k:"batt",a:s.batt.a,prot:s.batt.prot});
+    const invX=EX+210, invW=180;
+    const routeHi=rY0+40, routeLo=rY0+54;      // battery wires
+    const pvTop=rY0+76, pvH=64, pvBot=pvTop+pvH;
+    const dcBoxTop=pvBot+36, dcDevTop=dcBoxTop+42, dcDevH=112, dcDevBot=dcDevTop+dcDevH;
+    const pvRouteP=dcDevBot+18, pvRouteN=dcDevBot+30;
+    const dcBoxBot=dcDevBot+48;
+    const battTop=dcBoxBot+40, battH=80, battBot=battTop+battH;
+    const invTop=rY0+92, invBot=Math.max(dcBoxBot+24, invTop+250);
+    const dcBoxX=invX+invW+110;
+    let xx=dcBoxX+34;
+    dcDevs.forEach(d=>{d.mod=PD; d.w=2*PD; d.x=xx; d.y=dcDevTop; d.h=dcDevH; xx+=2*PD+12});
+    const dcBoxW=Math.max(xx-12-dcBoxX+34,180);
+    const hasDc=dcDevs.length>0;
+    const Lp=d=>d.x+PD/2, Ln=d=>d.x+PD*1.5;
+
+    // region frame
+    let bottom=Math.max(invBot, hasDc?dcBoxBot:0, s.batt.on?battBot+22:0)+24;
+    let right=Math.max(invX+invW, hasDc?dcBoxX+dcBoxW:0)+30;
+    const pvI=dcDevs.find(d=>d.k==="pviso"), sp=dcDevs.find(d=>d.k==="dcspd"), bt2=dcDevs.find(d=>d.k==="batt");
+    let pvX0=0,pvW=0;
+    if(pvI){pvW=sp?2*(2*PD)+12+30:150; pvX0=(pvI.x+(sp?sp.x+sp.w:pvI.x+pvI.w))/2-pvW/2; right=Math.max(right,pvX0+pvW+30)}
+    reg+=`<rect x="${EX}" y="${rY0}" width="${right-EX}" height="${bottom-rY0}" rx="10" fill="none" stroke="#b7c0c6" stroke-width="1.5" stroke-dasharray="7 6"/>`;
+    reg+=txt(EX+16,rY0+22,"INVERTER AND DC",{size:10.5,weight:700,ls:1,fill:"#3b4650"});
+
+    // inverter box
+    reg+=`<rect x="${invX}" y="${invTop}" width="${invW}" height="${invBot-invTop}" rx="10" fill="#ffffff" stroke="#7f8a92" stroke-width="2"/>`;
+    reg+=`<rect x="${invX+24}" y="${invTop+36}" width="${invW-48}" height="40" rx="4" fill="#1d2b36"/>`;
+    reg+=txt(invX+invW/2,invTop+61,s.inv.kw+" kW  "+s.inv.v+" V",{anchor:"middle",size:13,weight:700,fill:"#7fe3a0"});
+    reg+=txt(invX+invW/2,invTop+102,"INVERTER",{anchor:"middle",size:14,weight:700,ls:1.5});
+    const wy=invTop+128, wx=invX+invW/2;
+    reg+=`<path d="M${wx-46} ${wy} q11 -14 22 0 t22 0" fill="none" stroke="#2563c7" stroke-width="2.4"/>`;
+    reg+=`<path d="M${wx+8} ${wy-5} h30 M${wx+8} ${wy+3} h8 M${wx+20} ${wy+3} h8 M${wx+32} ${wy+3} h6" stroke="#1c1c1c" stroke-width="2.4"/>`;
+    reg+=txt(wx-24,wy+20,"AC",{anchor:"middle",size:9,fill:"#56616a"})+txt(wx+23,wy+20,"DC",{anchor:"middle",size:9,fill:"#56616a"});
+    reg+=txt(invX+invW/2,invTop+(invBot-invTop)-16,"Hybrid inverter",{anchor:"middle",size:9.5,fill:"#56616a"});
+    if(s.inv.ne==="builtin") reg+=`<rect x="${invX+invW/2-62}" y="${invBot-46}" width="124" height="18" rx="3" fill="#e3f3e6" stroke="#9ccfa6"/>`+txt(invX+invW/2,invBot-33,"N-E relay built in",{anchor:"middle",size:9.5,weight:700,fill:"#2f6b36"});
+    // AC terminals on the left
+    const acIn=[invTop+168,invTop+182], acOut=[invTop+214,invTop+228];
+    const ac2=s.cables?` · ${acTxt(s.inv.feedA)}`:"";
+    [[acIn,"AC IN","from DB breaker (INV)"+ac2],[acOut,"AC OUT",(s.inv.bypass?"to bypass switch":whole?"to board (backup)":"to backup section")+ac2]].forEach(([ys,head,sub])=>{
+      reg+=wire(`M${invX} ${ys[0]} H${invX-40}`,LB)+wire(`M${invX} ${ys[1]} H${invX-40}`,C.N);
+      reg+=screw(invX+10,ys[0])+screw(invX+10,ys[1]);
+      reg+=txt(invX-48,ys[0]+4,head,{anchor:"end",size:11.5,weight:700,fill:"#8a6400"});
+      reg+=txt(invX-48,ys[1]+8,sub,{anchor:"end",size:10,fill:"#56616a"});
+      reg+=txt(invX+20,ys[0]+4,"L",{size:8.5,weight:700,fill:"#56616a"})+txt(invX+20,ys[1]+4,"N",{size:8.5,weight:700,fill:"#56616a"});
+    });
+    // inverter earth
+    const ieX=invX+34;
+    reg+=wire(`M${ieX} ${invBot} V${invBot+10}`,C.E,3,C.Eband)+ground(ieX,invBot+10,C.E);
+    reg+=txt(ieX+16,invBot+22,"Earth",{size:9.5,fill:"#2f6b36"});
+
+    if(hasDc){
+      // DC box
+      reg+=`<rect x="${dcBoxX}" y="${dcBoxTop}" width="${dcBoxW}" height="${dcBoxBot-dcBoxTop}" rx="8" fill="#f1f3f4" stroke="#9fa8ae" stroke-width="2"/>`;
+      reg+=txt(dcBoxX+12,dcBoxTop+18,"DC BOX",{size:10,weight:700,ls:0.8,fill:"#3b4650"});
+      reg+=`<rect x="${dcBoxX+14}" y="${dcDevTop+dcDevH/2-8}" width="${dcBoxW-28}" height="16" fill="#c2c8cc" stroke="#a3abb1"/>`;
+    }
+    let dw="";
+    // battery: from below into the bottom, out of the top, over the panels and into the inverter top
+    if(bt2){
+      const bx=bt2.x-6, bw=bt2.w+12;
+      reg+=`<rect x="${bx}" y="${battTop}" width="${bw}" height="${battH}" rx="6" fill="#2c3e50" stroke="#1b2733" stroke-width="1.5"/>`;
+      reg+=`<rect x="${bx+bw*0.2}" y="${battTop-6}" width="12" height="6" fill="#cf2a1f"/><rect x="${bx+bw*0.8-12}" y="${battTop-6}" width="12" height="6" fill="#1c1c1c"/>`;
+      reg+=txt(bx+bw/2,battTop+28,"BATTERY",{anchor:"middle",size:10,weight:700,ls:1,fill:"#ffffff"});
+      reg+=txt(bx+bw/2,battTop+46,s.inv.v+" V  "+s.batt.ah+" Ah",{anchor:"middle",size:10.5,weight:700,fill:"#f2b72e"});
+      reg+=txt(bx+bw/2,battTop+62,"LiFePO4",{anchor:"middle",size:9,fill:"#c9d3db"});
+      dw+=wire(`M${Lp(bt2)} ${battTop-6} V${dcDevBot}`,DCP,3.4)+wire(`M${Ln(bt2)} ${battTop-6} V${dcDevBot}`,DCN,3.4);
+      const ibP=invX+invW-36, ibN=invX+invW-62;
+      dw+=wire(`M${Lp(bt2)} ${dcDevTop} V${routeLo} H${ibP} V${invTop}`,DCP,3.4);
+      dw+=wire(`M${Ln(bt2)} ${dcDevTop} V${routeHi} H${ibN} V${invTop}`,DCN,3.4);
+      if(s.cables){const bc=battCable(s.batt.a); dw+=txt((ibP+Lp(bt2))/2,routeHi-8,bc?`Battery cable ${bc} mm² (keep short)`:"Battery cable: ask electrician",{anchor:"middle",size:10.5,weight:700,fill:"#1f2a33"})}
+      reg+=screw(ibP,invTop+10)+screw(ibN,invTop+10);
+      reg+=txt(ibN,invTop+28,"BAT−",{anchor:"middle",size:8,weight:700,fill:"#56616a"})+txt(ibP,invTop+28,"BAT+",{anchor:"middle",size:8,weight:700,fill:"#56616a"});
+    }
+    // solar panels: from above into the isolator, out of the bottom into the inverter side
+    if(pvI){
+      const cnt=Math.min(s.pv.panels,6), pw=Math.min(24,(pvW-12)/cnt-4);
+      reg+=`<rect x="${pvX0}" y="${pvTop}" width="${pvW}" height="${pvH}" rx="4" fill="#ffffff" stroke="#97a1a8"/>`;
+      for(let i=0;i<cnt;i++){
+        const px=pvX0+6+i*((pvW-12)/cnt)+((pvW-12)/cnt-pw)/2;
+        reg+=`<rect x="${px}" y="${pvTop+8}" width="${pw}" height="${pvH-30}" fill="#1f4f8f" stroke="#0f2f57"/>`;
+        reg+=`<path d="M${px} ${pvTop+8+(pvH-30)/2} h${pw} M${px+pw/2} ${pvTop+8} v${pvH-30}" stroke="#7fa8dc" stroke-width="0.8"/>`;
+      }
+      reg+=txt(pvX0+pvW/2,pvTop+pvH-8,s.pv.panels+" solar panels",{anchor:"middle",size:10,weight:700});
+      dw+=wire(`M${Lp(pvI)} ${pvBot} V${dcDevTop}`,DCP,3.4)+wire(`M${Ln(pvI)} ${pvBot} V${dcDevTop}`,DCN,3.4);
+      dw+=txt(Lp(pvI)-6,pvBot+16,"+",{anchor:"end",size:12,weight:700,fill:DCP})+txt(Ln(pvI)+6,pvBot+16,"−",{size:12,weight:700});
+      if(sp){
+        dw+=wire(`M${Ln(pvI)} ${dcDevTop-28} H${Ln(sp)} V${dcDevTop}`,DCN,3)+dot(Ln(pvI),dcDevTop-28,DCN);
+        dw+=wire(`M${Lp(pvI)} ${dcDevTop-16} H${Lp(sp)} V${dcDevTop}`,DCP,3)+dot(Lp(pvI),dcDevTop-16,DCP);
+        const sx=sp.x+PD;
+        dw+=wire(`M${sx} ${dcDevBot} V${dcBoxBot+8}`,C.E,3,C.Eband)+ground(sx,dcBoxBot+8,C.E);
+      }
+      const iy=invX+invW;
+      dw+=wire(`M${Lp(pvI)} ${dcDevBot} V${pvRouteP} H${iy}`,DCP,3.4);
+      dw+=wire(`M${Ln(pvI)} ${dcDevBot} V${pvRouteN} H${iy}`,DCN,3.4);
+      if(s.cables) dw+=txt(iy+10,pvRouteP-8,`PV cable ${pvCable(s.pv.isoA)} mm²`,{size:10,weight:700});
+      reg+=screw(iy-10,pvRouteP)+screw(iy-10,pvRouteN);
+      reg+=txt(iy-20,pvRouteP+4,"PV+",{anchor:"end",size:8,weight:700,fill:"#56616a"})+txt(iy-20,pvRouteN+4,"PV−",{anchor:"end",size:8,weight:700,fill:"#56616a"});
+    }
+    reg+=dw+dcDevs.map(deviceSvg).join("");
+    regBot=bottom; regRight=right;
+  }
+
+  // ---- details and circuit list ----
+  const ty=regBot+34;
+  const rowH=19, perCol=12;
+  const colW=(split?340:290)+(s.cables?100:0);
+  const sizeX=s.cables?colW-84:colW-12, backX=s.cables?sizeX-118:colW-130;
+  const schRowsAll=allNum.map(c=>({no:String(nums.get(c.id)),name:c.name||"Circuit "+nums.get(c.id),a:c.a,b:onBackup(c)}));
+  if(inv) schRowsAll.push({no:"INV",name:"Inverter supply",a:s.inv.feedA,b:false,inv:true});
+  const nRows=schRowsAll.length;
+  const cols=Math.max(1,Math.ceil(nRows/perCol));
+  const tbW=330, tbX=M;
+  const schX=tbX+tbW+28, schW=cols*colW;
+  const W=Math.max(EX+EW+M, regRight+M, schX+schW+M, s.cables?990:0);
+
+  const today=new Date().toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"});
+  const rows=[["Board",s.name||"DB board",true],["Supply",nP===3?"Three phase 400 V":"Single phase 230 V"],["Main switch",s.mainA+(nP===3?" A, 3 pole + N":" A double pole")],
+    ["Breakers",`${s.specs.curve} curve, ${s.specs.ka} kA`],
+    ["Earth leakage",s.el.on?`${s.el.a} A, ${s.el.ma} mA, Type ${s.specs.elType}${nP===3?", 4P":""}${inv?" (each)":""}`:"None"],["AC surge arrester",s.spd?`Type 2, ${s.specs.spdKa} kA, 275 V`:"None"]];
+  if(inv){
+    rows.push(["Inverter",`${s.inv.kw} kW, ${s.inv.v} V`]);
+    rows.push(["On backup",whole?"Whole board":`${G.back.length} of ${s.circuits.length} circuits`]);
+    rows.push(["Bypass switch",s.inv.bypass?"Fitted":"None"]);
+    rows.push(["N-E bond on backup",s.inv.ne==="contactor"?"Bond contactor in DB":"Built into inverter"]);
+    if(s.batt.on) rows.push(["Battery",`${s.inv.v} V ${s.batt.ah} Ah`],["Battery protection",s.batt.prot==="fuse"?`${s.batt.a} A ${s.batt.fuse} fuse`:`${s.batt.a} A DC breaker, ${s.batt.dcV} V DC`]);
+    if(s.pv.on) rows.push(["Solar",`${s.pv.panels} panels`],["PV isolator",`${s.pv.isoA} A, ${s.pv.v} V DC`]);
+    if(s.pv.on) rows.push(["DC surge arrester",s.pv.spd?`Type 2, ${s.pv.v} V DC`:"None"]);
+  }
+  rows.push(["Circuits",String(s.circuits.length)]);
+  if(gridNoEl.length) rows.push(["Not on earth leakage",`${gridNoEl.length} circuit${gridNoEl.length>1?"s":""}`]);
+  if(nP===3){
+    const tot=[0,0,0];
+    G.grid.forEach(c=>{tot[phIdx(c)]+=c.a});
+    if(inv) tot[invPh]+=s.inv.feedA;
+    rows.push(["Breakers per phase",`L1 ${tot[0]} A · L2 ${tot[1]} A · L3 ${tot[2]} A`]);
+  }
+  if(s.cables) rows.push(["Cable sizes","SANS 10142-1 guide"]);
+  rows.push(["Date",today]);
+  const phNames=s.colours==="brown"?["brown","black","grey"]:["red","yellow","blue"];
+  const keys=(nP===3?PHS.map((p,k)=>[phCols[k],`${p} (${phNames[k]})`,null]):[[C.L,C.Lname,null]]).concat([[C.N,C.Nname,null],[C.E,C.Ename,C.Eband]]);
+  if(inv&&(s.batt.on||s.pv.on)) keys.push([DCP,"DC positive + (red)",null],[DCN,"DC negative − (black)",null]);
+  const tbH=30+rows.length*19+12+keys.length*16+14;
+  let tb=`<rect x="${tbX}" y="${ty}" width="${tbW}" height="${tbH}" fill="#ffffff" stroke="#9fa8ae" stroke-width="1.2"/>`;
+  const isFixed=boards.fixed&&s===boards.fixed;
+  const head=isFixed?"BOARD DETAILS · CORRECTED (PROPOSED)":(boards.fixed?"BOARD DETAILS · AS FOUND":"BOARD DETAILS");
+  tb+=txt(tbX+12,ty+20,head,{size:10,weight:700,ls:1,fill:isFixed?"#2f6b36":"#3b4650"});
+  rows.forEach((r,i)=>{const yy=ty+42+i*19; tb+=txt(tbX+12,yy,r[0],{size:11,fill:"#5b6670"})+txt(tbX+128,yy,r[1],{size:11.5,weight:r[2]?700:400})});
+  const ky=ty+42+rows.length*19+4;
+  keys.forEach(([col,nm,band],i)=>{const yy=ky+i*16; tb+=wire(`M${tbX+12} ${yy} H${tbX+40}`,col,3,band)+txt(tbX+48,yy+4,nm,{size:10.5})});
+  const dx=tbX+tbW-46, dy=ty+tbH-52;
+  tb+=`<path d="M${dx+17} ${dy} L${dx+34} ${dy+30} H${dx} Z" fill="#f2c318" stroke="#1c1c1c" stroke-width="1.6" stroke-linejoin="round"/>`;
+  tb+=`<path d="M${dx+19} ${dy+9} L${dx+13} ${dy+19} H${dx+18} L${dx+15} ${dy+27} L${dx+22} ${dy+16} H${dx+17} Z" fill="#1c1c1c"/>`;
+  tb+=txt(dx+17,dy+42,"230 V",{anchor:"middle",size:8,weight:700,fill:"#1c1c1c"});
+
+  let sc="";
+  const schRows=Math.min(Math.max(nRows,1),perCol);
+  const schH=30+schRows*rowH+8;
+  sc+=`<rect x="${schX}" y="${ty}" width="${schW}" height="${schH}" fill="#ffffff" stroke="#9fa8ae" stroke-width="1.2"/>`;
+  for(let cI=0;cI<cols;cI++){
+    const cx=schX+cI*colW;
+    if(cI>0) sc+=`<path d="M${cx} ${ty} V${ty+schH}" stroke="#c9d0d4"/>`;
+    sc+=txt(cx+12,ty+20,"NO.",{size:10,weight:700,ls:1,fill:"#3b4650"})+txt(cx+48,ty+20,"CIRCUIT",{size:10,weight:700,ls:1,fill:"#3b4650"});
+    if(split) sc+=txt(cx+backX,ty+20,"BACKUP",{size:10,weight:700,ls:1,fill:"#3b4650"});
+    sc+=txt(cx+sizeX,ty+20,"BREAKER",{anchor:"end",size:10,weight:700,ls:1,fill:"#3b4650"});
+    if(s.cables) sc+=txt(cx+colW-12,ty+20,"CABLE",{anchor:"end",size:10,weight:700,ls:1,fill:"#3b4650"});
+  }
+  if(nRows===0) sc+=txt(schX+12,ty+44,"No circuits yet",{fill:"#5b6670"});
+  schRowsAll.forEach((r,i)=>{
+    const cI=Math.floor(i/perCol), k=i%perCol, cx=schX+cI*colW, yy=ty+42+k*rowH;
+    if(k%2===0) sc+=`<rect x="${cx+1}" y="${yy-13}" width="${colW-2}" height="${rowH}" fill="#f2f5f7"/>`;
+    const maxLen=split?22:26;
+    sc+=txt(cx+12,yy,r.no,{size:11.5,weight:700,fill:r.inv?"#8a6400":"#1f2a33"});
+    sc+=txt(cx+48,yy,r.name.length>maxLen?r.name.slice(0,maxLen-1)+"…":r.name,{size:11.5});
+    if(split&&r.b) sc+=`<rect x="${cx+backX}" y="${yy-10}" width="34" height="13" rx="3" fill="#f6dc8f"/>`+txt(cx+backX+17,yy,"Yes",{anchor:"middle",size:9.5,weight:700,fill:"#5a4300"});
+    sc+=txt(cx+sizeX,yy,`${s.specs.curve}${r.a} · ${s.specs.ka} kA`,{anchor:"end",size:11.5});
+    if(s.cables){const c=acCable(r.a); sc+=txt(cx+colW-12,yy,c?c+" mm²":"ask",{anchor:"end",size:11.5,weight:700})}
+  });
+
+  // problems found / work to be done
+  let pb="", pbH=0;
+  const items=(isFixed?(s.changes||[]):checks()).concat(s.notes||[]);
+  let py=ty+Math.max(tbH,schH)+20;
+  if(items.length){
+    const bw=W-2*M, cpl=Math.max(40,Math.floor((bw-56)/6.1));
+    const wrap=t=>{const out=[]; let line=""; String(t).split(/\s+/).forEach(wd=>{if((line+" "+wd).trim().length>cpl){out.push(line); line=wd} else line=(line+" "+wd).trim()}); if(line) out.push(line); return out};
+    const blocks=items.map(wrap);
+    const lines=blocks.reduce((n,b)=>n+b.length,0);
+    pbH=40+lines*16+blocks.length*4;
+    const hc=isFixed?"#2f6b36":"#b3261e";
+    pb+=`<rect x="${M}" y="${py}" width="${bw}" height="${pbH}" fill="#ffffff" stroke="${hc}" stroke-width="1.4"/>`;
+    pb+=`<rect x="${M}" y="${py}" width="${bw}" height="26" fill="${isFixed?"#e3f3e6":"#fbe4e2"}"/>`;
+    pb+=txt(M+12,py+17,isFixed?"WORK TO BE DONE":"PROBLEMS FOUND",{size:10.5,weight:700,ls:1,fill:hc});
+    let yy=py+44;
+    blocks.forEach((bl,i)=>{
+      pb+=txt(M+14,yy,(i+1)+".",{size:11,weight:700,fill:hc});
+      bl.forEach(l=>{pb+=txt(M+38,yy,l,{size:11}); yy+=16});
+      yy+=4;
+    });
+    py+=pbH+16;
+  }
+  let note=txt(M,py+6,"This drawing is based on a photo and the information supplied. It is subject to on-site inspection by a registered electrician.",{size:10,weight:700,fill:"#3b4650"}), noteH=22;
+  if(s.cables){
+    note+=txt(M,py+21,"Cable sizes: SANS 10142-1 current ratings for Surfix in conduit (1.5 mm² 16.5 A, 2.5 mm² 23 A, 4 mm² 30 A, 6 mm² 38 A, 10 mm² 52 A, 16 mm² 69 A, 25 mm² 90 A)."+(nP===3?" Three-phase supply cables must be sized by the electrician.":""),{size:10,fill:"#3b4650"})+
+      txt(M,py+36,"Battery and solar cable sizes are typical for short runs. Long runs, roof spaces or bunched cables may need thicker cable. A registered electrician must confirm all sizes.",{size:10,fill:"#3b4650"});
+    noteH=52;
+  }
+  sc+=pb+note;
+  const H=py+noteH+M;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Drawing of ${esc(s.name||"the DB board")}">`+
+    `<rect width="${W}" height="${H}" fill="#fbfcfc"/>`+g+w+dv+bt+reg+tb+sc+`</svg>`;
+}
+
+function draw(){$("sheet").innerHTML=buildSvg()}
+
+/* ---------- picture and full screen ---------- */
+let picBlob=null;
+function makePng(scaleArg){return makePngInfo(scaleArg).then(r=>r.blob)}
+function makePngInfo(scaleArg){
+  return new Promise((resolve,reject)=>{
+    const svg=buildSvg();
+    const m=svg.match(/width="(\d+(?:\.\d+)?)" height="(\d+(?:\.\d+)?)"/);
+    const W=+m[1], H=+m[2], scale=scaleArg||2;
+    const img=new Image();
+    const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+    img.onload=()=>{
+      const c=document.createElement("canvas"); c.width=W*scale; c.height=H*scale;
+      const ctx=c.getContext("2d"); ctx.scale(scale,scale); ctx.drawImage(img,0,0,W,H);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=>b?resolve({blob:b,W,H}):reject(new Error("no image")),"image/png");
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("render failed"))};
+    img.src=url;
+  });
+}
+$("savePic").addEventListener("click",async()=>{
+  $("copyMsg").textContent="";
+  try{
+    picBlob=await makePng();
+    const old=$("picImg").src; if(old.startsWith("blob:")) URL.revokeObjectURL(old);
+    $("picImg").src=URL.createObjectURL(picBlob);
+  }catch(e){
+    $("picImg").removeAttribute("src");
+    $("copyMsg").textContent="The picture could not be made in this browser. Use Full screen and take a screenshot instead.";
+  }
+  $("overlay").hidden=false; $("closePic").focus();
+});
+const inFrame=(()=>{try{return window.self!==window.top}catch(e){return true}})();
+let dlNs=null;
+try{ if(window.claude&&typeof window.claude.use==="function") window.claude.use("downloads").then(ns=>{dlNs=ns}).catch(()=>{}) }catch(e){}
+function pdfNote(t){const el=$("pdfMsg"); el.textContent=t; el.hidden=!t}
+$("pdfBtn").addEventListener("click",async()=>{
+  if(!window.PDFLib||!window.PDFLib.PDFDocument){pdfNote("The PDF maker didn't load. Check your internet connection and refresh the page.");return}
+  pdfNote("Making the PDF…");
+  try{
+    const doc=await PDFLib.PDFDocument.create();
+    doc.setTitle(boards.found.name||"DB board"); doc.setCreator("DB Board Designer");
+    const mm=72/25.4, sizes={a4:[210,297],a3:[297,420]};
+    const list=boards.fixed?[boards.found,boards.fixed]:[state];
+    const keep=state;
+    try{
+      for(const b of list){
+        state=b;
+        const r=await makePngInfo(3);
+        let [pw,ph]=sizes[$("pdfSize").value].map(v=>v*mm);
+        if(r.W>r.H) [pw,ph]=[ph,pw];
+        const img=await doc.embedPng(new Uint8Array(await r.blob.arrayBuffer()));
+        const page=doc.addPage([pw,ph]);
+        const mg=10*mm, k=Math.min((pw-2*mg)/r.W,(ph-2*mg)/r.H);
+        const w=r.W*k, h=r.H*k;
+        page.drawImage(img,{x:(pw-w)/2,y:(ph-h)/2,width:w,height:h});
+      }
+    }finally{state=keep}
+    const out=await doc.save();
+    const base=((boards.found.name||"DB board").replace(/ – corrected$/,"").replace(/[^\w\- ]+/g,"").trim()||"DB board");
+    const fname=base+(boards.fixed?" report":"")+".pdf";
+    if(dlNs){
+      try{ await dlNs.save({filename:fname,data:new Blob([out],{type:"application/pdf"})}); pdfNote("Saved "+fname+"."); }
+      catch(err){ pdfNote(err&&err.code==="declined"?"Save cancelled.":"The PDF could not be saved here. Open the designer from your GitHub website link to save it."); }
+      return;
+    }
+    const url=URL.createObjectURL(new Blob([out],{type:"application/pdf"}));
+    const a=document.createElement("a"); a.href=url; a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    pdfNote(inFrame?"If no file downloaded, open the designer from your GitHub website link. Downloads are blocked inside Claude.":"Saved "+fname+". Check your Downloads folder.");
+  }catch(e){pdfNote("The PDF could not be made in this browser. Try Save picture instead.")}
+});
+$("copyPic").addEventListener("click",()=>{
+  if(!picBlob||!window.ClipboardItem||!navigator.clipboard||!navigator.clipboard.write){
+    $("copyMsg").textContent="Copying pictures isn't allowed here. Save it as described above.";return;
+  }
+  navigator.clipboard.write([new ClipboardItem({"image/png":picBlob})])
+    .then(()=>{$("copyMsg").textContent="Copied. You can paste it into WhatsApp, email or Word."})
+    .catch(()=>{$("copyMsg").textContent="Copying pictures isn't allowed here. Save it as described above."});
+});
+function closeOverlay(){$("overlay").hidden=true; $("savePic").focus()}
+$("closePic").addEventListener("click",closeOverlay);
+$("overlay").addEventListener("click",e=>{if(e.target===$("overlay")) closeOverlay()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("overlay").hidden) closeOverlay()});
+$("fullBtn").addEventListener("click",()=>{
+  const el=$("sheet");
+  try{
+    const p=el.requestFullscreen?el.requestFullscreen():null;
+    if(p&&p.catch) p.catch(()=>{$("fullBtn").textContent="Full screen not available here"});
+    else if(!p) $("fullBtn").textContent="Full screen not available here";
+  }catch(e){$("fullBtn").textContent="Full screen not available here"}
+});
+
+/* hooks for the website version (saving boards to an account, reading photos on a server) */
+window.DBB={
+  exportAll:()=>({v:2,found:plainBoard(boards.found),fixed:boards.fixed?plainBoard(boards.fixed):null,view}),
+  importAll:obj=>{
+    if(obj&&obj.found) setBoards(normalize(obj.found),obj.fixed?normalize(obj.fixed):null);
+    else setBoards(normalize(obj||{...clone(DEFAULTS),name:"New board"}),null);
+    if(obj&&obj.view==="fixed"&&boards.fixed){view="fixed"; state=boards.fixed}
+    confirming=null; syncControls(); save(); draw(); renderProblems();
+  },
+  newBoard:()=>{setBoards(normalize({...clone(DEFAULTS),name:"New board"}),null); syncControls(); changed()},
+  boardName:()=>boards.found.name||"DB board",
+  onChange:f=>changeHooks.push(f),
+  setPhotoReader:fn=>{photoReader=fn; $("photoNo").hidden=true; $("photoArea").hidden=false}
+};
+syncControls(); draw();
+})();
+</script>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="cloud.js"></script>
+</body>
+</html>

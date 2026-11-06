@@ -1,0 +1,23 @@
+/* Website-only styles: sign-in screen, account bar, my boards. Uses the designer's colour tokens. */
+.gate{position:fixed;inset:0;z-index:30;background:var(--bg);display:grid;place-items:center;overflow:auto;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.gate-card{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;display:grid;gap:14px}
+.gate-card h1{font-size:28px}
+.gate-card form{display:grid;gap:12px}
+.gate-card input[type=email],.gate-card input[type=password]{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;width:100%}
+.gate-card .agree{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--fg)}
+.gate-card .agree input{margin-top:3px;accent-color:var(--accent)}
+.gate-card a{color:var(--accent)}
+.linkbtn{font:inherit;font-size:14px;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-align:left;text-decoration:underline}
+.gate-msg{margin:0;font-size:14px;min-height:1.2em}
+.gate-msg.err{color:var(--live)}
+.acct{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.acct .who{font-size:14px;color:var(--muted);min-width:0;overflow-wrap:anywhere;flex:1 1 200px}
+.acct .who strong{color:var(--fg)}
+.acct .status{font-size:13px;color:var(--muted)}
+.boards-list{display:grid;gap:8px;max-height:60vh;overflow:auto}
+.board-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.board-row .bn{flex:1 1 180px;min-width:0}
+.board-row .bn strong{display:block;overflow-wrap:anywhere}
+.board-row .bn span{font-size:13px;color:var(--muted)}
+.board-row.current{border-color:var(--accent)}
