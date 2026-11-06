@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>DB Board Designer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: tool bench. Settings panel on the left, the drawing sheet on the right (stacked on phones, drawing first). */
+:root{
+  --bg:#eef1f3; --panel:#ffffff; --fg:#1d252b; --muted:#5f6b74; --line:#d3dade;
+  --accent:#1f5fbf; --accent-fg:#ffffff; --live:#c9261c; --chip:#e6ecf5;
+  --sheet:#fbfcfc; --sheet-line:#cfd6db;
+  --display:"Saira Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a1f; --panel:#1d252c; --fg:#e4e9ed; --muted:#9aa6af; --line:#33404a;
+  --accent:#5b93f0; --accent-fg:#0d1620; --live:#f0675d; --chip:#24324a;
+  --sheet:#f4f6f7; --sheet-line:#3a4752; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#141a1f; --panel:#1d252c; --fg:#e4e9ed; --muted:#9aa6af; --line:#33404a;
+  --accent:#5b93f0; --accent-fg:#0d1620; --live:#f0675d; --chip:#24324a;
+  --sheet:#f4f6f7; --sheet-line:#3a4752; color-scheme:dark;}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1400px;margin:0 auto;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.01em;margin:0;text-wrap:balance}
+h1 span{color:var(--live)}
+.sub{color:var(--muted);margin:0}
+.main{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:20px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:18px}
+.sec{display:grid;gap:10px}
+.sec + .sec{border-top:1px solid var(--line);padding-top:16px}
+h2{font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0}
+label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+input[type=text],select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+input[type=text]:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toggle{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--fg);cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;font:inherit;font-size:13px;padding:7px 6px;border:0;background:transparent;color:var(--fg);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.circuits{display:grid;gap:6px}
+.circ{display:grid;grid-template-columns:26px minmax(0,1fr) 74px auto;gap:6px;align-items:center}
+.num{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:right}
+.iconbtns{display:flex;gap:2px}
+.ib{font:inherit;width:28px;height:32px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:6px;cursor:pointer;line-height:1}
+.ib:hover{color:var(--fg);border-color:var(--muted)}
+.ib.del:hover{color:var(--live);border-color:var(--live)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;padding:5px 10px;border-radius:999px;border:1px solid transparent;background:var(--chip);color:var(--fg);cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.btn{font:inherit;font-weight:600;padding:9px 14px;border-radius:7px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line);font-weight:500}
+.btn.ghost:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px}
+.stage{display:grid;gap:10px;min-width:0;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sheet{background:var(--sheet);border:1px solid var(--sheet-line);border-radius:10px;overflow:auto;padding:10px}
+.sheet svg{display:block;width:100%;height:auto;min-width:560px}
+.sheet:fullscreen{padding:24px;display:flex;align-items:center;justify-content:center}
+.sheet:fullscreen svg{max-height:100%;width:auto;max-width:100%;min-width:0}
+.overlay{position:fixed;inset:0;background:rgba(10,14,18,.72);display:grid;place-items:center;z-index:20;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dialog{background:var(--panel);color:var(--fg);border-radius:12px;padding:18px;max-width:min(1100px,100%);max-height:100%;overflow:auto;display:grid;gap:12px}
+.dialog img{background:#fff;border:1px solid var(--line);border-radius:6px;width:100%;height:auto}
+.dialog p{margin:0}
+@media (max-width:860px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .stage{position:static;order:-1}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>DB Board <span>Designer</span></h1>
+    <p class="sub">Choose the parts and name your circuits. The drawing updates as you go.</p>
+  </header>
+
+  <div class="main">
+    <form class="panel" id="panel" autocomplete="off">
+      <div class="sec">
+        <h2>Board</h2>
+        <label>Board name<input type="text" id="name" maxlength="60"></label>
+        <div>
+          <label style="margin-bottom:4px">Wire colours</label>
+          <div class="seg" role="group" aria-label="Wire colours">
+            <button type="button" id="colRed" data-col="red">Red / Black</button>
+            <button type="button" id="colBrown" data-col="brown">Brown / Blue</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Main switch</h2>
+        <label>Size<select id="mainA"></select></label>
+      </div>
+
+      <div class="sec">
+        <h2>Earth leakage</h2>
+        <label class="toggle"><input type="checkbox" id="elOn"> Fit an earth leakage</label>
+        <div class="row2" id="elOpts">
+          <label>Size<select id="elA"></select></label>
+          <label>Trip level<select id="elMa"></select></label>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Surge protection</h2>
+        <label class="toggle"><input type="checkbox" id="spd"> Fit a surge arrester</label>
+      </div>
+
+      <div class="sec">
+        <h2>Circuits</h2>
+        <div class="circuits" id="circuits"></div>
+        <p class="hint" id="emptyHint" hidden>No circuits yet. Tap one of the quick picks below to add one.</p>
+        <div class="chips" id="presets"></div>
+        <button type="button" class="btn ghost" id="addBlank">Add circuit</button>
+      </div>
+
+      <div class="sec">
+        <h2>Start again</h2>
+        <div id="resetArea"></div>
+        <p class="hint">Your board is kept in this browser, so it is still here when you come back on the same device.</p>
+      </div>
+    </form>
+
+    <section class="stage" aria-label="Board drawing">
+      <div class="toolbar">
+        <button type="button" class="btn" id="savePic">Save picture</button>
+        <button type="button" class="btn ghost" id="fullBtn">Full screen</button>
+      </div>
+      <div class="sheet" id="sheet"></div>
+    </section>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <p id="dlgTitle"><strong>Your board picture</strong></p>
+    <p class="hint">On a computer, right-click the picture and choose <strong>Save image as</strong>. On a phone, press and hold the picture and choose <strong>Save image</strong>.</p>
+    <img id="picImg" alt="Drawing of the DB board">
+    <div class="toolbar">
+      <button type="button" class="btn ghost" id="copyPic">Copy picture</button>
+      <button type="button" class="btn" id="closePic">Close</button>
+      <span class="hint" id="copyMsg" aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const KEY="dbboard.v1";
+const MAIN_SIZES=[40,60,63,80,100];
+const EL_SIZES=[40,63,80,100];
+const EL_MA=[30,100,300];
+const CB_SIZES=[6,10,16,20,25,32,40,50,63];
+const PRESETS=[["Lights",10],["Plugs",20],["Geyser",20],["Stove",32],["Aircon",20],["Pool pump",16],["Gate motor",10],["Outside lights",10],["Borehole",16],["Inverter",32]];
+const MAX_CIRCUITS=30;
+
+const EXAMPLE={name:"Example house",colours:"red",mainA:63,el:{on:true,a:63,ma:30},spd:true,
+  circuits:[["Lights",10],["Plugs kitchen",20],["Plugs lounge",20],["Geyser",20],["Stove",32],["Aircon",20],["Outside lights",10],["Gate motor",10]].map(([n,a])=>({name:n,a}))};
+
+let uid=1;
+function withIds(s){s.circuits.forEach(c=>{c.id=uid++});return s}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){
+      const s=JSON.parse(raw);
+      if(s&&Array.isArray(s.circuits)&&s.el) return withIds(s);
+    }
+  }catch(e){}
+  return withIds(clone(EXAMPLE));
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify({...state,circuits:state.circuits.map(c=>({name:c.name,a:c.a}))}))}catch(e){}
+}
+let state=load();
+
+const $=id=>document.getElementById(id);
+function fillSelect(sel,values,suffix){sel.innerHTML=values.map(v=>`<option value="${v}">${v}${suffix}</option>`).join("")}
+fillSelect($("mainA"),MAIN_SIZES," A");
+fillSelect($("elA"),EL_SIZES," A");
+fillSelect($("elMa"),EL_MA," mA");
+$("presets").innerHTML=PRESETS.map(([n,a],i)=>`<button type="button" class="chip" data-preset="${i}">+ ${n} ${a}A</button>`).join("");
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+/* ---------- settings panel ---------- */
+function syncControls(){
+  $("name").value=state.name;
+  $("mainA").value=state.mainA;
+  $("elOn").checked=state.el.on;
+  $("elA").value=state.el.a; $("elMa").value=state.el.ma;
+  $("elOpts").hidden=!state.el.on;
+  $("spd").checked=state.spd;
+  $("colRed").setAttribute("aria-pressed",state.colours==="red");
+  $("colBrown").setAttribute("aria-pressed",state.colours==="brown");
+  renderCircuits(); renderReset();
+}
+function renderCircuits(){
+  const opts=CB_SIZES.map(v=>`<option value="${v}">${v} A</option>`).join("");
+  $("circuits").innerHTML=state.circuits.map((c,i)=>`
+    <div class="circ" data-id="${c.id}">
+      <span class="num">${i+1}</span>
+      <input type="text" id="cn${c.id}" data-f="name" value="${esc(c.name)}" maxlength="28" aria-label="Circuit ${i+1} name">
+      <select id="ca${c.id}" data-f="a" aria-label="Circuit ${i+1} breaker size">${opts}</select>
+      <span class="iconbtns">
+        <button type="button" class="ib" data-act="up" aria-label="Move circuit ${i+1} left" ${i===0?"disabled":""}>&#8593;</button>
+        <button type="button" class="ib" data-act="down" aria-label="Move circuit ${i+1} right" ${i===state.circuits.length-1?"disabled":""}>&#8595;</button>
+        <button type="button" class="ib del" data-act="del" aria-label="Remove circuit ${i+1}">&#215;</button>
+      </span>
+    </div>`).join("");
+  state.circuits.forEach(c=>{const s=$("ca"+c.id); if(s) s.value=c.a});
+  $("emptyHint").hidden=state.circuits.length>0;
+  const full=state.circuits.length>=MAX_CIRCUITS;
+  $("addBlank").disabled=full;
+  document.querySelectorAll("[data-preset]").forEach(b=>b.disabled=full);
+}
+let confirming=null;
+function renderReset(){
+  const a=$("resetArea");
+  if(confirming==="new") a.innerHTML=`<div class="confirm"><span>Remove all circuits and start an empty board?</span><button type="button" class="btn" data-reset="yes-new">Yes, start empty</button><button type="button" class="btn ghost" data-reset="cancel">Cancel</button></div>`;
+  else if(confirming==="example") a.innerHTML=`<div class="confirm"><span>Replace your board with the example?</span><button type="button" class="btn" data-reset="yes-example">Yes, load example</button><button type="button" class="btn ghost" data-reset="cancel">Cancel</button></div>`;
+  else a.innerHTML=`<div class="toolbar"><button type="button" class="btn ghost" data-reset="new">Empty board</button><button type="button" class="btn ghost" data-reset="example">Load example</button></div>`;
+}
+
+function changed(){save();draw()}
+
+$("panel").addEventListener("submit",e=>e.preventDefault());
+$("panel").addEventListener("input",e=>{
+  const t=e.target;
+  if(t.id==="name"){state.name=t.value;return changed()}
+  const row=t.closest(".circ");
+  if(row&&t.dataset.f==="name"){const c=state.circuits.find(c=>c.id==row.dataset.id); if(c){c.name=t.value; changed()}}
+});
+$("panel").addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="mainA") state.mainA=+t.value;
+  else if(t.id==="elOn"){state.el.on=t.checked; $("elOpts").hidden=!t.checked}
+  else if(t.id==="elA") state.el.a=+t.value;
+  else if(t.id==="elMa") state.el.ma=+t.value;
+  else if(t.id==="spd") state.spd=t.checked;
+  else {
+    const row=t.closest(".circ");
+    if(row&&t.dataset.f==="a"){const c=state.circuits.find(c=>c.id==row.dataset.id); if(c) c.a=+t.value}
+    else return;
+  }
+  changed();
+});
+$("panel").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  if(b.dataset.col){state.colours=b.dataset.col; syncControls(); return changed()}
+  if(b.dataset.preset!==undefined){
+    if(state.circuits.length>=MAX_CIRCUITS) return;
+    const [n,a]=PRESETS[+b.dataset.preset];
+    state.circuits.push({id:uid++,name:n,a}); renderCircuits(); return changed();
+  }
+  if(b.id==="addBlank"){
+    if(state.circuits.length>=MAX_CIRCUITS) return;
+    const c={id:uid++,name:"Circuit "+(state.circuits.length+1),a:20};
+    state.circuits.push(c); renderCircuits(); changed();
+    const inp=$("cn"+c.id); if(inp){inp.focus(); inp.select()}
+    return;
+  }
+  if(b.dataset.act){
+    const row=b.closest(".circ"); const i=state.circuits.findIndex(c=>c.id==row.dataset.id); if(i<0) return;
+    const arr=state.circuits;
+    if(b.dataset.act==="del") arr.splice(i,1);
+    else if(b.dataset.act==="up"&&i>0) [arr[i-1],arr[i]]=[arr[i],arr[i-1]];
+    else if(b.dataset.act==="down"&&i<arr.length-1) [arr[i+1],arr[i]]=[arr[i],arr[i+1]];
+    renderCircuits(); return changed();
+  }
+  if(b.dataset.reset){
+    const r=b.dataset.reset;
+    if(r==="new"||r==="example") confirming=r;
+    else if(r==="cancel") confirming=null;
+    else if(r==="yes-new"){confirming=null; state.circuits=[]; state.name="New board"; syncControls(); changed()}
+    else if(r==="yes-example"){confirming=null; state=withIds(clone(EXAMPLE)); syncControls(); changed()}
+    renderReset();
+  }
+});
+
+/* ---------- drawing ---------- */
+const P=34;                 // width of one breaker module
+const FONT="Arial, Helvetica, sans-serif";
+function colours(){
+  return state.colours==="brown"
+    ? {L:"#7b4a22",N:"#2563c7",E:"#2f9a3a",Eband:"#e9c81c",Lname:"Live (brown)",Nname:"Neutral (blue)",Ename:"Earth (green/yellow)"}
+    : {L:"#cf2a1f",N:"#1c1c1c",E:"#2f9a3a",Eband:null,Lname:"Live (red)",Nname:"Neutral (black)",Ename:"Earth (green)"};
+}
+function wire(d,col,w,band){
+  let s=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w||3}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if(band) s+=`<path d="${d}" fill="none" stroke="${band}" stroke-width="${(w||3)*0.45}" stroke-dasharray="6 6" stroke-linejoin="round"/>`;
+  return s;
+}
+function dot(x,y,col){return `<circle cx="${x}" cy="${y}" r="3.4" fill="${col}"/>`}
+function screw(x,y){return `<circle cx="${x}" cy="${y}" r="4.2" fill="#c9ced2" stroke="#7d868d" stroke-width="1"/><path d="M${x-2.6} ${y}h5.2" stroke="#6b737a" stroke-width="1.2"/>`}
+function vlabel(x,y,txt,col,bold){
+  return `<text transform="translate(${x+4} ${y}) rotate(-90)" font-family="${FONT}" font-size="11.5" ${bold?'font-weight="700"':''} fill="${col||"#27313a"}">${esc(txt)}</text>`;
+}
+
+function deviceSvg(d){
+  const {x,w}=d, y=d.y, h=d.h;
+  let s=`<rect x="${x+1}" y="${y}" width="${w-2}" height="${h}" rx="4" fill="#ffffff" stroke="#97a1a8" stroke-width="1.2"/>`;
+  const poles=w/P;
+  for(let k=0;k<poles;k++){const cx=x+P*k+P/2; s+=screw(cx,y+9)+screw(cx,y+h-9)}
+  const cx=x+w/2;
+  const t=(ty,txt,size,weight,col)=>`<text x="${cx}" y="${ty}" text-anchor="middle" font-family="${FONT}" font-size="${size}" font-weight="${weight||400}" fill="${col||"#1f2a33"}">${esc(txt)}</text>`;
+  if(d.k==="main"){
+    s+=t(y+30,"MAIN",9,700)+t(y+42,d.a+"A",10,700);
+    s+=`<rect x="${x+8}" y="${y+52}" width="${w-16}" height="44" rx="3" fill="#e9ecee" stroke="#b5bcc1"/>`;
+    s+=`<rect x="${x+12}" y="${y+56}" width="${w-24}" height="20" rx="2" fill="#d8231b"/>`;
+    s+=t(y+111,"DP ISOLATOR",7,400,"#56616a");
+  }else if(d.k==="el"){
+    s+=t(y+30,"E/L",9,700)+t(y+42,d.a+"A  "+d.ma+"mA",8.5,700);
+    s+=`<rect x="${x+8}" y="${y+52}" width="${w-16}" height="44" rx="3" fill="#e9ecee" stroke="#b5bcc1"/>`;
+    s+=`<rect x="${x+12}" y="${y+56}" width="${w-24}" height="20" rx="2" fill="#1f5fbf"/>`;
+    s+=`<rect x="${cx-8}" y="${y+102}" width="16" height="11" rx="2" fill="#f1c40f" stroke="#a9880a"/>`+t(y+111,"T",8,700);
+  }else if(d.k==="spd"){
+    s+=t(y+30,"SURGE",9,700)+t(y+42,"ARRESTER",7,400,"#56616a");
+    s+=`<rect x="${x+10}" y="${y+56}" width="${w-20}" height="16" rx="2" fill="#dfe3e6" stroke="#aab2b8"/>`;
+    s+=`<rect x="${cx-9}" y="${y+60}" width="18" height="8" rx="1.5" fill="#33b04a"/>`;
+    s+=t(y+90,"L  N  E",7.5,700,"#56616a");
+  }else{
+    s+=t(y+30,"C"+d.c.a,9.5,700);
+    s+=`<rect x="${x+6}" y="${y+48}" width="${w-12}" height="48" rx="3" fill="#e9ecee" stroke="#b5bcc1"/>`;
+    s+=`<rect x="${x+9}" y="${y+52}" width="${w-18}" height="20" rx="2" fill="#1f5fbf"/>`;
+    s+=`<rect x="${x+5}" y="${y+102}" width="${w-10}" height="14" rx="2" fill="#f4f6f7" stroke="#c3c9cd"/>`;
+    s+=t(y+113,String(d.i+1),9,700);
+  }
+  return s;
+}
+
+function buildSvg(){
+  const C=colours(), s=state, n=s.circuits.length;
+  // devices in order along the DIN rail
+  const devs=[{k:"main",w:2*P,a:s.mainA}];
+  if(s.el.on) devs.push({k:"el",w:2*P,a:s.el.a,ma:s.el.ma});
+  if(s.spd) devs.push({k:"spd",w:2*P});
+  s.circuits.forEach((c,i)=>devs.push({k:"cb",w:P,c,i}));
+
+  const outLabels=s.circuits.map((c,i)=>`${i+1}  ${c.name||"Circuit "+(i+1)}  ${c.a}A`);
+  const supLabels=["Supply  L  230V","Supply  N","Earth in"];
+  const longest=Math.max(...outLabels.concat(supLabels).map(t=>t.length));
+  const LABEL_H=Math.min(200,Math.max(96,longest*6.4+24));
+
+  const M=24, EX=M, Y0=M+LABEL_H;          // enclosure top-left
+  const yExt=Y0-22;                         // where outgoing wires end
+  const devTop=Y0+62, devH=124, devBot=devTop+devH;
+  const busY=devBot+16, barY=devBot+92, encBot=barY+52;
+
+  let x=EX+44;
+  devs.forEach((d,j)=>{
+    d.x=x; d.y=devTop; d.h=devH;
+    const next=devs[j+1];
+    let gap=8;
+    if(d.k==="main"&&s.el.on) gap=40;
+    else if(d.k==="cb"&&next&&next.k==="cb") gap=2;
+    x+=d.w+gap;
+  });
+  const devEnd=x;
+  const terms=n+2;                                   // terminals on each bar
+  const pitch=18, barLen=terms*pitch+16;
+  const EW=Math.max(devEnd-EX+52, 2*barLen+40+70, 360);
+  const nbx=EX+28, ebx=EX+EW-46-barLen;
+  const nT=t=>nbx+8+pitch*t+pitch/2;
+  const eT=t=>ebx+8+pitch*t+pitch/2;
+  const eInX=EX+EW-20;
+
+  const main=devs[0], el=devs.find(d=>d.k==="el"), spd=devs.find(d=>d.k==="spd");
+  const feed=el||main;
+  const L1=d=>d.x+P/2, N1=d=>d.x+P*1.5;
+
+  let g="";
+  // enclosure
+  g+=`<rect x="${EX}" y="${Y0}" width="${EW}" height="${encBot-Y0}" rx="10" fill="#f1f3f4" stroke="#9fa8ae" stroke-width="2"/>`;
+  g+=`<rect x="${EX+8}" y="${Y0+8}" width="${EW-16}" height="${encBot-Y0-16}" rx="6" fill="none" stroke="#d6dbde" stroke-width="1.5"/>`;
+  // cable entry holes
+  g+=`<rect x="${EX+EW*0.18}" y="${Y0-3}" width="${EW*0.64}" height="6" rx="3" fill="#dfe3e6" stroke="#b9c0c5"/>`;
+  // DIN rail
+  g+=`<rect x="${EX+18}" y="${devTop+devH/2-9}" width="${EW-36}" height="18" fill="#c2c8cc" stroke="#a3abb1"/>`;
+  g+=`<rect x="${EX+18}" y="${devTop+devH/2-3}" width="${EW-36}" height="6" fill="#aeb5ba"/>`;
+  // bar mounts and bars
+  const bar=(bx,label)=>`<rect x="${bx}" y="${barY-7}" width="${barLen}" height="14" rx="2" fill="#c9a24a" stroke="#8d6f28"/>`+
+    `<rect x="${bx-6}" y="${barY-4}" width="6" height="8" fill="#2b2f33"/><rect x="${bx+barLen}" y="${barY-4}" width="6" height="8" fill="#2b2f33"/>`+
+    `<text x="${bx}" y="${barY+36}" font-family="${FONT}" font-size="10" font-weight="700" fill="#3b4650" letter-spacing="0.6">${label}</text>`;
+  g+=bar(nbx,"NEUTRAL BAR (N)")+bar(ebx,"EARTH BAR (E)");
+
+  let w="";  // wires go on top of the board, under the devices' screws
+  // incoming supply
+  w+=wire(`M${L1(main)} ${yExt} V${devTop}`,C.L);
+  w+=wire(`M${N1(main)} ${yExt} V${devTop}`,C.N);
+  w+=vlabel(L1(main)-7,yExt-6,supLabels[0],C.L,true);
+  w+=vlabel(N1(main)-7,yExt-6,supLabels[1],C.N,true);
+  // incoming earth
+  w+=wire(`M${eInX} ${yExt} V${barY-40} H${eT(terms-1)} V${barY-6}`,C.E,3,C.Eband);
+  w+=vlabel(eInX-7,yExt-6,supLabels[2],C.E,true);
+  // main switch to earth leakage
+  if(el){
+    const g1=main.x+main.w+12, g2=main.x+main.w+26;
+    w+=wire(`M${N1(main)} ${devBot} V${devBot+30} H${g2} V${devTop-32} H${N1(el)} V${devTop}`,C.N);
+    w+=wire(`M${L1(main)} ${devBot} V${devBot+16} H${g1} V${devTop-16} H${L1(el)} V${devTop}`,C.L);
+  }
+  // neutral from the feeding device to the neutral bar
+  w+=wire(`M${N1(feed)} ${devBot} V${barY-34} H${nT(0)} V${barY-6}`,C.N);
+  // busbar feeding breakers and surge arrester
+  const drops=devs.filter(d=>d.k==="cb").map(d=>d.x+P/2);
+  if(spd) drops.push(L1(spd));
+  const busEnd=Math.max(L1(feed)+10,...drops);
+  w+=wire(`M${L1(feed)} ${devBot} V${busY} H${busEnd}`,C.L,4.5);
+  drops.forEach(dx=>{w+=wire(`M${dx} ${devBot} V${busY}`,C.L,3)+dot(dx,busY,C.L)});
+  // surge arrester neutral and earth
+  if(spd){
+    w+=wire(`M${N1(spd)} ${devBot} V${barY-26} H${nT(1)} V${barY-6}`,C.N);
+    w+=wire(`M${spd.x+P} ${devBot} V${barY-18} H${eT(terms-2)} V${barY-6}`,C.E,3,C.Eband);
+  }
+  // outgoing circuits
+  devs.filter(d=>d.k==="cb").forEach((d,k)=>{
+    const cx=d.x+P/2;
+    w+=wire(`M${cx} ${devTop} V${yExt}`,C.L);
+    w+=vlabel(cx-7,yExt-6,outLabels[k]);
+  });
+
+  // devices
+  let dv=devs.map(deviceSvg).join("");
+
+  // bar screws and terminal numbers
+  let bt="";
+  for(let t=0;t<terms;t++){
+    bt+=screw(nT(t),barY)+screw(eT(t),barY);
+  }
+  const tl=(x,txt)=>`<text x="${x}" y="${barY+20}" text-anchor="middle" font-family="${FONT}" font-size="8.5" fill="#4a5560">${txt}</text>`;
+  bt+=tl(nT(0),"IN")+(spd?tl(nT(1),"SA"):"");
+  s.circuits.forEach((c,i)=>{bt+=tl(nT(i+2),i+1)+tl(eT(i),i+1)});
+  bt+=(spd?tl(eT(terms-2),"SA"):"")+tl(eT(terms-1),"IN");
+
+  // ----- schedule and title block below the board -----
+  const ty=encBot+34;
+  const rowH=19, perCol=12, colW=250;
+  const cols=Math.max(1,Math.ceil(n/perCol));
+  const tbW=270, tbX=M;
+  const schX=tbX+tbW+28;
+  const schW=cols*colW;
+  const W=Math.max(EX+EW+M, schX+schW+M);
+  let tb="";
+  const tline=(y,k,v,bold)=>`<text x="${tbX+12}" y="${y}" font-family="${FONT}" font-size="11" fill="#5b6670">${esc(k)}</text><text x="${tbX+122}" y="${y}" font-family="${FONT}" font-size="11.5" ${bold?'font-weight="700"':''} fill="#1f2a33">${esc(v)}</text>`;
+  const today=new Date().toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"});
+  const rows=[["Board",s.name||"DB board",true],["Supply","Single phase 230 V"],["Main switch",s.mainA+" A double pole"],
+    ["Earth leakage",s.el.on?`${s.el.a} A, ${s.el.ma} mA`:"None"],["Surge arrester",s.spd?"Fitted":"None"],["Circuits",String(n)],["Date",today]];
+  const tbH=30+rows.length*19+64;
+  tb+=`<rect x="${tbX}" y="${ty}" width="${tbW}" height="${tbH}" fill="#ffffff" stroke="#9fa8ae" stroke-width="1.2"/>`;
+  tb+=`<text x="${tbX+12}" y="${ty+20}" font-family="${FONT}" font-size="10" font-weight="700" letter-spacing="1" fill="#3b4650">BOARD DETAILS</text>`;
+  rows.forEach((r,i)=>{tb+=tline(ty+42+i*19,r[0],r[1],r[2])});
+  // wire key
+  const ky=ty+42+rows.length*19+6;
+  [[C.L,C.Lname,null],[C.N,C.Nname,null],[C.E,C.Ename,C.Eband]].forEach(([col,nm,band],i)=>{
+    const yy=ky+i*16;
+    tb+=wire(`M${tbX+12} ${yy} H${tbX+40}`,col,3,band);
+    tb+=`<text x="${tbX+48}" y="${yy+4}" font-family="${FONT}" font-size="10.5" fill="#1f2a33">${esc(nm)}</text>`;
+  });
+  // danger sign
+  const dx=tbX+tbW-46, dy=ty+tbH-50;
+  tb+=`<path d="M${dx+17} ${dy} L${dx+34} ${dy+30} H${dx} Z" fill="#f2c318" stroke="#1c1c1c" stroke-width="1.6" stroke-linejoin="round"/>`;
+  tb+=`<path d="M${dx+19} ${dy+9} L${dx+13} ${dy+19} H${dx+18} L${dx+15} ${dy+27} L${dx+22} ${dy+16} H${dx+17} Z" fill="#1c1c1c"/>`;
+  tb+=`<text x="${dx+17}" y="${dy+42}" text-anchor="middle" font-family="${FONT}" font-size="8" font-weight="700" fill="#1c1c1c">230 V</text>`;
+
+  // circuit schedule
+  let sc="";
+  const schRows=Math.min(Math.max(n,1),perCol);
+  const schH=30+schRows*rowH+8;
+  sc+=`<rect x="${schX}" y="${ty}" width="${schW}" height="${schH}" fill="#ffffff" stroke="#9fa8ae" stroke-width="1.2"/>`;
+  for(let cI=0;cI<cols;cI++){
+    const cx=schX+cI*colW;
+    if(cI>0) sc+=`<path d="M${cx} ${ty} V${ty+schH}" stroke="#c9d0d4"/>`;
+    sc+=`<text x="${cx+12}" y="${ty+20}" font-family="${FONT}" font-size="10" font-weight="700" letter-spacing="1" fill="#3b4650">NO.</text>`;
+    sc+=`<text x="${cx+44}" y="${ty+20}" font-family="${FONT}" font-size="10" font-weight="700" letter-spacing="1" fill="#3b4650">CIRCUIT</text>`;
+    sc+=`<text x="${cx+colW-12}" y="${ty+20}" text-anchor="end" font-family="${FONT}" font-size="10" font-weight="700" letter-spacing="1" fill="#3b4650">BREAKER</text>`;
+  }
+  if(n===0) sc+=`<text x="${schX+12}" y="${ty+44}" font-family="${FONT}" font-size="11" fill="#5b6670">No circuits yet</text>`;
+  s.circuits.forEach((c,i)=>{
+    const cI=Math.floor(i/perCol), r=i%perCol, cx=schX+cI*colW, yy=ty+42+r*rowH;
+    if(r%2===0) sc+=`<rect x="${cx+1}" y="${yy-13}" width="${colW-2}" height="${rowH}" fill="#f2f5f7"/>`;
+    const nm=(c.name||"Circuit "+(i+1));
+    sc+=`<text x="${cx+12}" y="${yy}" font-family="${FONT}" font-size="11.5" font-weight="700" fill="#1f2a33">${i+1}</text>`;
+    sc+=`<text x="${cx+44}" y="${yy}" font-family="${FONT}" font-size="11.5" fill="#1f2a33">${esc(nm.length>26?nm.slice(0,25)+"…":nm)}</text>`;
+    sc+=`<text x="${cx+colW-12}" y="${yy}" text-anchor="end" font-family="${FONT}" font-size="11.5" fill="#1f2a33">${c.a} A</text>`;
+  });
+
+  const H=ty+Math.max(tbH,schH)+M;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Drawing of ${esc(s.name||"the DB board")}">`+
+    `<rect width="${W}" height="${H}" fill="#fbfcfc"/>`+g+w+dv+bt+tb+sc+`</svg>`;
+}
+
+function draw(){$("sheet").innerHTML=buildSvg()}
+
+/* ---------- picture and full screen ---------- */
+let picBlob=null;
+function makePng(){
+  return new Promise((resolve,reject)=>{
+    const svg=buildSvg();
+    const m=svg.match(/width="(\d+(?:\.\d+)?)" height="(\d+(?:\.\d+)?)"/);
+    const W=+m[1], H=+m[2], scale=2;
+    const img=new Image();
+    const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+    img.onload=()=>{
+      const c=document.createElement("canvas"); c.width=W*scale; c.height=H*scale;
+      const ctx=c.getContext("2d"); ctx.scale(scale,scale); ctx.drawImage(img,0,0,W,H);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=>b?resolve(b):reject(new Error("no image")),"image/png");
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("render failed"))};
+    img.src=url;
+  });
+}
+$("savePic").addEventListener("click",async()=>{
+  $("copyMsg").textContent="";
+  try{
+    picBlob=await makePng();
+    const old=$("picImg").src; if(old.startsWith("blob:")) URL.revokeObjectURL(old);
+    $("picImg").src=URL.createObjectURL(picBlob);
+  }catch(e){
+    $("picImg").removeAttribute("src");
+    $("copyMsg").textContent="The picture could not be made in this browser. Use Full screen and take a screenshot instead.";
+  }
+  $("overlay").hidden=false; $("closePic").focus();
+});
+$("copyPic").addEventListener("click",()=>{
+  if(!picBlob||!window.ClipboardItem||!navigator.clipboard||!navigator.clipboard.write){
+    $("copyMsg").textContent="Copying pictures isn't allowed here. Save it as described above.";return;
+  }
+  navigator.clipboard.write([new ClipboardItem({"image/png":picBlob})])
+    .then(()=>{$("copyMsg").textContent="Copied. You can paste it into WhatsApp, email or Word."})
+    .catch(()=>{$("copyMsg").textContent="Copying pictures isn't allowed here. Save it as described above."});
+});
+function closeOverlay(){$("overlay").hidden=true; $("savePic").focus()}
+$("closePic").addEventListener("click",closeOverlay);
+$("overlay").addEventListener("click",e=>{if(e.target===$("overlay")) closeOverlay()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("overlay").hidden) closeOverlay()});
+$("fullBtn").addEventListener("click",()=>{
+  const el=$("sheet");
+  try{
+    const p=el.requestFullscreen?el.requestFullscreen():null;
+    if(p&&p.catch) p.catch(()=>{$("fullBtn").textContent="Full screen not available here"});
+    else if(!p) $("fullBtn").textContent="Full screen not available here";
+  }catch(e){$("fullBtn").textContent="Full screen not available here"}
+});
+
+syncControls(); draw();
+})();
+</script>
+
+</body>
+</html>
