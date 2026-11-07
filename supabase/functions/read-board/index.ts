@@ -20,11 +20,14 @@ const reply = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 const PROMPT = `You are helping a South African electrician document an existing electrical distribution board (DB board) from a photo.
-Look carefully at the photo and read every device you can see.
+You may get up to 3 photos: the first shows the whole board, any others are close-ups of rows of breakers on the same board.
+Use the whole-board photo for the layout and the close-ups to read the small print. Never count a breaker twice because it appears in two photos.
+Look carefully and read every device you can see.
 
 Rules:
 - List every circuit breaker (MCB) in order: top row first, left to right, then the next row. Do not list the main switch, earth leakage, surge arrester, timers or contactors as circuits.
-- "a" is the breaker's amp rating as printed (for example 10, 15, 20, 30, 40). If you can't read it, use your best guess and add a line to "unsure".
+- "a" is the breaker's amp rating as printed (for example 10, 15, 20, 30, 40). Ratings are printed small, so look at each breaker one by one, using the close-ups when there are any. Common mix-ups are 32 and 20, 16 and 10, 63 and 40, 25 and 20: check those digits extra carefully. Wider or differently coloured handles do not tell you the rating; only the printed number does.
+- If you are not completely sure of a breaker's rating, still give your best guess, and add a line to "unsure" naming it, for example "Bottom 2: could be 32 A or 20 A".
 - "name": use the circuit label if one is written on or near the breaker; otherwise use "Top 1", "Top 2" ... for the top row and "Bottom 1" ... for the next row (or "Row 3 1" and so on).
 - "noEl": true if that breaker is clearly NOT fed through the earth leakage unit (for example a separate row or busbar fed straight from the main switch). If you can't tell, use false.
 - "phases": 3 if the main switch has 3 or 4 poles or you can see three phase colours (red, yellow/white, blue) coming in; otherwise 1.
@@ -67,11 +70,18 @@ Deno.serve(async (req) => {
   }
 
   // 3. Check the photo
-  let body: { image?: string; mediaType?: string; extra?: string };
+  type Img = { data?: string; mediaType?: string };
+  let body: { images?: Img[]; image?: string; mediaType?: string; extra?: string };
   try { body = await req.json(); } catch { return reply({ error: "Bad request.", code: "bad_request" }, 400); }
-  const image = String(body.image || "");
-  const mediaType = ["image/jpeg", "image/png", "image/webp"].includes(String(body.mediaType)) ? String(body.mediaType) : "image/jpeg";
-  if (!image || image.length > 8_000_000) return reply({ error: "The photo is missing or too large.", code: "image_rejected" }, 400);
+  const raw: Img[] = Array.isArray(body.images) ? body.images : body.image ? [{ data: body.image, mediaType: body.mediaType }] : [];
+  const images = raw.slice(0, 3).map((im) => ({
+    data: String(im?.data || ""),
+    mediaType: ["image/jpeg", "image/png", "image/webp"].includes(String(im?.mediaType)) ? String(im?.mediaType) : "image/jpeg",
+  }));
+  const total = images.reduce((n, im) => n + im.data.length, 0);
+  if (!images.length || images.some((im) => !im.data || im.data.length > 8_000_000) || total > 15_000_000) {
+    return reply({ error: "The photo is missing or too large.", code: "image_rejected" }, 400);
+  }
   const extra = String(body.extra || "").slice(0, 300).replace(/"/g, "'");
 
   const { data: logRow } = await admin.from("photo_reads").insert({ user_id: userId }).select("id").single();
@@ -87,7 +97,10 @@ Deno.serve(async (req) => {
         model: Deno.env.get("CLAUDE_MODEL") || "claude-sonnet-5-5",
         max_tokens: 4000,
         messages: [{ role: "user", content: [
-          { type: "image", source: { type: "base64", media_type: mediaType, data: image } },
+          ...images.map((im, i) => [
+            { type: "text", text: i === 0 ? "Photo 1 (whole board):" : `Photo ${i + 1} (close-up):` },
+            { type: "image", source: { type: "base64", media_type: im.mediaType, data: im.data } },
+          ]).flat(),
           { type: "text", text },
         ] }],
       }),

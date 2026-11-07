@@ -116,7 +116,8 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
         <h2>Report</h2>
         <div id="photoArea" class="sub-sec" hidden>
           <h3>Read a board from a photo</h3>
-          <label>Photo of the board<input type="file" id="photoIn" accept="image/jpeg,image/png,image/webp"></label>
+          <label>Photos of the board (up to 3)<input type="file" id="photoIn" accept="image/jpeg,image/png,image/webp" multiple></label>
+          <p class="hint">Best results: one photo of the whole board, plus close-ups of each row so the breaker ratings are easy to read.</p>
           <label>Anything the photo can't show (optional)<input type="text" id="photoInfo" maxlength="300" placeholder="For example: 5 kW Sunsynk inverter, three-phase supply"></label>
           <div class="toolbar">
             <button type="button" class="btn" id="readPhoto">Read board from photo</button>
@@ -512,15 +513,18 @@ function renderFix(){
 }
 
 /* ---------- read a board from a photo (Claude version only) ---------- */
-let sampleFn=null, photoCtl=null, photoReader=null;
+let sampleFn=null, photoCtl=null, photoReader=null, photoMax=3;
 const changeHooks=[];
 function nearest(list,v){v=+v; if(!isFinite(v)) return list[0]; return list.reduce((b,x)=>Math.abs(x-v)<Math.abs(b-v)?x:b,list[0])}
 const PHOTO_PROMPT=`You are helping a South African electrician document an existing electrical distribution board (DB board) from a photo.
-Look carefully at the photo and read every device you can see.
+You may get up to 3 photos: the first shows the whole board, any others are close-ups of rows of breakers on the same board.
+Use the whole-board photo for the layout and the close-ups to read the small print. Never count a breaker twice because it appears in two photos.
+Look carefully and read every device you can see.
 
 Rules:
 - List every circuit breaker (MCB) in order: top row first, left to right, then the next row. Do not list the main switch, earth leakage, surge arrester, timers or contactors as circuits.
-- "a" is the breaker's amp rating as printed (for example 10, 15, 20, 30, 40). If you can't read it, use your best guess and add a line to "unsure".
+- "a" is the breaker's amp rating as printed (for example 10, 15, 20, 30, 40). Ratings are printed small, so look at each breaker one by one, using the close-ups when there are any. Common mix-ups are 32 and 20, 16 and 10, 63 and 40, 25 and 20: check those digits extra carefully. Wider or differently coloured handles do not tell you the rating; only the printed number does.
+- If you are not completely sure of a breaker's rating, still give your best guess, and add a line to "unsure" naming it, for example "Bottom 2: could be 32 A or 20 A".
 - "name": use the circuit label if one is written on or near the breaker; otherwise use "Top 1", "Top 2" ... for the top row and "Bottom 1" ... for the next row (or "Row 3 1" and so on).
 - "noEl": true if that breaker is clearly NOT fed through the earth leakage unit (for example a separate row or busbar fed straight from the main switch). If you can't tell, use false.
 - "phases": 3 if the main switch has 3 or 4 poles or you can see three phase colours (red, yellow/white, blue) coming in; otherwise 1.
@@ -564,15 +568,17 @@ function boardFromReading(r){
 }
 function photoMsg(t){$("photoMsg").textContent=t}
 async function readPhoto(){
-  const file=$("photoIn").files&&$("photoIn").files[0];
+  const files=Array.from($("photoIn").files||[]).slice(0,photoMax);
+  const file=files[0];
   if(!file){photoMsg("Choose a photo of the board first."); return}
+  if(($("photoIn").files||[]).length>photoMax) photoMsg(`Only the first ${photoMax} photos are used.`);
   if(!sampleFn&&!photoReader){photoMsg("Reading photos isn't available here."); return}
   const extra=$("photoInfo").value.trim();
   photoCtl=new AbortController();
   $("readPhoto").disabled=true; $("stopPhoto").hidden=false;
-  photoMsg("Reading the photo… this can take a minute or two.");
+  photoMsg(files.length>1?`Reading ${files.length} photos… this can take a minute or two.`:"Reading the photo… this can take a minute or two.");
   try{
-    const r=photoReader?await photoReader(file,extra,photoCtl.signal):await sampleFn.json(PHOTO_PROMPT+(extra?`\n\nThe person also says: "${extra.replace(/"/g,"'")}"`:""),{images:[file],modelTier:"complex",signal:photoCtl.signal,cache:false});
+    const r=photoReader?await photoReader(files,extra,photoCtl.signal):await sampleFn.json(PHOTO_PROMPT+(extra?`\n\nThe person also says: "${extra.replace(/"/g,"'")}"`:""),{images:files,modelTier:"complex",signal:photoCtl.signal,cache:false});
     if(!r||typeof r!=="object"||!Array.isArray(r.circuits)) throw {code:"invalid_json"};
     const b=boardFromReading(r);
     setBoards(b,null); confirming=null; syncControls(); changed();
@@ -595,7 +601,7 @@ async function readPhoto(){
     const smp=await window.claude.use("sample");
     const lim=smp?await smp.limits().catch(()=>null):null;
     if(!smp||!lim||!lim.images){ if(!photoReader) $("photoNo").hidden=false; return }
-    sampleFn=smp; if(photoReader) return;
+    sampleFn=smp; photoMax=Math.max(1,Math.min(3,lim.images.maxCount||1)); if(photoReader) return;
     if(lim.images.mediaTypes&&lim.images.mediaTypes.length) $("photoIn").accept=lim.images.mediaTypes.join(",");
     $("photoArea").hidden=false;
   }catch(e){ if(!photoReader) $("photoNo").hidden=false }

@@ -178,11 +178,12 @@ async function shrink(file){
   c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
   return c.toDataURL("image/jpeg",0.85).split(",")[1];
 }
-async function readViaServer(file,extra,signal){
-  let image;
-  try{ image=await shrink(file) }catch(e){ throw {code:"image_rejected"} }
+async function readViaServer(files,extra,signal){
+  const list=(Array.isArray(files)?files:[files]).slice(0,3);
+  let images;
+  try{ images=await Promise.all(list.map(async f=>({data:await shrink(f),mediaType:"image/jpeg"}))) }catch(e){ throw {code:"image_rejected"} }
   if(signal&&signal.aborted) throw {code:"cancelled"};
-  const {data,error}=await sb.functions.invoke("read-board",{body:{image,mediaType:"image/jpeg",extra}});
+  const {data,error}=await sb.functions.invoke("read-board",{body:{images,extra}});
   if(signal&&signal.aborted) throw {code:"cancelled"};
   if(error){
     let info=null;
