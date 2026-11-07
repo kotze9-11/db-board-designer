@@ -6,6 +6,9 @@
 //   ANTHROPIC_API_KEY  your Claude API key (required)
 //   DAILY_LIMIT        photo reads per person per day (optional, default 20)
 //   CLAUDE_MODEL       model id (optional, default claude-sonnet-5-5)
+//
+// In the function's settings, turn OFF "Verify JWT" (Enforce JWT verification).
+// This function checks the person's login itself, below.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CORS = {

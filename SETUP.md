@@ -18,6 +18,7 @@ https://kotze9-11.github.io/db-board-designer/app/
 1. In Supabase, open **Edge Functions > Deploy a new function > Via Editor**.
 2. Name it exactly `read-board`.
 3. Delete the example code, paste everything from `supabase/functions/read-board/index.ts`, and click **Deploy**.
+   Then open the function's **Details / Settings** and turn **off** "Verify JWT" (Enforce JWT verification), and save. The function checks the login itself.
 4. Open **Edge Functions > Secrets**, add `ANTHROPIC_API_KEY` with your Claude API key, and save.
    Optional: `DAILY_LIMIT` (photo reads per person per day, default 20).
 
