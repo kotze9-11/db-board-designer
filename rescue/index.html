@@ -182,8 +182,7 @@ details summary{cursor:pointer;font-weight:600}
   <section class="card">
     <h2>8. Sign-off and save</h2>
     <div class="grid">
-      <label>Prepared by<input type="text" data-k="prepBy"></label>
-      <label>Approved by (Level 3)<input type="text" data-k="apprBy"></label>
+      <div style="grid-column:1/-1"><div id="signoff" style="display:grid;gap:8px"></div><button class="mini" id="addSign" style="margin-top:8px">+ Add sign-off line</button></div>
       <label style="grid-column:1/-1">Extra notes<textarea data-k="notes" rows="2"></textarea></label>
     </div>
     <div class="row" style="margin-top:12px">
@@ -466,10 +465,10 @@ function cseAncName(){return {tripod:"Tripod",davit:"Davit arm",beam:"Overhead b
 function blank(){
   return {ref:"",date:today(),client:"",site:"",task:"",height:20,env:"ground",anchors:"",hazards:"",
     team:[{name:"",level:"L3",role:"Supervisor"},{name:"",level:"L2",role:"Rescuer"},{name:"",level:"L1",role:"Technician"}],
-    anchorType:"ya",cseAnchor:"tripod",evacMethod:"stretcher",cseDepth:"",cseTrained:false,drawing:null,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",notes:"",
+    anchorType:"ya",cseAnchor:"tripod",evacMethod:"stretcher",cseDepth:"",cseTrained:false,drawing:null,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",signoff:[{role:"Prepared by",name:""},{role:"Approved by (Level 3)",name:""}],notes:"",
     cur:"lower",plans:{}};
 }
-function migrate(o){const n=Object.assign(blank(),o);if(n.plans.ascent&&!n.plans.ascentMigrated){/* old ascent plan stays under same id */}if(!byId(n.cur))n.cur="lower";return n}
+function migrate(o){const n=Object.assign(blank(),o);if(!o.signoff){n.signoff=[{role:"Prepared by",name:o.prepBy||""},{role:"Approved by (Level 3)",name:o.apprBy||""}]}if(n.plans.ascent&&!n.plans.ascentMigrated){/* old ascent plan stays under same id */}if(!byId(n.cur))n.cur="lower";return n}
 S=blank();
 try{const raw=localStorage.getItem(LS); if(raw){S=migrate(JSON.parse(raw))}}catch(e){}
 
@@ -1052,6 +1051,15 @@ function refreshDefaults(){
     if(!p.contEdited) p.cont=defCont(sc.id);
   });
 }
+function renderSignoff(){
+  const box=$("#signoff");box.innerHTML="";
+  S.signoff.forEach((so,i)=>{const d=document.createElement("div");d.style.cssText="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px";
+    d.innerHTML=`<input type="text" placeholder="Title, e.g. Approved by (OIM)" aria-label="Sign-off title"><input type="text" placeholder="Name" aria-label="Name"><button class="mini" title="Remove">✕</button>`;
+    const [ro,na,x]=d.children;ro.value=so.role;na.value=so.name;
+    ro.oninput=()=>{so.role=ro.value;save()};na.oninput=()=>{so.name=na.value;save()};
+    x.onclick=()=>{S.signoff.splice(i,1);renderSignoff();save()};box.appendChild(d)});
+}
+$("#addSign").onclick=()=>{S.signoff.push({role:"",name:""});renderSignoff();const r=document.querySelectorAll("#signoff input");if(r.length)r[r.length-2].focus();save()};
 function renderTeam(){
   const box=$("#team"); box.innerHTML="";
   S.team.forEach((p,i)=>{
@@ -1379,11 +1387,12 @@ async function makePdf(){
     heading("Equipment checklist - "+sc.short);
     p.equip.filter(e=>e.t.trim()).forEach(e=>{const lines=wrap(e.t,F,10,CW-26);need(lines.length*13.5+4);pg.drawRectangle({x:M+1,y:y-11,width:10,height:10,borderColor:ink,borderWidth:.8});if(e.ok){pg.drawLine({start:{x:M+3,y:y-6},end:{x:M+5.5,y:y-9},thickness:1.4,color:ink});pg.drawLine({start:{x:M+5.5,y:y-9},end:{x:M+10,y:y-2.5},thickness:1.4,color:ink})}lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-10-j*13.5,size:10,font:F,color:ink}));y-=lines.length*13.5+4});
   }
-  need(190); heading("Sign-off");
+  need(120); heading("Sign-off");
   const box=(lab,name,x,w)=>{pg.drawText(ansi(lab),{x,y:y-10,size:9,font:B,color:mut});pg.drawText(ansi(name||""),{x,y:y-26,size:10,font:F,color:ink});
     pg.drawText("Signature",{x,y:y-52,size:8,font:F,color:mut});pg.drawLine({start:{x:x+42,y:y-52},end:{x:x+w,y:y-52},thickness:.6,color:ink});
     pg.drawText("Date",{x,y:y-72,size:8,font:F,color:mut});pg.drawLine({start:{x:x+42,y:y-72},end:{x:x+w,y:y-72},thickness:.6,color:ink})};
-  box("Prepared by",S.prepBy,M,CW/2-14); box("Approved by (Level 3)",S.apprBy,M+CW/2+6,CW/2-6); y-=86;
+  const so=S.signoff.filter(x=>x.role.trim()||x.name.trim());
+  for(let i=0;i<so.length;i+=2){need(90);box(so[i].role||"Sign-off",so[i].name,M,CW/2-14);if(so[i+1])box(so[i+1].role||"Sign-off",so[i+1].name,M+CW/2+6,CW/2-6);y-=86}
   text("Team briefed on this plan (names and signatures):",{size:9,color:mut,bold:true});y-=4;
   for(let i=0;i<4;i++){need(20);pg.drawLine({start:{x:M,y:y-14},end:{x:M+CW/2-14,y:y-14},thickness:.5,color:line});pg.drawLine({start:{x:M+CW/2+6,y:y-14},end:{x:PW-M,y:y-14},thickness:.5,color:line});y-=22}
   return await doc.save();
@@ -1404,7 +1413,7 @@ $("#pdfBtn").onclick=async()=>{
   }catch(e){console.error(e);msg("PDF failed: "+e.message,1)}
 };
 
-function initAll(){bindFields();renderAnchor();selPin=-1;renderDrawing();renderTeam();SCN.forEach(sc=>plan(sc.id));renderPicker();renderScn();renderChecks()}
+function initAll(){bindFields();renderSignoff();renderAnchor();selPin=-1;renderDrawing();renderTeam();SCN.forEach(sc=>plan(sc.id));renderPicker();renderScn();renderChecks()}
 initAll();
 window.RRP={makePdf,draw,SCN,S:()=>S,set:o=>{S=migrate(o);initAll()}};
 })();
