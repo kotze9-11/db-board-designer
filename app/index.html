@@ -432,7 +432,8 @@ function checks(){
   const ne=(dispGroups().find(x=>x.key==="ne")||{list:[]}).list;
   if(!s.el.on) out.push("No earth leakage fitted. Plug and light circuits must be protected by a 30 mA earth leakage.");
   else{
-    if(ne.length) out.push(`${ne.length} ${pl(ne.length,"circuit is","circuits are")} not on the earth leakage (no. ${ne.map(num).join(", ")}). Plug circuits must be on a 30 mA earth leakage.`);
+    const ne20=ne.filter(c=>c.a===20);
+    if(ne20.length) out.push(`${ne20.length} 20 A ${pl(ne20.length,"circuit is","circuits are")} not on the earth leakage (no. ${ne20.map(num).join(", ")}). 20 A circuits are usually plugs, which must be on a 30 mA earth leakage.`);
     if(s.el.ma>30) out.push(`The earth leakage trips at ${s.el.ma} mA. Use 30 mA for plugs and lights.`);
     if(!s.inv.on&&s.el.a<s.mainA) out.push(`The earth leakage (${s.el.a} A) is smaller than the main switch (${s.mainA} A), so it can be overloaded.`);
     if(s.inv.on&&s.specs.elType==="AC") out.push("The earth leakage is Type AC. With an inverter, Type A is recommended.");
@@ -471,11 +472,18 @@ function makeFixed(){
     if(f.inv.on&&f.specs.elType==="AC") repl=true;
     if(repl){f.specs.elType="A"; ch.push(`Replace the earth leakage with ${an(f.el.a)} ${f.el.a} A, 30 mA, Type A ${poles} unit.`)}
   }
-  const ne=f.circuits.filter(c=>c.noEl&&!bk(c));
-  if(ne.length){ne.forEach(c=>c.noEl=false); ch.push(`Move ${ne.length} ${ne.length>1?"circuits":"circuit"} onto the earth leakage (${names(ne)}).`)}
   if(!f.spd){f.spd=true; f.specs.spdKa=40; ch.push(`Fit a Type 2, 40 kA ${poles} AC surge arrester.`)}
   const old=f.circuits.filter(c=>c.a===15||c.a===30);
   if(old.length){old.forEach(c=>{c.a=c.a===15?16:32}); ch.push(`Replace ${old.length} old 15 A / 30 A ${old.length>1?"breakers":"breaker"} with 16 A / 32 A (check each cable first).`)}
+  // earth leakage rule: 20 A circuits (plugs) on the earth leakage; 10 A and 32 A circuits fed straight from the main switch
+  const toEl=[], offEl=[];
+  f.circuits.forEach(c=>{
+    if(bk(c)) return;
+    if(c.a===20&&c.noEl){c.noEl=false; toEl.push(c)}
+    else if((c.a===10||c.a===32)&&!c.noEl){c.noEl=true; offEl.push(c)}
+  });
+  if(toEl.length) ch.push(`Move ${toEl.length} 20 A ${toEl.length>1?"circuits":"circuit"} onto the earth leakage (${names(toEl)}).`);
+  if(offEl.length) ch.push(`Feed ${offEl.length} 10 A / 32 A ${offEl.length>1?"circuits":"circuit"} straight from the main switch, not through the earth leakage (${names(offEl)}).`);
   if(f.specs.ka<6) ch.push(`Check the fault level at the board. If it is above ${f.specs.ka} kA, replace the breakers with 6 kA units.`);
   if(f.phases===3){
     const grid=f.circuits.filter(c=>!bk(c)).sort((a,b)=>b.a-a.a);
