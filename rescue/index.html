@@ -240,7 +240,7 @@ const ancT=()=>ANCH.find(a=>a.id===S.anchorType)||ANCH[0];
 function ancNotes(){return ANCH_COMMON.concat(ancT().notes)}
 
 /* ---------- scenario library (TACS 6.5, 6.8, 6.9) ---------- */
-const GROUPS=[["rig","Rig-for-rescue (team at the top)"],["rope","Rescue on ropes"],["obst","Passing obstacles with a casualty"],["climb","Climbing rescues"],["cse","Confined space rescue (not IRATA)"]];
+const GROUPS=[["rig","Rig-for-rescue (team at the top)"],["rope","Rescue on ropes"],["obst","Passing obstacles with a casualty"],["climb","Climbing rescues"],["cse","Confined space rescue (not IRATA)"],["ob","Overboard / over the sea"]];
 const SCN=[
  {id:"lower",g:"rig",name:"Pre-rigged lowering",short:"Pre-rigged lower",lvl:1,ref:"TACS 6.5.2; ICOP 2.11.11.3",view:"side",
   blurb:"The casualty's ropes are rigged on releasable anchors from the start, so the team at the top can lower them straight down without anyone going onto the ropes. Best first choice where there is a clear drop.",
@@ -379,7 +379,7 @@ const SCN=[
    "Brief the team afterwards: avoid one-connector attachments direct to bolt anchors (TACS 6.9.3.1)."],
   equip:()=>["Small pulley system with progress capture","Hand ascender and foot loop","Descender / lowering device and rescue rope"+L(),"Back-up device","Extra connectors and slings"],
   cont:()=>["Short connection can't be unloaded: call for a second rescuer to help lift.","Make sure a Level 3 is on site. Otherwise change the work method so short connections aren't used."]},
- {id:"cseRet",g:"cse",name:"Confined space: retrieval without entry",short:"CSE retrieval",lvl:0,ref:"Site confined space procedure and permit; ICOP 2.11.6.7",view:"cse",
+ {id:"cseRet",g:"cse",name:"Confined space: retrieval without entry",short:"CSE retrieval",lvl:0,tag:"CSE",need:"Confined space training needed",ref:"Site confined space procedure and permit; ICOP 2.11.6.7",view:"cse",
   blurb:"The entrant is clipped to a retrieval line from a tripod or davit over the opening the whole time they're inside. If they collapse, the team winches them out without anyone going in. This is the first choice for vertical entries.",
   steps:()=>["Check the casualty is still attached to the retrieval line: the rescue winch, or a fall arrester with a rescue winch.",
    "Switch the device into winch (rescue) mode as the maker's instructions say.",
@@ -388,7 +388,7 @@ const SCN=[
    "Move the casualty clear of the opening into fresh air, then disconnect them."],
   equip:()=>[cseAncName()+" rated for rescue loads","Rescue winch, or a fall arrester with a rescue winch (3-way device)","Harness with a top (dorsal) or shoulder attachment so the casualty comes up upright","Multi-gas detector, plus continuous monitoring","Ventilation fan and ducting","Barrier around the opening","Stretcher suited to the space, if needed"],
   cont:()=>["Casualty not attached or jammed inside: switch to the entry rescue. Only the trained, equipped rescue team goes in.","Gas alarm goes off: nobody enters without breathing apparatus. Increase ventilation and call the emergency team.","Winch fails: change to the back-up line or haul system rigged on the tripod."]},
- {id:"cseEnt",g:"cse",name:"Confined space: entry rescue on ropes",short:"CSE entry rescue",lvl:2,ref:"Site confined space procedure and permit; ICOP 2.11.6.7; TACS 6.5.3",view:"cse",
+ {id:"cseEnt",g:"cse",name:"Confined space: entry rescue on ropes",short:"CSE entry rescue",lvl:2,need:"Confined space training needed",ref:"Site confined space procedure and permit; ICOP 2.11.6.7; TACS 6.5.3",view:"cse",
   blurb:"A trained rescuer is lowered into the space on a separate line, connects the casualty, and the team at the top hauls them out. Only for a rescue team trained and equipped for confined spaces.",
   steps:()=>["Don't rush in. Check the gas readings. The rescuer wears breathing apparatus unless the air is proven safe.",
    "Rig two independent lines on the "+cseAncName().toLowerCase()+": one for the rescuer and one for the casualty, each with a winch or haul system and a back-up (fall arrester).",
@@ -397,7 +397,49 @@ const SCN=[
    "The team winches the casualty up while the rescuer guides them from below and keeps them clear of obstructions.",
    "At the opening, guide the casualty through and move them into fresh air. Then raise the rescuer."],
   equip:()=>[cseAncName()+" rated for two lines / rescue loads","Two rescue winches or haul systems, each with a fall arrester back-up","Breathing apparatus for the entry rescuer","Multi-gas detector, plus continuous monitoring","Ventilation fan and ducting","Rescue triangle or confined space stretcher","Radio or voice communication with the rescuer inside"],
-  cont:()=>["Rescuer's breathing apparatus runs low: withdraw the rescuer and send in the standby rescuer.","Casualty won't fit through the opening upright: use a confined space stretcher or a different attachment point.","Rescuer gets into trouble: winch the rescuer out on their own line straight away."]}
+  cont:()=>["Rescuer's breathing apparatus runs low: withdraw the rescuer and send in the standby rescuer.","Casualty won't fit through the opening upright: use a confined space stretcher or a different attachment point.","Rescuer gets into trouble: winch the rescuer out on their own line straight away."]},
+ {id:"cseRope",g:"cse",name:"Tank: rope rescue inside, then tripod evacuation",short:"Tank rope + tripod",lvl:2,ref:"TACS 6.8.2 / 6.5.2; site confined space procedure and permit; ICOP 2.11.6.7",view:"cse",
+  blurb:"A technician working on ropes inside a tank needs rescue. The rescuer descends inside the tank and picks the casualty off, or the team lowers them on a pre-rigged system, to the tank floor. The casualty is then moved under the manhole and winched out on the tripod.",
+  steps:()=>["The rescue team at the manhole checks the gas readings and keeps the ventilation running. Rescuers wear breathing apparatus unless the air is proven safe.",
+   "If the casualty's ropes are rigged releasable, the team lowers the casualty straight to the tank floor (pre-rigged lowering). Otherwise the rescuer enters and connects to separate rescue ropes rigged on the tank's internal anchors.",
+   "The rescuer descends to the casualty, connects them to the rescuer's descender, takes their weight off their own devices and descends with them to the tank floor (descent rescue, TACS 6.8.2).",
+   "A second rescuer inside receives the casualty on the tank floor. Disconnect the casualty from the ropes.",
+   "Put the casualty in a stretcher made for vertical lifts through manholes, or a rescue triangle if the opening is too small for a stretcher.",
+   "Move the casualty under the manhole. Connect the stretcher or harness to the tripod winch line, plus a fall arrester as back-up. Fit a tag line.",
+   "The team at the top winches the casualty up through the manhole slowly. The rescuer inside uses the tag line to keep them from catching on the rim or internal structure.",
+   "At the top, land the casualty on deck and move them into fresh air. Then bring the rescuers out."],
+  equip:()=>["Tripod over the manhole with rescue winch and fall arrester (3-way device)","Rescue rope pair"+L()+" and rescue kit for the tank's internal anchors","Descender with auto-lock and anti-panic function, back-up device, rescue lanyard","Stretcher made for vertical lifts through manholes, or a rescue triangle","Tag line","Breathing apparatus for rescuers (plus a standby set)","Multi-gas detector, plus continuous monitoring","Ventilation fan and ducting","Intrinsically safe (Ex) radios and torches for the tank"],
+  cont:()=>["Casualty can't be moved flat because of a suspected spinal injury: keep them still, give first aid inside, and call the emergency team and medic in.","Stretcher won't fit through the manhole: switch to a rescue triangle and lift in the harness, upright.","Winch fails: use the back-up haul system on the tripod.","Breathing apparatus air running low: rotate rescuers with the standby team."]},
+ {id:"obLower",g:"ob",name:"Overboard: lower casualty into the rescue boat",short:"Lower to boat",lvl:1,ref:"TACS 6.5.2; ICOP 2.11.6.8",view:"ob",
+  blurb:"For work over the ship or platform side. The casualty's ropes are rigged on a releasable lowering system, and the team lowers the casualty straight into the rescue boat (FRC).",
+  steps:()=>["At the start of the job, rig the working rope through a releasable lowering device and have the back-up rope ready to lower. The ropes must reach the boat at sea level.",
+   "Call the rescue boat (FRC) or standby vessel. Launch only if the sea state is within the boat's launch limits and the coxswain says it's safe.",
+   "The boat comes alongside and holds position clear of the hull. It moves under the casualty only when the boat crew is ready to receive them. Keep ropes clear of the propeller.",
+   "Lower the casualty slowly into the boat while a second person tends the back-up rope at the same speed.",
+   "The boat crew takes hold of the casualty and takes their weight, then disconnects them from the ropes. Never lower a casualty into the water while they are attached to the ropes, because they could drown.",
+   "The boat takes the casualty to the vessel or platform for the medic."],
+  equip:()=>["Releasable lowering device rigged on the working rope anchor","Back-up rope"+L()+" with tending device, long enough to reach the boat","Rescue boat (FRC) or standby vessel with crew","Life jacket for every technician, compatible with the harness","Lifebuoy with light and throw line at the work position","Radios on the boat's channel"],
+  cont:()=>["Sea too rough to launch the boat: haul the casualty back up to deck instead.","Casualty ends up in the water: the boat recovers them immediately and takes their weight off the ropes.","Boat drifts under the ropes: stop lowering until it's back in position."]},
+ {id:"obHaul",g:"ob",name:"Overboard: haul casualty back to deck",short:"Haul to deck",lvl:2,ref:"TACS 6.5.3",view:"ob",
+  blurb:"Used when the sea is too rough for the rescue boat. The casualty is raised back up the hull to the deck with a haul system and an independent back-up.",
+  steps:()=>["Set up the haul system on deck on independent anchors (e.g. a 3:1 with progress capture), with an independent back-up to the casualty.",
+   "Fit a high directional, davit arm or edge roller at the handrail so the casualty clears the rail and the hull.",
+   "One person gives the commands. Haul in short, controlled strokes, setting the progress capture each time. Stop if anything snags on the hull.",
+   "At the rail, a second team member (on restraint) helps the casualty over. A tag line can stop them swinging against the hull.",
+   "Bring the casualty to rest on deck in a safe area away from the rail, then disconnect them."],
+  equip:()=>["Haul rope"+L(),"Pulleys with progress capture","Back-up device and back-up rope","High directional, davit arm or edge roller for the handrail","Tag line","Life jacket for every technician, compatible with the harness"],
+  cont:()=>["Haul too heavy: add more mechanical advantage or more people on the haul.","Casualty jams under the rail or a hull fitting: hold on progress capture, re-rig the directional, then continue."]},
+ {id:"mob",g:"ob",name:"Man overboard: person in the sea",short:"Man overboard",lvl:0,tag:"All",need:"Everyone on site must know this",ref:"Site man overboard procedure; ICOP 2.11.6.8",view:"ob",
+  blurb:"Someone falls into the sea. Everyone on the job must know the site's man overboard procedure. Speed matters.",
+  steps:()=>["Shout “Man overboard!” and say which side. Raise the alarm by radio"+(S.radio?(" (channel "+S.radio+")"):"")+" to the control room or bridge.",
+   "Throw a lifebuoy with light and smoke close to the person, not at them.",
+   "One person keeps pointing at the person in the water and never takes their eyes off them.",
+   "The control room calls the standby vessel or launches the rescue boat (FRC) following the site procedure.",
+   "Nobody jumps in after them.",
+   "If the person is still attached to ropes and is in the water, take their weight up so their head is clear. Cut them free only if they're drowning and the boat is there to recover them.",
+   "The boat crew recovers the person, lifting them out lying flat if possible."],
+  equip:()=>["Lifebuoys with light and smoke near the work area","Throw line","Rescue boat (FRC) or standby vessel","Life jackets for everyone working over the side","Radios on the control room channel"],
+  cont:()=>["Person goes out of sight: keep the last known position marked and tell the boat.","Boat can't launch: the standby vessel or helicopter rescue under the site's emergency plan."]}
 ];
 const byId=id=>SCN.find(s=>s.id===id);
 function cseAncName(){return {tripod:"Tripod",davit:"Davit arm",beam:"Overhead beam anchor"}[S.cseAnchor]||"Tripod"}
@@ -414,6 +456,17 @@ try{const raw=localStorage.getItem(LS); if(raw){S=migrate(JSON.parse(raw))}}catc
 
 function defSteps(id){
   const ch=S.radio?(" on channel "+S.radio):"";
+  if(byId(id).g==="ob"){
+    const obStart=id==="mob"?[]:["Raise the alarm: stop all work and tell "+supName()+" and the control room by radio"+ch+(S.signals?(" (back-up signals: "+S.signals+")"):"")+". Call the rescue boat (FRC) or standby vessel crew"+(S.boat?(" ("+S.boat+")"):"")+".",
+      "Talk to the casualty and assess them and the scene: sea state, wind, swell against the hull, falling objects"+(S.hazards?(", "+S.hazards):"")+".",
+      "The rescue boat crew gets ready and checks the sea state is within the boat's launch limits.",
+      "The rescuer ("+rescuerName()+") collects the rescue kit"+(S.kitLoc?(" from "+S.kitLoc):"")+" and does a buddy check with the supervisor."];
+    const obEnd=["Casualty care: give first aid (airway, breathing, circulation). If they hung in a harness, follow ICOP Annex G. Anyone who was in the water goes to the medic and hospital even if they seem fine, because breathing problems can come on later.",
+      "Hand over to "+(S.medic||"the medic")+(S.hospital?("; nearest hospital: "+S.hospital):"")+".",
+      "Record times and actions, tell the client and complete the incident report.",
+      "Take all equipment used out of service for inspection. Work does not restart until "+supName()+" has reviewed the incident."];
+    return obStart.concat(byId(id).steps(),obEnd);
+  }
   if(byId(id).g==="cse"){
     const startC=["The attendant at the opening raises the alarm by radio"+ch+", tells "+supName()+" and calls "+(S.emerg||"emergency services / site control")+". The attendant never goes into the space.",
       "Check the gas readings at the opening and keep the ventilation running. Nobody enters unless the readings are safe, or they wear breathing apparatus and are part of the trained rescue team.",
@@ -443,7 +496,8 @@ function defEquip(id){
   const common=["Rescue kit at the worksite, ready to use straight away (ICOP 2.11.11.3)","Radios tested"+(S.radio?(" (channel "+S.radio+")"):""),"First aid kit and a first aider on site (ICOP 2.11.11.6)","Rope protectors / edge protection","Spare connectors and slings"];
   const waterList=S.env==="water"?["Rescue boat with crew on standby (ICOP 2.11.6.8)","Life jackets for the team and the casualty","Throw line"]:[];
   const anc=byId(id).g==="cse"?[]:ancT().equip;
-  const water=byId(id).g==="cse"?[]:waterList;
+  const g=byId(id).g;
+  const water=g==="cse"?[]:g==="ob"?["Rescue boat (FRC) crew briefed on this plan (ICOP 2.11.6.8)","Lifebuoy with light and throw line"]:waterList;
   return byId(id).equip().concat(anc,common,water).map(t=>({t,ok:false}));
 }
 function defCont(id){
@@ -519,6 +573,7 @@ function draw(id){
   else{add(`<rect x="0" y="${ground}" width="${W}" height="${H-ground-62}" fill="#e8e2d0"/>`);add(`<line x1="0" y1="${ground}" x2="${W}" y2="${ground}" stroke="${C.ink}" stroke-width="2.5"/>`);
     for(let x=6;x<W;x+=14) add(`<line x1="${x}" y1="${ground+2}" x2="${x-8}" y2="${ground+10}" stroke="#a69c86" stroke-width="1"/>`)}
   if(sc.view==="cse") return drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H);
+  if(sc.view==="ob") return drawOb(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H);
   // structure
   if(sc.view==="side"){
     add(`<rect x="0" y="${top}" width="${wall}" height="${ground-top}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
@@ -777,7 +832,7 @@ function drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
   add(T(48,floor-10,"Confined space (cut-away view)",{c:C.muted}));
   add(T(8,deck-8,"Deck",{c:C.muted,b:1}));
   // gas cloud hint
-  add(`<ellipse cx="300" cy="${floor-40}" rx="60" ry="18" fill="#fde68a" fill-opacity=".5"/>`);add(T(300,floor-36,"Possible bad air",{a:"middle",s:10,c:"#92400e"}));
+  const gx=id==="cseRope"?110:300;add(`<ellipse cx="${gx}" cy="${floor-40}" rx="60" ry="18" fill="#fde68a" fill-opacity=".5"/>`);add(T(gx,floor-36,"Possible bad air",{a:"middle",s:10,c:"#92400e"}));
   // depth
   add(`<line x1="${W-22}" y1="${deck}" x2="${W-22}" y2="${floor}" stroke="${C.muted}" stroke-width="1.2"/><path d="M${W-22} ${deck} l-4 8 h8 Z M${W-22} ${floor} l-4 -8 h8 Z" fill="${C.muted}"/>`);
   add(`<text x="${W-9}" y="${(deck+floor)/2}" text-anchor="middle" font-size="12" font-weight="700" fill="${C.ink}" transform="rotate(-90 ${W-9} ${(deck+floor)/2})" ${FONT}>${d?esc(d+" m deep"):"Depth"}</text>`);
@@ -796,7 +851,25 @@ function drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
   add(person(70,deck-24,C.resc));add(TB(40,deck-74,"Attendant",{c:C.resc,b:1}));
   key("Attendant at the opening raises the alarm and never enters",120,deck-90);
   key(cseAncName()+" over the opening, rated for rescue, with winch",hx+30,hy-4);
-  if(id==="cseRet"){
+  if(id==="cseRope"){
+    const top2=deck+70;
+    add(`<rect x="300" y="${top2}" width="70" height="8" fill="#9aa4ab" stroke="${C.ink}"/>`);add(T(296,top2+20,"Internal anchors",{a:"end",s:9,c:C.muted}));
+    add(line([[345,top2+8],[345,floor-30]],C.work));add(line([[353,top2+8],[353,floor-30]],C.back));
+    add(line([[312,top2+8],[312,floor-30]],C.res,2.4));add(line([[320,top2+8],[320,floor-30]],C.resb,2,"6 3"));
+    const cy=330;add(dev(345,cy));add(person(363,cy+6,C.cas,{slump:true}));add(line([[345,cy],[361,cy+6]],C.ink,1.6));
+    add(dev(312,cy-40));add(person(326,cy-40,C.resc));add(line([[312,cy-40],[361,cy+6]],C.ink,1.8));
+    key("Casualty on rope access ropes rigged from the tank's internal anchors",392,cy-12);
+    key("Rescuer descends separate rescue ropes and picks off the casualty (or team lowers if pre-rigged)",290,cy-50);
+    add(arrow(285,cy-10,285,floor-24,C.cas));
+    add(arrow(275,floor-16,ax+40,floor-16,C.cas));
+    key("Lowered to the tank floor, put in a stretcher made for vertical lifts, moved under the manhole",250,floor-36);
+    // stretcher being winched
+    const sy=deck+86;add(line([[hx-6,hy+14],[ax-2,sy]],C.sys2));add(line([[hx+6,hy+14],[ax+4,sy]],C.back,2,"6 3"));
+    add(`<rect x="${ax-9}" y="${sy}" width="18" height="64" rx="6" fill="#fdba74" stroke="${C.ink}" stroke-width="1.4"/><circle cx="${ax}" cy="${sy+12}" r="5" fill="#fff" stroke="${C.cas}" stroke-width="2"/>`);
+    add(arrow(ax-28,floor-30,ax-28,deck+40,C.sys2));
+    key("Winched out through the manhole on the tripod, fall arrester as back-up, tag line from inside",ax-52,sy+30);
+    legend.splice(2,2,[C.res,"Rescue rope"],[C.sys2,"Tripod winch line"]);
+  }else if(id==="cseRet"){
     const cy=floor-60;add(line([[hx-6,hy+14],[ax-4,cy-34]],C.res));add(line([[hx+6,hy+14],[ax+2,cy-34]],C.back,2,"6 3"));
     add(person(ax,cy,C.cas,{slump:true}));casLabel(ax+48,cy-20);
     key("Entrant clipped to the retrieval line the whole time; winched out without entry",ax+40,cy-50);
@@ -814,6 +887,60 @@ function drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
     key("Casualty connected to the casualty line (green) and winched out upright",50,cy-40);
     add(arrow(ax-40,cy-20,ax-40,deck+80,C.res));
     legend.splice(2,2,[C.res,"Casualty line"],[C.sys2,"Rescuer line"]);
+  }
+  finishLegend(out,legend,sc,W,H);
+  return {svg:out.join(""),keys};
+}
+
+function drawOb(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
+  const deck=110,sea=420,hullX=175,h=+S.height||0;
+  add(`<rect x="0" y="${sea}" width="${W}" height="${H-sea-62}" fill="#bfdbfe"/>`);
+  for(let i=0;i<4;i++){let d=`M0 ${sea+6+i*14}`;for(let x=0;x<W;x+=24)d+=" q6 -5 12 0 t12 0";add(`<path d="${d}" stroke="#3b82f6" stroke-width="1.4" fill="none"/>`)}
+  add(`<path d="M0 ${deck} L${hullX} ${deck} L${hullX} ${sea+30} Q${hullX} ${sea+70} ${hullX-40} ${sea+80} L0 ${sea+80} Z" fill="#94a3b8" stroke="${C.ink}" stroke-width="1.5"/>`);
+  add(`<rect x="0" y="${sea-6}" width="${hullX}" height="6" fill="#b91c1c" opacity=".55"/>`);
+  add(T(10,sea-14,"Hull (side view)",{c:"#f8fafc",b:1}));add(T(10,deck+18,"Main deck",{c:"#f8fafc",b:1}));
+  // handrail
+  add(`<line x1="${hullX-30}" y1="${deck-28}" x2="${hullX}" y2="${deck-28}" stroke="#9aa4ab" stroke-width="3"/><line x1="${hullX-30}" y1="${deck}" x2="${hullX-30}" y2="${deck-28}" stroke="#9aa4ab" stroke-width="3"/><line x1="${hullX-2}" y1="${deck}" x2="${hullX-2}" y2="${deck-28}" stroke="#9aa4ab" stroke-width="3"/>`);
+  // height
+  add(`<line x1="${W-22}" y1="${deck}" x2="${W-22}" y2="${sea}" stroke="${C.muted}" stroke-width="1.2"/><path d="M${W-22} ${deck} l-4 8 h8 Z M${W-22} ${sea} l-4 -8 h8 Z" fill="${C.muted}"/>`);
+  add(`<text x="${W-9}" y="${(deck+sea)/2}" text-anchor="middle" font-size="12" font-weight="700" fill="${C.ink}" transform="rotate(-90 ${W-9} ${(deck+sea)/2})" ${FONT}>${h?esc(h+" m above the sea"):"Height above the sea"}</text>`);
+  const boat=(x1,x2)=>{add(`<path d="M${x1} ${sea-6} L${x2} ${sea-6} L${x2-14} ${sea+12} L${x1+10} ${sea+12} Z" fill="#f97316" stroke="${C.ink}" stroke-width="1.4"/><rect x="${(x1+x2)/2-8}" y="${sea-22}" width="18" height="16" fill="#e5e7eb" stroke="${C.ink}"/>`);add(TB((x1+x2)/2,sea+30,"Rescue boat (FRC)",{a:"middle",b:1}))};
+  const rx1=hullX+12,rx2=hullX+21;
+  if(id!=="mob"){
+    const a=yhang(40,72,deck,C.work),b=yhang(88,120,deck,C.back);add(a.svg);add(b.svg);
+    const end=id==="obLower"?sea-8:sea-40;
+    add(line([[a.x,a.y],[hullX,deck-28],[rx1,deck-20],[rx1,end]],C.work));add(line([[b.x,b.y],[hullX,deck-26],[rx2,deck-18],[rx2,end]],C.back));
+    add(`<rect x="${hullX-6}" y="${deck-34}" width="14" height="12" rx="2" fill="#f59e0b" stroke="${C.ink}"/>`);
+    key("Anchors ("+ancT().name.toLowerCase()+") on deck; ropes over the rail with edge protection",80,deck-(S.anchorType==="tripod"?62:40));
+  }
+  if(id==="obLower"){
+    add(`<rect x="96" y="${deck+26}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}"/>`);add(T(8,deck+58,"Releasable lowering device",{s:10,b:1,c:"#f8fafc"}));
+    add(person(20,deck-26,C.resc));key("Team on deck lowers; second person tends the back-up",20,deck-74);
+    const cy=230;add(dev(rx1,cy));add(person(rx1+18,cy+6,C.cas,{slump:true}));add(line([[rx1,cy],[rx1+16,cy+6]],C.ink,1.6));
+    casLabel(rx1+44,cy);key("Casualty lowered on their own ropes",rx1+44,cy-30);
+    boat(hullX+10,hullX+130);add(arrow(rx1+60,cy+30,rx1+60,sea-30,C.cas));
+    key("Boat crew receives the casualty, takes their weight, then disconnects",hullX+150,sea-20);
+  }else if(id==="obHaul"){
+    const px=70,py=deck-40;
+    add(line([[8,deck-4],[px-30,py]],C.res,2.4));add(line([[px-30,py],[px+10,py-6],[px-24,py+10],[px+16,py+6]],C.res,2.4));add(pulley(px-30,py));add(pulley(px+12,py-4));
+    add(`<path d="M${hullX-10} ${deck} L${hullX-10} ${deck-70} L${hullX+30} ${deck-70}" stroke="#9aa4ab" stroke-width="5" fill="none"/>`);add(pulley(hullX+30,deck-64));
+    add(line([[px+16,py+6],[hullX+24,deck-70],[hullX+36,deck-64],[hullX+36,300]],C.res,2.4));
+    add(T(hullX+40,deck-74,"Davit / high directional",{s:10,b:1}));
+    add(TB(8,deck-60,"3:1 haul with progress capture",{s:10,b:1}));key("Haul team on deck: 3:1 haul (green) and independent back-up",40,deck-86);
+    const cy=300;add(person(hullX+36,cy+6,C.cas,{slump:true}));casLabel(hullX+60,cy);key("Casualty raised up the hull and helped over the rail",hullX+60,cy-30);
+    add(arrow(hullX+90,cy-10,hullX+90,deck,C.res));
+    boat(hullX+120,hullX+220);
+    key("Use when the sea is too rough for the boat",hullX+240,sea-20);
+  }else{
+    const px=250,py=sea+12;
+    add(`<circle cx="${px}" cy="${py-12}" r="8" fill="#fff" stroke="${C.cas}" stroke-width="2.4"/><path d="M${px-8} ${py-13} A8 8 0 0 1 ${px+8} ${py-13} Z" fill="${C.cas}"/><path d="M${px-14} ${py-24} L${px-6} ${py-4} M${px+14} ${py-24} L${px+6} ${py-4}" stroke="${C.cas}" stroke-width="2.6"/>`);
+    add(`<circle cx="${px-40}" cy="${py-4}" r="10" fill="none" stroke="#f97316" stroke-width="6"/>`);
+    add(person(130,deck-26,C.resc));add(line([[142,deck-50],[px-10,py-20]],C.muted,1.2,"2 4"));
+    key("Shout, raise the alarm, throw a lifebuoy close to the person",100,deck-80);
+    key("One person keeps pointing at them and never looks away",160,deck-40);
+    casLabel(px-60,py-44,"Person in the sea");
+    boat(325,412);add(arrow(330,sea-34,px+26,sea-34,C.res));
+    key("Rescue boat or standby vessel recovers them, lying flat if possible",380,sea-60);
   }
   finishLegend(out,legend,sc,W,H);
   return {svg:out.join(""),keys};
@@ -851,6 +978,12 @@ function checks(){
   if(inc.some(sc=>sc.id==="dev")&&maxL<3) add("wn","Double-anchor deviations need a Level 3 for the rescue; single-anchor only with Level 2.","TACS 6.8.4");
   if(S.anchorType==="rail") add("wn","Handrail anchors: get a competent person to confirm each one takes at least 15 kN.","ICOP 2.11.2.6");
   if(S.anchorType==="weight") add("wn","Deadweight anchors: check the roof and edge distance against the maker's limits.","Maker's instructions");
+  if(inc.some(sc=>sc.g==="ob")){
+    S.boat?add("ok","Rescue boat / standby vessel named.","ICOP 2.11.6.8"):add("bad","Overboard work: name the rescue boat (FRC) or standby vessel in Emergency arrangements.","ICOP 2.11.6.8");
+    add("wn","Overboard work: life jackets compatible with harnesses, lifebuoys at the work area, and agreed sea state limits for launching the boat.","ICOP 2.11.6.8");
+    if(!inc.some(sc=>sc.id==="obHaul")) add("wn","Add the haul-to-deck option in case the sea is too rough for the rescue boat.","Good practice");
+    if(!inc.some(sc=>sc.id==="mob")) add("wn","Include the man overboard procedure for anyone working over the side.","Site procedure");
+  }
   if(inc.some(sc=>sc.g==="cse")){
     S.cseTrained?add("ok","Team marked as trained in confined space entry and rescue.","ICOP 2.11.6.7"):add("bad","Confined space rescue needs a team trained and equipped for confined spaces. Tick the box in the Team section once confirmed.","ICOP 2.11.6.7");
     add("wn","Confined space: permit to work, gas testing before and during entry, ventilation, an attendant at the opening, and entrants clipped to a retrieval line. Follow the site's confined space procedure.","Site procedure / permit");
@@ -908,7 +1041,7 @@ function renderTeam(){
 $("#addTm").onclick=()=>{S.team.push({name:"",level:"L1",role:"Technician"});renderTeam();changed()};
 
 function renderPicker(){
-  $("#picker").innerHTML=GROUPS.map(([g,label])=>`<div class="grp"><h4>${esc(label)}</h4><div class="chips">${SCN.filter(s=>s.g===g).map(s=>`<button class="chip${S.cur===s.id?" on":""}" data-id="${s.id}">${plan(s.id).inc?'<span class="dot" title="In plan"></span>':""}${esc(s.short)} <span class="lv">${s.lvl?"L"+s.lvl+"+":"CSE"}</span></button>`).join("")}</div></div>`).join("");
+  $("#picker").innerHTML=GROUPS.map(([g,label])=>`<div class="grp"><h4>${esc(label)}</h4><div class="chips">${SCN.filter(s=>s.g===g).map(s=>`<button class="chip${S.cur===s.id?" on":""}" data-id="${s.id}">${plan(s.id).inc?'<span class="dot" title="In plan"></span>':""}${esc(s.short)} <span class="lv">${s.lvl?"L"+s.lvl+"+":(s.tag||"")}</span></button>`).join("")}</div></div>`).join("");
   document.querySelectorAll("#picker .chip").forEach(b=>b.onclick=()=>{S.cur=b.dataset.id;renderPicker();renderScn();save()});
 }
 function renderScn(onlyDrawing){
@@ -920,7 +1053,7 @@ function renderScn(onlyDrawing){
   }
   $("#scn").innerHTML=`
    <h3 style="margin:6px 0 4px;font-size:17px">${esc(sc.name)}</h3>
-   <div class="meta"><span>${sc.lvl?"Lowest level trained: <b>Level "+sc.lvl+"</b>":"<b>Confined space training needed</b>"}${sc.g==="cse"&&sc.lvl?" + <b>confined space training</b>":""}</span><span>IRATA reference: <b>${esc(sc.ref)}</b></span></div>
+   <div class="meta"><span>${sc.lvl?"Lowest level trained: <b>Level "+sc.lvl+"</b>":"<b>"+esc(sc.need||"")+"</b>"}${sc.g==="cse"&&sc.lvl?" + <b>confined space training</b>":""}</span><span>IRATA reference: <b>${esc(sc.ref)}</b></span></div>
    <p style="margin:0 0 8px">${esc(sc.blurb)}</p>
    ${pinsFor(id).length?`<p class="muted" style="margin:0 0 8px">Used at: <b style="color:var(--fg)">${pinsFor(id).map(o=>(o.i+1)+". "+esc(o.p.label||ptName(o.p.type))).join(", ")}</b></p>`:""}
    <label class="inc"><input type="checkbox" id="incBox"> Include this setup in the plan</label>
@@ -1190,7 +1323,7 @@ async function makePdf(){
   const inc=SCN.filter(sc=>plan(sc.id).inc);
   heading("Rescue setups in this plan");
   if(!inc.length) text("No rescue setups selected.",{color:mut});
-  inc.forEach(sc=>text("- "+sc.name+" ("+(sc.lvl?"Level "+sc.lvl+"+":"confined space trained")+", "+sc.ref+")"));
+  inc.forEach(sc=>text("- "+sc.name+" ("+(sc.lvl?"Level "+sc.lvl+"+":(sc.need||""))+", "+sc.ref+")"));
   heading("Plan checks");
   checks().forEach(c=>{const lines=wrap(c.t+"  ["+c.ref+"]",F,9.5,CW-22);need(lines.length*12.5+3);pg.drawText(c.st==="ok"?"OK":c.st==="bad"?"X":"!",{x:M,y:y-9.5,size:9.5,font:B,color:c.st==="ok"?okc:c.st==="bad"?badc:acc});lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-9.5-j*12.5,size:9.5,font:F,color:ink}));y-=lines.length*12.5+3});
   if(S.notes){heading("Notes");text(S.notes)}
@@ -1199,7 +1332,7 @@ async function makePdf(){
     const p=plan(sc.id), d=draw(sc.id);
     newPage();
     pg.drawText(ansi(sc.name),{x:M,y:y-18,size:18,font:B,color:ink});y-=24;
-    text((sc.lvl?"Lowest level trained: Level "+sc.lvl:"Confined space training needed")+(sc.g==="cse"&&sc.lvl?" + confined space training":"")+"    Reference: "+sc.ref,{size:9,color:acc,bold:true});
+    text((sc.lvl?"Lowest level trained: Level "+sc.lvl:(sc.need||""))+(sc.g==="cse"&&sc.lvl?" + confined space training":"")+"    Reference: "+sc.ref,{size:9,color:acc,bold:true});
     text(sc.blurb,{size:10,color:mut});
     if(pinsFor(sc.id).length) text("Used at (site drawing): "+pinsFor(sc.id).map(o=>(o.i+1)+". "+(o.p.label||ptName(o.p.type))).join(", "),{size:9.5,bold:true});
     y-=6;
