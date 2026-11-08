@@ -408,7 +408,12 @@ function groups(){
 function elFirstSection(){const g=groups(); return state.el.on&&(!state.inv.on||g.grid.length>0)}
 function dispGroups(){
   const s=state, split=isSplit();
-  if(isWhole()) return [{t:null,key:"bk",list:s.circuits.slice()}];
+  const backGroups=list=>{
+    const bne=s.el.on?list.filter(c=>c.noEl):[], bye=s.el.on?list.filter(c=>!c.noEl):list;
+    if(bne.length) return [{t:"On backup – not on earth leakage",key:"bkne",dot:"#9aa3aa",list:bne},{t:"On backup – on earth leakage",key:"bk",dot:"var(--solar)",list:bye}];
+    return [{t:isWhole()?null:"On backup (inverter)",key:"bk",dot:"var(--solar)",list:bye}];
+  };
+  if(isWhole()) return backGroups(s.circuits.slice());
   const grid=split?s.circuits.filter(c=>!c.backup):s.circuits.slice();
   const elOn=elFirstSection();
   const ne=elOn?grid.filter(c=>c.noEl):[], ye=elOn?grid.filter(c=>!c.noEl):grid;
@@ -418,12 +423,11 @@ function dispGroups(){
     out.push({t:pre+"not on earth leakage",key:"ne",dot:"#9aa3aa",list:ne});
     out.push({t:pre+"on earth leakage",key:"ye",dot:"#1f5fbf",list:ye});
   }else out.push({t:split?"Grid only (off during load shedding)":null,key:"ye",dot:"#9aa3aa",list:ye});
-  if(split) out.push({t:"On backup (inverter)",key:"bk",dot:"var(--solar)",list:s.circuits.filter(c=>c.backup)});
+  if(split) out.push(...backGroups(s.circuits.filter(c=>c.backup)));
   return out;
 }
 function groupKey(c){
-  if(isWhole()) return "bk";
-  if(isSplit()&&c.backup) return "bk";
+  if(isWhole()||(isSplit()&&c.backup)) return state.el.on&&c.noEl?"bkne":"bk";
   return elFirstSection()&&c.noEl?"ne":"ye";
 }
 function ordered(){return dispGroups().flatMap(g=>g.list)}
@@ -442,7 +446,7 @@ function phaseTotals(b){
 }
 function checks(){
   const s=state, out=[], all=ordered(), num=c=>all.indexOf(c)+1, pl=(n,a,b)=>n>1?b:a;
-  const ne=(dispGroups().find(x=>x.key==="ne")||{list:[]}).list;
+  const ne=dispGroups().filter(x=>x.key==="ne"||x.key==="bkne").flatMap(x=>x.list);
   if(!s.el.on) out.push("No earth leakage fitted. Plug and light circuits must be protected by a 30 mA earth leakage.");
   else{
     const neG=ne.filter(c=>GEYSER.test(c.name));
@@ -501,14 +505,14 @@ function makeFixed(){
   // earth leakage rule (SANS 10142-1 6.7.5.1): plugs (20 A), geysers and gate motors on the earth leakage; other 10 A (lights) and 32 A circuits fed straight from the main switch
   const toEl=[], offEl=[];
   f.circuits.forEach(c=>{
-    if(bk(c)||AIRCON.test(c.name)) return;
+    if(AIRCON.test(c.name)) return;
     if(mustEl(c)&&c.noEl){c.noEl=false; toEl.push(c)}
     else if(!mustEl(c)&&(c.a===10||c.a===32)&&!c.noEl){c.noEl=true; offEl.push(c)}
   });
   if(toEl.length) ch.push(`Move ${toEl.length} ${toEl.length>1?"circuits":"circuit"} onto the earth leakage: plugs (20 A), geysers and gate motors (${names(toEl)}).`);
   const acs=f.circuits.filter(c=>!bk(c)&&AIRCON.test(c.name));
   if(acs.length) ch.push(`Check the aircon installation manual and put the aircon ${acs.length>1?"circuits":"circuit"} (${names(acs)}) on the earth leakage if the manual asks for it.`);
-  if(offEl.length) ch.push(`Feed ${offEl.length} 10 A / 32 A ${offEl.length>1?"circuits":"circuit"} straight from the main switch, not through the earth leakage (${names(offEl)}).`);
+  if(offEl.length) ch.push(`Take ${offEl.length} 10 A / 32 A ${offEl.length>1?"circuits":"circuit"} off the earth leakage, fed before it instead (${names(offEl)}).`);
   if(f.specs.ka<6) ch.push(`Check the fault level at the board. If it is above ${f.specs.ka} kA, replace the breakers with 6 kA units.`);
   if(f.phases===3){
     const grid=f.circuits.filter(c=>!bk(c)).sort((a,b)=>b.a-a.a);
@@ -692,7 +696,7 @@ function syncControls(){
 function rowHtml(c,num,first,last,split){
   const opts=CB_SIZES.map(v=>`<option value="${v}">${v} A</option>`).join("");
   const ph3=state.phases===3;
-  const elBtn=state.el.on&&!isWhole()&&!(isSplit()&&c.backup);
+  const elBtn=state.el.on;
   const nBtns=3+(split?1:0)+(elBtn?1:0);
   const wide=ph3||nBtns>4;
   return `<div class="circ${ph3?" ph3":""}${wide?" wide":""}" data-id="${c.id}">
@@ -720,7 +724,7 @@ function renderCircuits(){
   state.circuits.forEach(c=>{const s=$("ca"+c.id); if(s) s.value=c.a; const p=$("cp"+c.id); if(p) p.value=c.ph});
   $("emptyHint").hidden=state.circuits.length>0;
   $("splitHint").hidden=!(split&&state.circuits.length>0);
-  $("elRowHint").hidden=!(state.el.on&&!isWhole()&&state.circuits.length>0);
+  $("elRowHint").hidden=!(state.el.on&&state.circuits.length>0);
   const full=state.circuits.length>=MAX_CIRCUITS;
   $("addBlank").disabled=full;
   document.querySelectorAll("[data-preset]").forEach(b=>b.disabled=full);
@@ -984,11 +988,14 @@ function buildSvg(){
   if(s.spd) sec1.push({k:"spd",w:poles*P,poles});
   gridEl.forEach(c=>sec1.push({k:"cb",w:P,c,num:nums.get(c.id)}));
   if(inv) sec1.push({k:"cbinv",w:P,a:s.inv.feedA});
+  const backNoEl=s.el.on?G.back.filter(c=>c.noEl):[];
+  const backEl=s.el.on?G.back.filter(c=>!c.noEl):G.back;
   const sec2=[];
   if(inv){
     sec2.push(s.inv.bypass?{k:"bypass",w:4*P}:{k:"invout",w:2*P});
+    backNoEl.forEach(c=>sec2.push({k:"cb",w:P,c,num:nums.get(c.id),noEl:true}));
     if(s.el.on) sec2.push({k:"el",w:2*P,a:s.el.a,ma:s.el.ma,poles:2});
-    G.back.forEach(c=>sec2.push({k:"cb",w:P,c,num:nums.get(c.id)}));
+    backEl.forEach(c=>sec2.push({k:"cb",w:P,c,num:nums.get(c.id)}));
     if(s.inv.ne==="contactor") sec2.push({k:"nebond",w:2*P});
   }
 
@@ -1005,7 +1012,7 @@ function buildSvg(){
   const yExt=Y0-22;
   const devTop=Y0+76, devH=124, devBot=devTop+devH;
   const busYk=k=>devBot+16+9*k;
-  const deep=nP===3||gridNoEl.length>0;
+  const deep=nP===3||gridNoEl.length>0||backNoEl.length>0;
   const barY=devBot+(deep?140:96), encBot=barY+52;
 
   let x=EX+44;
@@ -1031,7 +1038,8 @@ function buildSvg(){
   const n0Terms=gridNoEl.length?["IN"].concat(gridNoEl.map(numS)):[];
   const n1Terms=["IN"].concat(spdOn?["SA"]:[]).concat(gridEl.map(numS)).concat(inv?["INV"]:[]).concat(inv&&s.inv.bypass?["BYP"]:[]);
   const neC=inv&&s.inv.ne==="contactor";
-  const n2Terms=inv?["IN"].concat(G.back.map(numS)).concat(neC?["NE"]:[]):[];
+  const n2Terms=inv?["IN"].concat(backEl.map(numS)).concat(neC?["NE"]:[]):[];
+  const n3Terms=backNoEl.length?["IN"].concat(backNoEl.map(numS)):[];
   const eTerms=allNum.map(numS).concat(neC?["NE"]:[]).concat(inv?["INV"]:[]).concat(spdOn?["SA"]:[]).concat(["IN"]);
   const bLen=t=>t.length*pitch+16;
   let bx=EX+28;
@@ -1039,7 +1047,10 @@ function buildSvg(){
   const elD=sec1.find(d=>d.k==="el");
   const nb1=n0Terms.length&&elD?Math.max(bx,elD.x-10):bx;
   bx=nb1+bLen(n1Terms)+34;
-  const nb2=inv?Math.max(bx, sec2[0].x-10):0;
+  const nb3=n3Terms.length?Math.max(bx, sec2[0].x-10):0;
+  if(n3Terms.length) bx=nb3+bLen(n3Terms)+34;
+  const el2D=sec2.find(d=>d.k==="el");
+  const nb2=inv?Math.max(bx, n3Terms.length&&el2D?el2D.x-10:sec2[0].x-10):0;
   const nEnd=inv?nb2+bLen(n2Terms):nb1+bLen(n1Terms);
   const eLen=bLen(eTerms);
   const EW=Math.max(devEnd-EX+52, nEnd-EX+34+eLen+46, 380);
@@ -1048,6 +1059,7 @@ function buildSvg(){
   const n0=k=>tX(nb0,n0Terms.indexOf(k));
   const n1=k=>tX(nb1,n1Terms.indexOf(k));
   const n2=k=>tX(nb2,n2Terms.indexOf(k));
+  const n3=k=>tX(nb3,n3Terms.indexOf(k));
   const eT=k=>tX(ebx,eTerms.indexOf(k));
   const eInX=EX+EW-20;
   const tm=(d,k)=>d.k==="bypass"?d.x+P*(2.5+k):d.x+P*(k+0.5);
@@ -1067,6 +1079,10 @@ function buildSvg(){
     g+=`<rect x="${sec2[0].x-6}" y="${Y0+16}" width="${t2.length*7+10}" height="18" rx="3" fill="#f6dc8f"/>`+txt(sec2[0].x+2,Y0+29,t2,{size:10,weight:700,ls:0.8,fill:"#5a4300"});
     g+=`<path d="M${divX} ${Y0+12} V${barY-48}" stroke="#8f989f" stroke-width="1.5" stroke-dasharray="5 5"/>`;
   }
+  if(backNoEl.length){
+    const fx=sec2[1].x-4, t="NOT ON E/L";
+    g+=`<rect x="${fx}" y="${Y0+40}" width="${t.length*7+10}" height="16" rx="3" fill="#e4e7ea"/>`+txt(fx+6,Y0+52,t,{size:9,weight:700,ls:0.6,fill:"#56616a"});
+  }
   if(gridNoEl.length){
     const fx=sec1[1].x-4, t="NOT ON E/L";
     g+=`<rect x="${fx}" y="${Y0+40}" width="${t.length*7+10}" height="16" rx="3" fill="#e4e7ea"/>`+txt(fx+6,Y0+52,t,{size:9,weight:700,ls:0.6,fill:"#56616a"});
@@ -1076,7 +1092,8 @@ function buildSvg(){
     txt(bx,barY+36,label,{size:10,weight:700,ls:0.6,fill:"#3b4650"});
   if(n0Terms.length) g+=bar(nb0,bLen(n0Terms),"NEUTRAL – NO E/L");
   g+=bar(nb1,bLen(n1Terms),inv?(n0Terms.length?"NEUTRAL – GRID E/L":"NEUTRAL – GRID"):(n0Terms.length?"NEUTRAL – E/L":"NEUTRAL BAR (N)"));
-  if(inv) g+=bar(nb2,bLen(n2Terms),"NEUTRAL – BACKUP");
+  if(n3Terms.length) g+=bar(nb3,bLen(n3Terms),"NEUTRAL – BACKUP NO E/L");
+  if(inv) g+=bar(nb2,bLen(n2Terms),n3Terms.length?"NEUTRAL – BACKUP E/L":"NEUTRAL – BACKUP");
   g+=bar(ebx,eLen,"EARTH BAR (E)");
 
   // supply in
@@ -1140,9 +1157,16 @@ function buildSvg(){
     }
     const el2=sec2.find(d=>d.k==="el");
     if(el2) w+=loop(io,el2,2,[LB,C.N]);
+    const nod=sec2.filter(d=>d.k==="cb"&&d.noEl).map(d=>d.x+P/2);
+    if(nod.length){
+      const sx=tm(io,0), y=busYk(0);
+      w+=wire(`M${sx} ${devBot} V${y} H${Math.max(sx+10,...nod)}`,LB,4.5);
+      nod.forEach(dx=>{w+=wire(`M${dx} ${devBot} V${y}`,LB,3)+dot(dx,y,LB)});
+      w+=wire(`M${tN(io)} ${devBot} V${barY-42} H${n3("IN")} V${barY-6}`,C.N);
+    }
     const feed2=el2||io;
     w+=wire(`M${tN(feed2)} ${devBot} V${barY-30} H${n2("IN")} V${barY-6}`,C.N);
-    const drops2=sec2.filter(d=>d.k==="cb").map(d=>d.x+P/2);
+    const drops2=sec2.filter(d=>d.k==="cb"&&!d.noEl).map(d=>d.x+P/2);
     if(drops2.length){
       const sx=tm(feed2,0), y=busYk(0);
       w+=wire(`M${sx} ${devBot} V${y} H${Math.max(sx+10,...drops2)}`,LB,4.5);
@@ -1165,7 +1189,7 @@ function buildSvg(){
   let bt="";
   const terms=(bx,list)=>list.forEach((k,i)=>{const tx=tX(bx,i); bt+=screw(tx,barY)+txt(tx,barY+20,k,{anchor:"middle",size:8.5,fill:"#4a5560"})});
   if(n0Terms.length) terms(nb0,n0Terms);
-  terms(nb1,n1Terms); if(inv) terms(nb2,n2Terms); terms(ebx,eTerms);
+  terms(nb1,n1Terms); if(n3Terms.length) terms(nb3,n3Terms); if(inv) terms(nb2,n2Terms); terms(ebx,eTerms);
 
   // ---- inverter and DC region ----
   let reg="", regBot=encBot, regRight=EX+EW;
@@ -1310,7 +1334,8 @@ function buildSvg(){
     }
   }
   rows.push(["Circuits",String(s.circuits.length)]);
-  if(gridNoEl.length) rows.push(["Not on earth leakage",`${gridNoEl.length} circuit${gridNoEl.length>1?"s":""}`]);
+  const nNo=gridNoEl.length+backNoEl.length;
+  if(nNo) rows.push(["Not on earth leakage",`${nNo} circuit${nNo>1?"s":""}`]);
   if(nP===3){
     const tot=[0,0,0];
     G.grid.forEach(c=>{tot[phIdx(c)]+=c.a});
