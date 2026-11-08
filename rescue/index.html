@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="../app/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="cloud.js"></script>
 </head>
 <body>
 <title>Rope Rescue Planner</title>
@@ -63,6 +66,23 @@ details summary{cursor:pointer;font-weight:600}
 .checks .ic{font-weight:700}
 .checks .ok .ic{color:var(--ok)} .checks .bad .ic{color:var(--bad)} .checks .wn .ic{color:var(--accent)}
 .checks .ref{color:var(--muted);font-size:12px}
+.filebtn{display:inline-block;font-size:14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:8px 12px;cursor:pointer}
+.filebtn:hover{border-color:var(--accent)}
+.drw{position:relative;margin-top:12px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
+.drw img{display:block;width:100%;height:auto;pointer-events:none}
+.drw.adding{cursor:crosshair;outline:3px dashed var(--accent);outline-offset:-3px}
+.pin{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;color:#fff;font:700 12px/26px system-ui,sans-serif;text-align:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:grab;touch-action:none}
+.pin.sel{outline:3px solid var(--accent);outline-offset:1px}
+.pins{display:grid;gap:8px;margin-top:12px}
+.pinrow{display:grid;grid-template-columns:30px minmax(0,185px) minmax(0,1fr) minmax(0,190px) auto;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px}
+.pinrow.sel{border-color:var(--accent)}
+.pinrow .no{width:26px;height:26px;border-radius:50%;color:#fff;font-weight:700;font-size:12px;display:grid;place-items:center}
+.pinrow .nt{grid-column:2/-1}
+@media (max-width:640px){.pinrow{grid-template-columns:30px 1fr auto}.pinrow .lb,.pinrow .su,.pinrow .nt{grid-column:1/-1}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.login{display:grid;gap:8px;max-width:420px;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:10px}
 </style>
 
 <div class="wrap">
@@ -102,8 +122,31 @@ details summary{cursor:pointer;font-weight:600}
     </div>
   </section>
 
+  <section class="card">
+    <h2>3. Site drawing (optional)</h2>
+    <p class="muted" style="margin:-4px 0 10px">Add a picture or PDF of a drawing (general arrangement, plot plan, tank drawing) or a photo of the structure. The AI marks tank entries, work areas, anchor points, access routes and hazards with numbered pins. Check every pin: drag it to the right spot, rename it or delete it. Only use drawings you're allowed to share, because the picture is sent to Claude to read.</p>
+    <div class="row">
+      <label class="filebtn">Add drawing<input type="file" id="drwIn" accept="image/*,application/pdf" hidden></label>
+      <button class="primary" id="drwAi">Mark it with AI</button>
+      <button id="drwAdd">+ Add pin by hand</button>
+      <button id="drwClear">Remove drawing</button>
+    </div>
+    <label style="margin-top:10px">Tell the AI anything useful (optional)<input type="text" id="drwExtra" placeholder="e.g. FSO cargo tanks; manholes are on the main deck"></label>
+    <div class="login" id="drwLogin" hidden>
+      <strong>Sign in to use AI on this website</strong>
+      <span class="muted">Use the same email and password as your DB Board Designer account.</span>
+      <input type="text" id="lgEmail" placeholder="Email" autocomplete="username">
+      <input type="password" id="lgPass" placeholder="Password" autocomplete="current-password" style="font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px">
+      <div class="row"><button class="primary" id="lgGo">Sign in and read drawing</button><button id="lgCancel">Cancel</button></div>
+    </div>
+    <p class="msg" id="drwMsg"></p>
+    <div class="drw" id="drwBox" hidden><img id="drwImg" alt="Site drawing"><div id="drwPins"></div></div>
+    <div class="legend" id="drwLegend" hidden></div>
+    <div class="pins" id="drwList"></div>
+  </section>
+
   <section class="card team">
-    <h2>3. Team</h2>
+    <h2>4. Team</h2>
     <p class="muted" style="margin:-4px 0 10px">IRATA: at least two technicians and one Level 3 supervisor. Three is the normal minimum unless every rescue is a straight lower to a safe place (ICOP 2.11.6).</p>
     <div id="team"></div>
     <button class="mini" id="addTm">+ Add person</button>
@@ -111,7 +154,7 @@ details summary{cursor:pointer;font-weight:600}
   </section>
 
   <section class="card">
-    <h2>4. Emergency arrangements</h2>
+    <h2>5. Emergency arrangements</h2>
     <div class="grid">
       <label>Radio channel<input type="text" data-k="radio"></label>
       <label>Back-up signals if radio fails<input type="text" data-k="signals" placeholder="e.g. Whistle: 3 blasts = stop"></label>
@@ -124,20 +167,20 @@ details summary{cursor:pointer;font-weight:600}
   </section>
 
   <section class="card">
-    <h2>5. Rescue setups</h2>
+    <h2>6. Rescue setups</h2>
     <p class="muted" style="margin:-4px 0 12px">Tap a setup to see it, then tick "Include" to put it in the plan. IRATA prefers rig-for-rescue systems where they're possible (TACS 6.5.1). The level shown is the lowest IRATA level trained for that rescue. Confined space rescues are not part of IRATA training, so they need separate confined space training.</p>
     <div id="picker"></div>
     <div id="scn" style="margin-top:6px"></div>
   </section>
 
   <section class="card">
-    <h2>6. Plan checks</h2>
+    <h2>7. Plan checks</h2>
     <p class="muted" style="margin:-4px 0 10px">Automatic checks against the ICOP and TACS. They update as you fill in the plan.</p>
     <ul class="checks" id="checks"></ul>
   </section>
 
   <section class="card">
-    <h2>7. Sign-off and save</h2>
+    <h2>8. Sign-off and save</h2>
     <div class="grid">
       <label>Prepared by<input type="text" data-k="prepBy"></label>
       <label>Approved by (Level 3)<input type="text" data-k="apprBy"></label>
@@ -150,7 +193,7 @@ details summary{cursor:pointer;font-weight:600}
     <p class="msg" id="msg"></p>
     <details style="margin-top:10px">
       <summary>Copy or load a plan code</summary>
-      <p class="muted">Copy the code to keep a plan or move it to another device. To open a plan, paste its code and press Load.</p>
+      <p class="muted">Copy the code to keep a plan or move it to another device. To open a plan, paste its code and press Load. The drawing picture isn't included (it's too big), but the pins are, so add the same drawing on the other device.</p>
       <textarea id="code" rows="3" style="font-family:ui-monospace,monospace;font-size:12px"></textarea>
       <div class="row" style="margin-top:6px"><button class="mini" id="copyBtn">Copy code</button><button class="mini" id="loadBtn">Load code</button></div>
     </details>
@@ -362,7 +405,7 @@ function cseAncName(){return {tripod:"Tripod",davit:"Davit arm",beam:"Overhead b
 function blank(){
   return {ref:"",date:today(),client:"",site:"",task:"",height:20,env:"ground",anchors:"",hazards:"",
     team:[{name:"",level:"L3",role:"Supervisor"},{name:"",level:"L2",role:"Rescuer"},{name:"",level:"L1",role:"Technician"}],
-    anchorType:"ya",cseAnchor:"tripod",cseDepth:"",cseTrained:false,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",notes:"",
+    anchorType:"ya",cseAnchor:"tripod",cseDepth:"",cseTrained:false,drawing:null,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",notes:"",
     cur:"lower",plans:{}};
 }
 function migrate(o){const n=Object.assign(blank(),o);if(n.plans.ascent&&!n.plans.ascentMigrated){/* old ascent plan stays under same id */}if(!byId(n.cur))n.cur="lower";return n}
@@ -829,7 +872,8 @@ function renderChecks(){
 /* ---------- UI ---------- */
 const $=q=>document.querySelector(q);
 let saveT=null;
-function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}},300)}
+let warnedFull=false;
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){if(!warnedFull){warnedFull=true;drwMsg("This browser is out of storage space, so the plan may not be kept. Try a smaller drawing.",1)}}},300)}
 function changed(){refreshDefaults();renderScn(true);renderAnchor();renderChecks();save()}
 function renderAnchor(){$("#ancDraw").innerHTML=drawAnchor();$("#ancNotes").innerHTML=ancNotes().map(n=>`<li>${esc(n)}</li>`).join("")}
 function bindFields(){
@@ -878,6 +922,7 @@ function renderScn(onlyDrawing){
    <h3 style="margin:6px 0 4px;font-size:17px">${esc(sc.name)}</h3>
    <div class="meta"><span>${sc.lvl?"Lowest level trained: <b>Level "+sc.lvl+"</b>":"<b>Confined space training needed</b>"}${sc.g==="cse"&&sc.lvl?" + <b>confined space training</b>":""}</span><span>IRATA reference: <b>${esc(sc.ref)}</b></span></div>
    <p style="margin:0 0 8px">${esc(sc.blurb)}</p>
+   ${pinsFor(id).length?`<p class="muted" style="margin:0 0 8px">Used at: <b style="color:var(--fg)">${pinsFor(id).map(o=>(o.i+1)+". "+esc(o.p.label||ptName(o.p.type))).join(", ")}</b></p>`:""}
    <label class="inc"><input type="checkbox" id="incBox"> Include this setup in the plan</label>
    <div class="scn">
      <div>
@@ -898,7 +943,7 @@ function renderScn(onlyDrawing){
        <button class="mini" id="addEq" style="margin-top:8px">+ Add item</button>
      </div>
    </div>`;
-  const inc=$("#incBox"); inc.checked=p.inc; inc.onchange=()=>{p.inc=inc.checked;renderPicker();renderChecks();save()};
+  const inc=$("#incBox"); inc.checked=p.inc; inc.onchange=()=>{p.inc=inc.checked;renderPicker();renderChecks();if(S.drawing)renderPinList();save()};
   $("#resetBtn").onclick=()=>{p.steps=defSteps(id);p.equip=defEquip(id);p.cont=defCont(id);p.edited=false;p.contEdited=false;fillSteps(p);fillEquip(p);fillCont(p);save()};
   $("#addStep").onclick=()=>{p.steps.push("");mark(p);fillSteps(p);const t=document.querySelectorAll("#steps textarea");t[t.length-1].focus();save()};
   $("#addCont").onclick=()=>{p.cont.push("");p.contEdited=true;fillCont(p);const t=document.querySelectorAll("#cont textarea");t[t.length-1].focus();save()};
@@ -937,10 +982,150 @@ function fillEquip(p){
   });
 }
 
+/* ---------- site drawing + AI ---------- */
+const PTYPES=[["entry","Tank / space entry","#dc2626"],["work","Work area","#2563eb"],["anchor","Anchor point","#15803d"],["access","Access / escape route","#7c3aed"],["hazard","Hazard","#ca8a04"],["muster","Safe area / muster","#0d9488"]];
+const ptCol=t=>(PTYPES.find(p=>p[0]===t)||PTYPES[1])[2];
+const ptName=t=>(PTYPES.find(p=>p[0]===t)||PTYPES[1])[1];
+const DRAW_PROMPT=`You are helping an IRATA rope access supervisor plan rescues from a site drawing. It may be a general arrangement drawing, plot plan, tank or vessel drawing, P&ID, or a photo of a structure (often offshore, e.g. an FSO or platform).
+Find and mark the items below. Use the tag numbers or names printed on the drawing whenever you can read them.
+- "entry": confined space entry points: manholes, manways, hatches, tank or vessel entries.
+- "work": likely rope access work areas: tank shells, hull or ship side, flare boom, crane boom, mast, chimney, underside of decks, named areas.
+- "anchor": possible anchor points: beams, padeyes, lifting lugs, handrails, davit sockets.
+- "access": ladders, stairs, walkways, and places where a casualty could be landed or taken out.
+- "hazard": hazards: hot pipes, live or rotating equipment, open edges, overboard drops.
+- "muster": muster points, lifeboats, first aid rooms or safe areas, if shown.
+For each item give "x" and "y": the centre of the item as a fraction of the image width and height (0,0 is top-left, 1,1 is bottom-right). Place them carefully.
+"label": short, using the drawing's own tag or name, e.g. "Tank 3P manhole". "note": one short plain-English line.
+List up to 30 items, the most important first. Do not invent items you can't see. Put anything you're not sure about in "unsure".
+Reply with only this JSON, no other text:
+{"title":"...","pins":[{"type":"entry","label":"...","x":0.42,"y":0.18,"note":"..."}],"unsure":["..."]}`;
+let sampleNs=null, sampleImg=false, drwAdding=false, selPin=-1;
+(async()=>{try{if(window.claude&&typeof window.claude.use==="function"){const smp=await window.claude.use("sample");const lim=smp?await smp.limits().catch(()=>null):null;if(smp&&lim&&lim.images){sampleNs=smp;sampleImg=true}}}catch(e){}})();
+function drwMsg(t,err){const m=$("#drwMsg");m.textContent=t||"";m.style.color=err?"var(--accent)":"var(--muted)"}
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("img"));i.src=src})}
+function toCanvas(src,max){const c=document.createElement("canvas");const k=Math.min(1,max/Math.max(src.width,src.height));c.width=Math.round(src.width*k);c.height=Math.round(src.height*k);const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(src,0,0,c.width,c.height);return c}
+let pdfjsP=null;
+function pdfjs(){if(!pdfjsP)pdfjsP=import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs").then(m=>{m.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs";return m});return pdfjsP}
+async function fileToCanvas(f){
+  if(f.type==="application/pdf"||/\.pdf$/i.test(f.name)){
+    const lib=await pdfjs();const doc=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;const pg=await doc.getPage(1);
+    const v0=pg.getViewport({scale:1});const vp=pg.getViewport({scale:Math.min(4,2400/Math.max(v0.width,v0.height))});
+    const c=document.createElement("canvas");c.width=Math.round(vp.width);c.height=Math.round(vp.height);const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);
+    await pg.render({canvasContext:g,viewport:vp}).promise;return c;
+  }
+  const url=URL.createObjectURL(f);try{return await loadImg(url)}finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
+}
+$("#drwIn").onchange=async e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  drwMsg("Loading drawing…");
+  try{
+    const src=await fileToCanvas(f);const c=toCanvas(src,1800);
+    S.drawing={img:c.toDataURL("image/jpeg",0.82),w:c.width,h:c.height,pins:(S.drawing&&S.drawing.pins)||[],unsure:[],name:f.name};
+    renderDrawing();save();drwMsg("Drawing added. Press “Mark it with AI”, or add pins by hand.");
+  }catch(err){console.error(err);drwMsg("Couldn't open that file. Try a JPG or PNG picture of the drawing.",1)}
+};
+$("#drwClear").onclick=()=>{if(!S.drawing)return;if(!confirmTwice("clear"))return;S.drawing=null;renderDrawing();save();drwMsg("Drawing removed.")};
+let armed={};function confirmTwice(k){if(Date.now()-(armed[k]||0)<4000)return true;armed[k]=Date.now();drwMsg("Press again to remove the drawing and its pins.",1);return false}
+$("#drwAdd").onclick=()=>{if(!S.drawing){drwMsg("Add a drawing first.",1);return}drwAdding=!drwAdding;$("#drwBox").classList.toggle("adding",drwAdding);$("#drwAdd").textContent=drwAdding?"Tap the drawing to place the pin":"+ Add pin by hand"};
+function cleanPins(raw){
+  const ok=PTYPES.map(p=>p[0]);
+  return (Array.isArray(raw)?raw:[]).slice(0,40).map(p=>({type:ok.includes(p&&p.type)?p.type:"work",label:String((p&&p.label)||"").slice(0,70),note:String((p&&p.note)||"").slice(0,160),
+    x:Math.min(1,Math.max(0,+(p&&p.x)||0.5)),y:Math.min(1,Math.max(0,+(p&&p.y)||0.5)),scn:"",ai:true}));
+}
+async function aiImageBlob(){const i=await loadImg(S.drawing.img);const c=toCanvas(i,1568);return new Promise(res=>c.toBlob(res,"image/jpeg",0.88))}
+async function blobB64(b){const u=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(b)});return String(u).split(",")[1]}
+function applyReading(r){
+  if(!r||typeof r!=="object"){drwMsg("The AI's answer couldn't be read. Try again.",1);return}
+  const pins=cleanPins(r.pins);const keep=(S.drawing.pins||[]).filter(p=>!p.ai);
+  S.drawing.pins=keep.concat(pins);S.drawing.unsure=(Array.isArray(r.unsure)?r.unsure:[]).map(String).slice(0,10);
+  if(r.title&&!S.drawing.title) S.drawing.title=String(r.title).slice(0,80);
+  renderDrawing();save();
+  drwMsg(pins.length?("The AI marked "+pins.length+" items. Check each one: drag pins into place and fix any names."+(S.drawing.unsure.length?" Not sure about: "+S.drawing.unsure.join("; "):"")):"The AI didn't find anything to mark. Try a clearer or closer picture.",!pins.length);
+}
+let aiBusy=false;
+async function aiRead(){
+  if(aiBusy)return;
+  if(!S.drawing){drwMsg("Add a drawing first.",1);return}
+  const extra=$("#drwExtra").value.trim().slice(0,300).replace(/"/g,"'");
+  if(sampleNs&&sampleImg){
+    aiBusy=true;$("#drwAi").disabled=true;drwMsg("The AI is reading the drawing. This can take a minute…");
+    try{const r=await sampleNs.json(DRAW_PROMPT+(extra?`\n\nThe person also says: "${extra}"`:""),{images:[await aiImageBlob()],modelTier:"complex",cache:false});applyReading(r)}
+    catch(e){const c=e&&e.code;drwMsg(c==="not_granted"?"Claude wasn't allowed to read the drawing. Allow it when asked and try again.":c==="rate_limited"?"Too many requests. Wait a minute and try again.":"The AI couldn't read the drawing right now. Try again.",1)}
+    finally{aiBusy=false;$("#drwAi").disabled=false}
+    return;
+  }
+  if(window.RRP_CLOUD){
+    if(!(await window.RRP_CLOUD.signedIn())){$("#drwLogin").hidden=false;$("#lgEmail").focus();drwMsg("");return}
+    aiBusy=true;$("#drwAi").disabled=true;drwMsg("The AI is reading the drawing. This can take a minute…");
+    try{applyReading(await window.RRP_CLOUD.readDrawing(await blobB64(await aiImageBlob()),extra))}
+    catch(e){drwMsg((e&&e.userMessage)||"The AI couldn't read the drawing right now. Try again.",1);if(e&&e.code==="not_signed_in")$("#drwLogin").hidden=false}
+    finally{aiBusy=false;$("#drwAi").disabled=false}
+    return;
+  }
+  drwMsg("AI reading isn't available in this view. Open the planner inside a Claude chat, or on your website. You can still add pins by hand.",1);
+}
+$("#drwAi").onclick=aiRead;
+$("#lgCancel").onclick=()=>{$("#drwLogin").hidden=true};
+$("#lgGo").onclick=async()=>{
+  try{drwMsg("Signing in…");await window.RRP_CLOUD.signIn($("#lgEmail").value.trim(),$("#lgPass").value);$("#lgPass").value="";$("#drwLogin").hidden=true;aiRead()}
+  catch(e){drwMsg((e&&e.userMessage)||"Sign-in failed. Check your email and password.",1)}
+};
+function setupOptions(sel){return `<option value="">Rescue setup: none</option>`+GROUPS.map(([g,l])=>`<optgroup label="${esc(l)}">`+SCN.filter(x=>x.g===g).map(x=>`<option value="${x.id}"${sel===x.id?" selected":""}>${esc(x.short)}${plan(x.id).inc?" ✓":""}</option>`).join("")+`</optgroup>`).join("")}
+function renderDrawing(){
+  const d=S.drawing,box=$("#drwBox");
+  box.hidden=!d;$("#drwLegend").hidden=!d;
+  if(!d){$("#drwList").innerHTML="";$("#drwPins").innerHTML="";drwAdding=false;box.classList.remove("adding");$("#drwAdd").textContent="+ Add pin by hand";return}
+  if($("#drwImg").getAttribute("src")!==d.img) $("#drwImg").src=d.img;
+  $("#drwLegend").innerHTML=PTYPES.map(p=>`<span><i style="background:${p[2]}"></i>${esc(p[1])}</span>`).join("");
+  renderPins();renderPinList();
+}
+function renderPins(){
+  const d=S.drawing;$("#drwPins").innerHTML=d.pins.map((p,i)=>`<div class="pin${i===selPin?" sel":""}" data-i="${i}" style="left:${p.x*100}%;top:${p.y*100}%;background:${ptCol(p.type)}" title="${esc(p.label)}">${i+1}</div>`).join("");
+  document.querySelectorAll("#drwPins .pin").forEach(el=>{
+    el.onpointerdown=ev=>{
+      ev.preventDefault();ev.stopPropagation();const i=+el.dataset.i,box=$("#drwBox").getBoundingClientRect();let moved=false;const sx=ev.clientX,sy=ev.clientY;
+      el.setPointerCapture(ev.pointerId);
+      el.onpointermove=m=>{if(Math.abs(m.clientX-sx)+Math.abs(m.clientY-sy)>4)moved=true;if(!moved)return;const p=S.drawing.pins[i];
+        p.x=Math.min(1,Math.max(0,(m.clientX-box.left)/box.width));p.y=Math.min(1,Math.max(0,(m.clientY-box.top)/box.height));el.style.left=p.x*100+"%";el.style.top=p.y*100+"%"};
+      el.onpointerup=()=>{el.onpointermove=null;el.onpointerup=null;if(moved){save()}else{selectPin(i,true)}};
+    };
+  });
+}
+$("#drwBox").addEventListener("pointerdown",ev=>{
+  if(!drwAdding||!S.drawing||ev.target.closest(".pin"))return;
+  const b=$("#drwBox").getBoundingClientRect();S.drawing.pins.push({type:"entry",label:"",note:"",x:(ev.clientX-b.left)/b.width,y:(ev.clientY-b.top)/b.height,scn:"",ai:false});
+  drwAdding=false;$("#drwBox").classList.remove("adding");$("#drwAdd").textContent="+ Add pin by hand";
+  selPin=S.drawing.pins.length-1;renderPins();renderPinList();save();
+  const r=document.querySelector(`.pinrow[data-i="${selPin}"] .lb`);if(r){r.focus()}
+});
+function selectPin(i,scroll){selPin=i;renderPins();document.querySelectorAll(".pinrow").forEach(r=>r.classList.toggle("sel",+r.dataset.i===i));if(scroll){const r=document.querySelector(`.pinrow[data-i="${i}"]`);if(r){r.scrollIntoView({block:"nearest",behavior:"smooth"})}}}
+function renderPinList(){
+  const d=S.drawing,box=$("#drwList");box.innerHTML="";
+  d.pins.forEach((p,i)=>{
+    const row=document.createElement("div");row.className="pinrow"+(i===selPin?" sel":"");row.dataset.i=i;
+    row.innerHTML=`<span class="no" style="background:${ptCol(p.type)}">${i+1}</span><select class="ty" aria-label="Type">${PTYPES.map(t=>`<option value="${t[0]}"${t[0]===p.type?" selected":""}>${esc(t[1])}</option>`).join("")}</select><input type="text" class="lb" placeholder="Name, e.g. Tank 3P manhole" aria-label="Name"><select class="su" aria-label="Rescue setup">${setupOptions(p.scn)}</select><button class="mini" title="Delete pin">✕</button><input type="text" class="nt" placeholder="Note (optional)" aria-label="Note">`;
+    const [no,ty,lb,su,del,nt]=row.children;lb.value=p.label;nt.value=p.note||"";
+    ty.onchange=()=>{p.type=ty.value;no.style.background=ptCol(p.type);renderPins();save()};
+    lb.oninput=()=>{p.label=lb.value;save()};nt.oninput=()=>{p.note=nt.value;save()};
+    su.onchange=()=>{p.scn=su.value;save();if(S.cur===p.scn)renderScn()};
+    del.onclick=()=>{d.pins.splice(i,1);selPin=-1;renderPins();renderPinList();save()};
+    lb.onfocus=()=>selectPin(i,false);
+    box.appendChild(row);
+  });
+}
+function pinsFor(id){return S.drawing?S.drawing.pins.map((p,i)=>({p,i})).filter(o=>o.p.scn===id):[]}
+async function drawingComposite(){
+  const d=S.drawing,img=await loadImg(d.img);const c=document.createElement("canvas");c.width=img.width;c.height=img.height;const g=c.getContext("2d");
+  g.drawImage(img,0,0);const r=Math.max(11,Math.round(Math.max(c.width,c.height)/70));
+  d.pins.forEach((p,i)=>{const x=p.x*c.width,y=p.y*c.height;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fillStyle=ptCol(p.type);g.fill();g.lineWidth=Math.max(2,r/5);g.strokeStyle="#fff";g.stroke();
+    g.fillStyle="#fff";g.font=`bold ${Math.round(r*1.05)}px Arial`;g.textAlign="center";g.textBaseline="middle";g.fillText(String(i+1),x,y+1)});
+  return c.toDataURL("image/jpeg",0.85);
+}
+
 /* ---------- plan code ---------- */
-function encode(){return btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
+function encode(){const o=JSON.parse(JSON.stringify(S));if(o.drawing){o.drawing.img=null}return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}
 $("#copyBtn").onclick=async()=>{const c=encode();$("#code").value=c;try{await navigator.clipboard.writeText(c);msg("Plan code copied.")}catch(e){$("#code").select();msg("Code shown below. Copy it.")}};
-$("#loadBtn").onclick=()=>{try{const o=JSON.parse(decodeURIComponent(escape(atob($("#code").value.trim()))));S=migrate(o);initAll();save();msg("Plan loaded.")}catch(e){msg("That code didn't work. Check it was copied in full.",1)}};
+$("#loadBtn").onclick=()=>{try{const o=JSON.parse(decodeURIComponent(escape(atob($("#code").value.trim()))));const keepImg=S.drawing&&S.drawing.img;S=migrate(o);if(S.drawing&&!S.drawing.img){if(keepImg)S.drawing.img=keepImg;else S.drawing=null}initAll();save();msg("Plan loaded."+(o.drawing&&!keepImg?" The drawing picture isn't in the code; add it again to see the pins.":""))}catch(e){msg("That code didn't work. Check it was copied in full.",1)}};
 let newArmed=0;
 $("#newBtn").onclick=()=>{if(Date.now()-newArmed>4000){newArmed=Date.now();msg("Press New plan again to clear this plan.",1);return}S=blank();initAll();save();msg("New plan started.")};
 function msg(t,err){const m=$("#msg");m.textContent=t;m.style.color=err?"var(--accent)":"var(--muted)"}
@@ -991,6 +1176,17 @@ async function makePdf(){
   if(tm.length){tm.forEach(p=>{need(14);pg.drawText(ansi(p.level),{x:M,y:y-10,size:10,font:B,color:acc});pg.drawText(ansi(p.name||"-"),{x:M+50,y:y-10,size:10,font:F,color:ink});pg.drawText(ansi(p.role),{x:M+260,y:y-10,size:10,font:F,color:mut});y-=14})}else text("Not filled in.",{color:mut});
   heading("Communication and first aid");
   kv([["Radio channel",S.radio],["Back-up signals",S.signals],["Emergency number",S.emerg],["First aider / medic",S.medic],["Nearest hospital",S.hospital],["Rescue kit location",S.kitLoc],["Rescue boat / standby",S.env==="water"?S.boat:""]]);
+  if(S.drawing&&S.drawing.img){
+    newPage();pg.drawText("Site drawing",{x:M,y:y-18,size:18,font:B,color:ink});y-=26;
+    if(S.drawing.title) text(S.drawing.title,{size:10,color:mut});
+    text("Pins marked with AI help and checked by the planner. Positions are approximate.",{size:8.5,color:mut});y-=4;
+    const jpg=await doc.embedJpg(await drawingComposite());const k=Math.min(CW/jpg.width,(PH*0.55)/jpg.height);const iw=jpg.width*k,ih=jpg.height*k;
+    pg.drawImage(jpg,{x:M,y:y-ih,width:iw,height:ih});pg.drawRectangle({x:M,y:y-ih,width:iw,height:ih,borderColor:line,borderWidth:.8});y-=ih+12;
+    S.drawing.pins.forEach((p,i)=>{const sc=p.scn?byId(p.scn):null;const t=(p.label||"(no name)")+" - "+ptName(p.type)+(sc?" - rescue: "+sc.name:"")+(p.note?" - "+p.note:"");
+      const lines=wrap(t,F,9.5,CW-26);need(lines.length*12.5+4);const hx=ptCol(p.type);const cr=rgb(parseInt(hx.slice(1,3),16)/255,parseInt(hx.slice(3,5),16)/255,parseInt(hx.slice(5,7),16)/255);
+      pg.drawCircle({x:M+8,y:y-6,size:8,color:cr});const ns=String(i+1);pg.drawText(ns,{x:M+8-B.widthOfTextAtSize(ns,8)/2,y:y-9,size:8,font:B,color:rgb(1,1,1)});
+      lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-9.5-j*12.5,size:9.5,font:F,color:ink}));y-=lines.length*12.5+5});
+  }
   const inc=SCN.filter(sc=>plan(sc.id).inc);
   heading("Rescue setups in this plan");
   if(!inc.length) text("No rescue setups selected.",{color:mut});
@@ -1004,7 +1200,9 @@ async function makePdf(){
     newPage();
     pg.drawText(ansi(sc.name),{x:M,y:y-18,size:18,font:B,color:ink});y-=24;
     text((sc.lvl?"Lowest level trained: Level "+sc.lvl:"Confined space training needed")+(sc.g==="cse"&&sc.lvl?" + confined space training":"")+"    Reference: "+sc.ref,{size:9,color:acc,bold:true});
-    text(sc.blurb,{size:10,color:mut});y-=6;
+    text(sc.blurb,{size:10,color:mut});
+    if(pinsFor(sc.id).length) text("Used at (site drawing): "+pinsFor(sc.id).map(o=>(o.i+1)+". "+(o.p.label||ptName(o.p.type))).join(", "),{size:9.5,bold:true});
+    y-=6;
     const png=await doc.embedPng(await svgToPng(d.svg,2));
     const iw=280,ih=iw*600/440;
     pg.drawImage(png,{x:M,y:y-ih,width:iw,height:ih});
@@ -1044,7 +1242,7 @@ $("#pdfBtn").onclick=async()=>{
   }catch(e){console.error(e);msg("PDF failed: "+e.message,1)}
 };
 
-function initAll(){bindFields();renderAnchor();renderTeam();SCN.forEach(sc=>plan(sc.id));renderPicker();renderScn();renderChecks()}
+function initAll(){bindFields();renderAnchor();selPin=-1;renderDrawing();renderTeam();SCN.forEach(sc=>plan(sc.id));renderPicker();renderScn();renderChecks()}
 initAll();
 window.RRP={makePdf,draw,SCN,S:()=>S,set:o=>{S=migrate(o);initAll()}};
 })();

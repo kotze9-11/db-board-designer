@@ -1,6 +1,8 @@
 // DB Board Designer: "read-board" server function for Supabase.
 // It checks that the person is logged in, applies a daily limit, sends the
 // photo to the Claude API and returns what Claude read from the board.
+// It also serves the Rope Rescue Planner: send {mode:"drawing"} to have a
+// site drawing marked with tank entries, work areas, anchors and hazards.
 //
 // Secrets to add in Supabase (Edge Functions > Secrets):
 //   ANTHROPIC_API_KEY  your Claude API key (required)
@@ -45,6 +47,20 @@ Reply with only this JSON, no other text:
  "inverter":{"present":false,"kw":null},
  "notes":["..."],"unsure":["..."]}`;
 
+const DRAWING_PROMPT = `You are helping an IRATA rope access supervisor plan rescues from a site drawing. It may be a general arrangement drawing, plot plan, tank or vessel drawing, P&ID, or a photo of a structure (often offshore, e.g. an FSO or platform).
+Find and mark the items below. Use the tag numbers or names printed on the drawing whenever you can read them.
+- "entry": confined space entry points: manholes, manways, hatches, tank or vessel entries.
+- "work": likely rope access work areas: tank shells, hull or ship side, flare boom, crane boom, mast, chimney, underside of decks, named areas.
+- "anchor": possible anchor points: beams, padeyes, lifting lugs, handrails, davit sockets.
+- "access": ladders, stairs, walkways, and places where a casualty could be landed or taken out.
+- "hazard": hazards: hot pipes, live or rotating equipment, open edges, overboard drops.
+- "muster": muster points, lifeboats, first aid rooms or safe areas, if shown.
+For each item give "x" and "y": the centre of the item as a fraction of the image width and height (0,0 is top-left, 1,1 is bottom-right). Place them carefully.
+"label": short, using the drawing's own tag or name, e.g. "Tank 3P manhole". "note": one short plain-English line.
+List up to 30 items, the most important first. Do not invent items you can't see. Put anything you're not sure about in "unsure".
+Reply with only this JSON, no other text:
+{"title":"...","pins":[{"type":"entry","label":"...","x":0.42,"y":0.18,"note":"..."}],"unsure":["..."]}`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return reply({ error: "Use POST.", code: "bad_request" }, 405);
@@ -71,7 +87,7 @@ Deno.serve(async (req) => {
 
   // 3. Check the photo
   type Img = { data?: string; mediaType?: string };
-  let body: { images?: Img[]; image?: string; mediaType?: string; extra?: string };
+  let body: { images?: Img[]; image?: string; mediaType?: string; extra?: string; mode?: string };
   try { body = await req.json(); } catch { return reply({ error: "Bad request.", code: "bad_request" }, 400); }
   const raw: Img[] = Array.isArray(body.images) ? body.images : body.image ? [{ data: body.image, mediaType: body.mediaType }] : [];
   const images = raw.slice(0, 3).map((im) => ({
@@ -87,7 +103,8 @@ Deno.serve(async (req) => {
   const { data: logRow } = await admin.from("photo_reads").insert({ user_id: userId }).select("id").single();
 
   // 4. Ask Claude
-  const text = PROMPT + (extra ? `\n\nThe person also says: "${extra}"` : "");
+  const drawing = body.mode === "drawing";
+  const text = (drawing ? DRAWING_PROMPT : PROMPT) + (extra ? `\n\nThe person also says: "${extra}"` : "");
   let res: Response;
   try {
     res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -98,7 +115,7 @@ Deno.serve(async (req) => {
         max_tokens: 4000,
         messages: [{ role: "user", content: [
           ...images.map((im, i) => [
-            { type: "text", text: i === 0 ? "Photo 1 (whole board):" : `Photo ${i + 1} (close-up):` },
+            { type: "text", text: drawing ? `Drawing ${i + 1}:` : i === 0 ? "Photo 1 (whole board):" : `Photo ${i + 1} (close-up):` },
             { type: "image", source: { type: "base64", media_type: im.mediaType, data: im.data } },
           ]).flat(),
           { type: "text", text },
@@ -129,7 +146,7 @@ Deno.serve(async (req) => {
     }).eq("id", logRow.id);
   }
   if (!reading || typeof reading !== "object") {
-    return reply({ error: "The answer couldn't be turned into a board. Try again, or with a clearer photo.", code: "invalid_json" }, 502);
+    return reply({ error: drawing ? "The AI's answer couldn't be read. Try again." : "The answer couldn't be turned into a board. Try again, or with a clearer photo.", code: "invalid_json" }, 502);
   }
   return reply({ reading });
 });
