@@ -7,17 +7,17 @@
 <body>
 <title>Rope Rescue Planner</title>
 <style>
-:root{--bg:#eef1f3;--fg:#1c2329;--muted:#5d6973;--panel:#fff;--line:#d2d9de;--accent:#c2410c;--accent-fg:#fff;--soft:#fff4ed;--warn-bg:#fff7d6;--warn-fg:#6b4e00;--ok:#15803d;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13181c;--fg:#e3e8ec;--muted:#98a4ad;--panel:#1c2329;--line:#323e47;--accent:#fb8a4c;--accent-fg:#1a0d05;--soft:#2a1f18;--warn-bg:#3a3110;--warn-fg:#f3dc8a;--ok:#4ade80;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#13181c;--fg:#e3e8ec;--muted:#98a4ad;--panel:#1c2329;--line:#323e47;--accent:#fb8a4c;--accent-fg:#1a0d05;--soft:#2a1f18;--warn-bg:#3a3110;--warn-fg:#f3dc8a;--ok:#4ade80;color-scheme:dark}
+:root{--bg:#eef1f3;--fg:#1c2329;--muted:#5d6973;--panel:#fff;--line:#d2d9de;--accent:#c2410c;--accent-fg:#fff;--soft:#fff4ed;--warn-bg:#fff7d6;--warn-fg:#6b4e00;--ok:#15803d;--bad:#b91c1c;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13181c;--fg:#e3e8ec;--muted:#98a4ad;--panel:#1c2329;--line:#323e47;--accent:#fb8a4c;--accent-fg:#1a0d05;--soft:#2a1f18;--warn-bg:#3a3110;--warn-fg:#f3dc8a;--ok:#4ade80;--bad:#f87171;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#13181c;--fg:#e3e8ec;--muted:#98a4ad;--panel:#1c2329;--line:#323e47;--accent:#fb8a4c;--accent-fg:#1a0d05;--soft:#2a1f18;--warn-bg:#3a3110;--warn-fg:#f3dc8a;--ok:#4ade80;--bad:#f87171;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.wrap{max-width:980px;margin:0 auto;padding:16px 16px 60px;display:grid;gap:14px}
+.wrap{max-width:1000px;margin:0 auto;padding:16px 16px 60px;display:grid;gap:14px}
 h1{font-size:24px;margin:0;letter-spacing:-.01em}
 h2{font-size:17px;margin:0 0 10px}
 h3{font-size:15px;margin:14px 0 6px}
 .sub{color:var(--muted);font-size:14px;margin:2px 0 0}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
 .warn{background:var(--warn-bg);color:var(--warn-fg);border-radius:10px;padding:10px 14px;font-size:14px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 14px}
 label{display:grid;gap:4px;font-size:13px;color:var(--muted);min-width:0}
@@ -29,10 +29,16 @@ button:hover{border-color:var(--accent)}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
 button.mini{padding:4px 8px;font-size:13px}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.tab{border-radius:999px;padding:7px 14px}
-.tab.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
-.tab .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-left:6px;vertical-align:middle}
+.grp{margin-bottom:10px}
+.grp h4{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border-radius:999px;padding:6px 12px;font-size:13.5px;display:inline-flex;align-items:center;gap:6px}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.chip .lv{font-size:11px;opacity:.75}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.chip.on .dot{background:var(--accent-fg)}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);margin:0 0 10px}
+.meta b{color:var(--fg)}
 .scn{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
 @media (max-width:760px){.scn{grid-template-columns:1fr}}
 .draw{background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px}
@@ -40,6 +46,7 @@ button.mini{padding:4px 8px;font-size:13px}
 .steps{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:s}
 .steps li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:6px;align-items:start}
 .steps li::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;margin-top:6px}
+.steps.cont li::before{content:"!";}
 .steps .ctl{display:flex;flex-direction:column;gap:2px}
 .steps .ctl button{padding:1px 7px;font-size:12px;line-height:1.4}
 .eq{display:grid;gap:5px}
@@ -47,19 +54,24 @@ button.mini{padding:4px 8px;font-size:13px}
 .eq input[type=checkbox],.inc input{accent-color:var(--accent);width:18px;height:18px}
 .team .tm{display:grid;grid-template-columns:minmax(0,1.4fr) 110px minmax(0,1.2fr) auto;gap:6px;margin-bottom:6px}
 @media (max-width:560px){.team .tm{grid-template-columns:1fr 1fr}.team .tm input:first-child{grid-column:1/-1}}
-.inc{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--fg);margin-bottom:8px}
+.inc{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--fg);margin-bottom:6px}
 .muted{color:var(--muted);font-size:13px}
 .msg{font-size:14px;min-height:1.2em;margin:6px 0 0}
 details summary{cursor:pointer;font-weight:600}
+.checks{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.checks li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;font-size:14px}
+.checks .ic{font-weight:700}
+.checks .ok .ic{color:var(--ok)} .checks .bad .ic{color:var(--bad)} .checks .wn .ic{color:var(--accent)}
+.checks .ref{color:var(--muted);font-size:12px}
 </style>
 
 <div class="wrap">
   <header>
     <h1>Rope rescue planner</h1>
-    <p class="sub">Build a rescue plan for a rope access job: drawings, step-by-step method and equipment list for each rescue, then save it as a PDF.</p>
+    <p class="sub">Build a rescue plan for a rope access job. Pick the rigging setups that fit the job, and each one gets a drawing, a step-by-step method, a backup plan and an equipment list. Save it all as one PDF.</p>
   </header>
 
-  <div class="warn"><strong>Draft plan.</strong> Steps and drawings follow general IRATA-style rope access practice. Check every plan against the current IRATA ICOP and TACS, the site risk assessment and the equipment makers' instructions. It must be approved by the Level 3 supervisor before work starts.</div>
+  <div class="warn"><strong>Draft plan.</strong> Setups and steps follow the IRATA ICOP (TC-102) and TACS (TC-101, issue 006) rescue requirements, written in plain words. Check each plan against the site risk assessment and the equipment makers' instructions. The Level 3 supervisor must approve it and brief the team before work starts.</div>
 
   <section class="card">
     <h2>1. Job details</h2>
@@ -78,7 +90,7 @@ details summary{cursor:pointer;font-weight:600}
 
   <section class="card team">
     <h2>2. Team</h2>
-    <p class="muted" style="margin:-4px 0 10px">IRATA requires a Level 3 supervising and at least one other team member able to carry out a rescue.</p>
+    <p class="muted" style="margin:-4px 0 10px">IRATA: at least two technicians and one Level 3 supervisor. Three is the normal minimum unless every rescue is a straight lower to a safe place (ICOP 2.11.6).</p>
     <div id="team"></div>
     <button class="mini" id="addTm">+ Add person</button>
   </section>
@@ -87,7 +99,8 @@ details summary{cursor:pointer;font-weight:600}
     <h2>3. Emergency arrangements</h2>
     <div class="grid">
       <label>Radio channel<input type="text" data-k="radio"></label>
-      <label>Emergency number<input type="text" data-k="emerg" placeholder="e.g. 112 / site control"></label>
+      <label>Back-up signals if radio fails<input type="text" data-k="signals" placeholder="e.g. Whistle: 3 blasts = stop"></label>
+      <label>Emergency number<input type="text" data-k="emerg" placeholder="e.g. Site control / 112"></label>
       <label>First aider / medic<input type="text" data-k="medic"></label>
       <label>Nearest hospital<input type="text" data-k="hospital"></label>
       <label>Rescue kit location<input type="text" data-k="kitLoc" placeholder="e.g. At top anchor point"></label>
@@ -96,14 +109,20 @@ details summary{cursor:pointer;font-weight:600}
   </section>
 
   <section class="card">
-    <h2>4. Rescue methods</h2>
-    <p class="muted" style="margin:-4px 0 10px">Tick each rescue you want in the plan. Steps and equipment fill in from your job details and can be edited.</p>
-    <div class="tabs" id="tabs"></div>
-    <div id="scn"></div>
+    <h2>4. Rescue setups</h2>
+    <p class="muted" style="margin:-4px 0 12px">Tap a setup to see it, then tick "Include" to put it in the plan. IRATA prefers rig-for-rescue systems where they're possible (TACS 6.5.1). The level shown is the lowest IRATA level trained for that rescue.</p>
+    <div id="picker"></div>
+    <div id="scn" style="margin-top:6px"></div>
   </section>
 
   <section class="card">
-    <h2>5. Sign-off and save</h2>
+    <h2>5. Plan checks</h2>
+    <p class="muted" style="margin:-4px 0 10px">Automatic checks against the ICOP and TACS. They update as you fill in the plan.</p>
+    <ul class="checks" id="checks"></ul>
+  </section>
+
+  <section class="card">
+    <h2>6. Sign-off and save</h2>
     <div class="grid">
       <label>Prepared by<input type="text" data-k="prepBy"></label>
       <label>Approved by (Level 3)<input type="text" data-k="apprBy"></label>
@@ -116,7 +135,7 @@ details summary{cursor:pointer;font-weight:600}
     <p class="msg" id="msg"></p>
     <details style="margin-top:10px">
       <summary>Copy or load a plan code</summary>
-      <p class="muted">Copy the code to keep a plan or move it to another device; paste a code and press Load to open it.</p>
+      <p class="muted">Copy the code to keep a plan or move it to another device. To open a plan, paste its code and press Load.</p>
       <textarea id="code" rows="3" style="font-family:ui-monospace,monospace;font-size:12px"></textarea>
       <div class="row" style="margin-top:6px"><button class="mini" id="copyBtn">Copy code</button><button class="mini" id="loadBtn">Load code</button></div>
     </details>
@@ -127,270 +146,544 @@ details summary{cursor:pointer;font-weight:600}
 <script>
 (function(){
 const LS="ropeRescuePlan.v1";
-const SCN=[
-  {id:"descent",name:"Descent rescue",short:"Descent",blurb:"Rescuer descends on separate ropes from above, picks off the casualty and descends with them."},
-  {id:"ascent",name:"Ascent rescue",short:"Ascent",blurb:"Rescuer climbs from below to above the casualty, changes over to descent and descends with them."},
-  {id:"haul",name:"Hauling (raise to top)",short:"Hauling",blurb:"Casualty is raised to the top with a mechanical-advantage haul system and an independent back-up."},
-  {id:"lower",name:"Pre-rigged lowering",short:"Pre-rigged",blurb:"Casualty's ropes are rigged releasable at the anchors so the team at the top can lower them without anyone going down."}
-];
+const LV={L1:1,L2:2,L3:3,Other:0};
 
-function today(){const d=new Date();return d.toISOString().slice(0,10)}
-function blank(){
-  return {ref:"",date:today(),client:"",site:"",task:"",height:20,env:"ground",anchors:"",hazards:"",
-    team:[{name:"",level:"L3",role:"Supervisor"},{name:"",level:"L2",role:"Rescuer"},{name:"",level:"L1",role:"Technician"}],
-    radio:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",notes:"",
-    cur:"descent",plans:{}};
-}
-let S=blank();
-try{const raw=localStorage.getItem(LS); if(raw){S=Object.assign(blank(),JSON.parse(raw))}}catch(e){}
-
-/* ---------- default content ---------- */
+/* ---------- helpers for wording ---------- */
+let S;
+function today(){return new Date().toISOString().slice(0,10)}
 function rescuerName(){const t=S.team.find(p=>/rescu/i.test(p.role)&&p.name)||S.team.find(p=>p.level!=="L3"&&p.name);return t?t.name:"the rescuer"}
 function supName(){const t=S.team.find(p=>p.level==="L3"&&p.name);return t?t.name:"the Level 3 supervisor"}
 function landing(){return S.env==="water"?"the rescue boat":S.env==="deck"?"the deck landing area":"the landing area at the bottom"}
 function ropeLen(){const h=+S.height||0;return h?Math.ceil(h*1.3+5):0}
+function L(){return ropeLen()?(" ("+ropeLen()+" m or more)"):""}
+const LAND=()=>"Land at "+landing()+". The ground team takes the casualty's weight, then disconnects both people from the ropes.";
+const ATTACH="Connect the casualty's central (ventral) attachment point to the rescuer's descender attachment with a short rescue lanyard or connector. Keep the casualty's back-up device connected.";
+const FRICTION="Add extra friction to the descender for the two-person load and descend slowly and smoothly. Keep the casualty upright, head up and clear of the structure.";
+
+/* ---------- scenario library (TACS 6.5, 6.8, 6.9) ---------- */
+const GROUPS=[["rig","Rig-for-rescue (team at the top)"],["rope","Rescue on ropes"],["obst","Passing obstacles with a casualty"],["climb","Climbing rescues"]];
+const SCN=[
+ {id:"lower",g:"rig",name:"Pre-rigged lowering",short:"Pre-rigged lower",lvl:1,ref:"TACS 6.5.2; ICOP 2.11.11.3",view:"side",
+  blurb:"The casualty's ropes are rigged on releasable anchors from the start, so the team at the top can lower them straight down without anyone going onto the ropes. Best first choice where there is a clear drop.",
+  steps:()=>["At the start of the job, rig the working rope through a releasable lowering device (e.g. a locked-off descender on the anchor) and have the back-up rope ready to lower or tend. Check the ropes reach "+landing()+(ropeLen()?(" (about "+ropeLen()+" m per rope for a "+S.height+" m drop)"):"")+".",
+   "Confirm by radio that "+landing()+" is clear and the ground team is ready.",
+   "The person lowering unlocks the lowering device, adds friction as needed and lowers the casualty slowly and smoothly.",
+   "A second person lowers the back-up rope at the same speed, keeping it close to tight but never loaded.",
+   "Keep talking to the ground team and the casualty. Stop and hold if the casualty snags on the structure.",
+   "Ground team receives the casualty, takes their weight and disconnects them. Lock off the lowering device."],
+  equip:()=>["Releasable lowering device rigged on the working rope anchor","Back-up rope"+L()+" with a tending / lowering device","Karabiner or bar for adding friction","Gloves for the person lowering","Ropes long enough to reach the landing zone, with stopper knots in the ends","Anchor slings and rigging plate"],
+  cont:()=>["Casualty snags on the structure: hold, then send a rescuer down separate ropes to free them (descent rescue).","Rope too short or tangled below: switch to the haul option or a descent rescue."]},
+ {id:"haul",g:"rig",name:"Hauling to the top",short:"Hauling",lvl:2,ref:"TACS 6.5.3",view:"side",
+  blurb:"Used where you can only get off at the top, or the bottom isn't safe. The casualty is lifted with a pulley haul system and an independent back-up.",
+  steps:()=>["Set up the haul system on independent anchors at the top. Choose one: the pre-rigged lowering system plus extra equipment, a complete lower/haul system used all through the job, or a third rope haul added to the existing ropes.",
+   "Use pulleys with progress capture (e.g. a 3:1) and rig an independent back-up to the casualty. Tend the back-up all the time.",
+   "Fit an edge roller or rope protection where the ropes run over the edge. A high directional helps the casualty clear the edge.",
+   "One person gives the commands. Haul in short, controlled strokes, setting the progress capture each time. Stop at once if anything snags.",
+   "At the edge, a second team member (on restraint) helps the casualty over the edge or safety barrier. A tag line can help.",
+   "Bring the casualty to rest in the safe area at the top, well away from the edge, before disconnecting them."],
+  equip:()=>["Haul rope"+L(),"Pulleys with progress capture (or pulley plus rope clamp)","Rope clamps / ascenders for the haul system","Back-up device and back-up rope","Edge roller or high directional","Tag line","Anchor slings and rigging plate"],
+  cont:()=>["Haul too heavy for the team: add more mechanical advantage or convert to a lower if the bottom is safe.","Casualty jams at the edge: hold on progress capture, re-rig the directional, then continue."]},
+ {id:"cross",g:"rig",name:"Cross haul",short:"Cross haul",lvl:2,ref:"TACS 6.5.4",view:"side",
+  blurb:"Moves a casualty sideways, around or past an obstruction, using two separate haul/lower systems, each with its own back-up.",
+  steps:()=>["Rig two separate haul/lower systems, each with its own back-up: system A from the structure anchors and system B from a second anchor point beyond the obstruction.",
+   "Connect both systems and both back-ups to the casualty's central attachment point.",
+   "The supervisor gives all commands. Both operators keep in constant contact by radio or voice.",
+   "Take the casualty's weight on system A. Then move them across by hauling on B while letting out A in small steps. Keep both systems loaded so that if one item fails, the casualty can't swing out of control.",
+   "Keep the casualty clear of the obstruction. Once they're over the landing zone, lower both systems together.",
+   "Ground team receives the casualty and disconnects them."],
+  equip:()=>["Two haul/lower ropes"+L(),"Two back-up ropes with back-up devices","Two sets of pulleys with progress capture","Anchor slings for both anchor points","Radios for both operators"],
+  cont:()=>["One system jams: hold on the other system and its back-up, fix the jam, then continue.","Casualty swings towards the structure: stop, take in the other system to steady them."]},
+ {id:"tension",g:"rig",name:"Tensioned rope rescue",short:"Tensioned rope",lvl:3,ref:"TACS 6.8.9",view:"side",
+  blurb:"A pair of tensioned ropes runs from the top to an anchor beyond the obstruction. The casualty rides down on pulleys while a control rope lowers them.",
+  steps:()=>["Rig a pair of tensioned ropes from equalised anchors at the top to a ground anchor beyond the obstruction, with the load shared between both ropes. Tension with a pulley system. Do not over-tension.",
+   "Rig a lowering (control) rope with a back-up from the top anchors.",
+   "Connect the casualty to both tensioned ropes with pulleys, and to the control rope.",
+   "Lower the casualty down the tensioned ropes in a controlled way, keeping them above the ground and clear of the structure.",
+   "The ground team at the bottom anchor receives the casualty and disconnects them."],
+  equip:()=>["Two tensioning ropes"+L(),"Control rope and back-up rope","Pulleys for the casualty on the tensioned ropes","Pulley system for tensioning","Ground anchor (or a second structure anchor)","Anchor slings and rigging plates"],
+  cont:()=>["Casualty stops part-way: hold on the control rope and back-up, check the pulleys, then continue.","Ground anchor in doubt: stop and lower the casualty vertically instead."]},
+ {id:"descent",g:"rope",name:"Descent rescue from separate ropes",short:"Descent (separate ropes)",lvl:1,ref:"TACS 6.8.2",view:"side",
+  blurb:"The rescuer goes down a separate set of ropes, takes the casualty onto their own descender and descends with them. Works whether the casualty is on a descender or ascenders.",
+  steps:()=>["Rig separate rescue ropes (working and back-up) on independent anchors directly above or next to the casualty. Fit rope protection at the edge.",
+   "The rescuer descends and stops just above the casualty, within reach of the casualty's central attachment point.",ATTACH,
+   "Transfer the casualty's weight onto the rescuer's system: unload and remove the casualty's descender (or ascenders) from their working rope. Do not cut any rope.",
+   "Manage the casualty's back-up device so it runs down their back-up rope with them, or move it onto the rescuer's back-up rope. Keep it high with no slack.",FRICTION,LAND()],
+  equip:()=>["Rescue rope pair"+L()+" rigged or ready to rig","Descender with auto-lock and anti-panic function","Back-up device","Short rescue lanyard / connector for the casualty","Extra karabiner for adding friction","Anchor slings for independent rescue anchors"],
+  cont:()=>["Casualty's device won't release: lift them slightly with a hand ascender and foot loop, then remove it.","Rescue ropes can't be rigged in time: use the casualty's own ropes (Level 2 or 3)."]},
+ {id:"own",g:"rope",name:"Descent rescue on the casualty's own ropes",short:"Descent (own ropes)",lvl:2,ref:"TACS 6.8.2.2.2",view:"side",
+  blurb:"The rescuer goes down the casualty's own ropes from above, then takes the casualty onto their descender. Faster when there's no time or room for extra ropes.",
+  steps:()=>["The rescuer rigs onto the casualty's ropes above the casualty: descender on the working rope, back-up device on the back-up rope.",
+   "Descend carefully to the casualty. The ropes are already loaded, so keep your back-up device high with no slack.",ATTACH,
+   "Transfer the casualty's weight onto the rescuer's descender: unload and remove the casualty's descender (or ascenders). Keep both people's back-ups on the back-up rope.",FRICTION,LAND()],
+  equip:()=>["Descender with auto-lock and anti-panic function","Back-up device","Short rescue lanyard / connector for the casualty","Hand ascender and foot loop for lifting the casualty","Extra karabiner for adding friction"],
+  cont:()=>["Rope damaged near the casualty: stop, rig separate ropes and switch to a descent rescue from separate ropes.","Back-up rope tangled with the casualty: free it before any transfer of weight."]},
+ {id:"ascent",g:"rope",name:"Rescue from ascent mode",short:"From ascent mode",lvl:2,ref:"TACS 6.8.3",view:"side",
+  blurb:"The casualty is hanging on their ascenders. This is hard work, because the casualty must be lifted to free the ascender teeth. Check that your rescuers are strong enough before choosing it (TACS 6.8.3.1).",
+  steps:()=>["The rescuer reaches the casualty from above (descending) or from below (ascending), on separate ropes or on the casualty's own ropes.",
+   "Get your descender attachment level with or just above the casualty's chest ascender. If you climbed up, change over to descent first: fit the descender, lock it off, and transfer weight. Keep your back-up on.",ATTACH,
+   "Lift the casualty (e.g. with a hand ascender and foot loop, or a small pulley haul) so their chest ascender is unloaded. Open it and remove it, then remove their hand ascender.",
+   "Check the casualty is now hanging from the rescuer's descender and their back-up is correctly placed.",FRICTION,LAND()],
+  equip:()=>["Chest ascender and hand ascender with foot loop","Descender with auto-lock and anti-panic function","Back-up device","Short rescue lanyard / connector for the casualty","Small pulley for lifting the casualty","Extra karabiner for adding friction"],
+  cont:()=>["Rescuer can't lift the casualty: rig a small pulley haul off the rescuer's ropes, or switch to a team haul/lower from the top.","Second rescuer ready on standby in case the first tires."]},
+ {id:"dev",g:"obst",name:"Passing a deviation with a casualty",short:"Passing a deviation",lvl:2,ref:"TACS 6.8.4; 6.4.8",view:"front",
+  blurb:"Deviations redirect the ropes away from hazards, and may stop a straight lower working. The rescuer descends with the casualty through the deviation. Level 2 passes single-anchor deviations; Level 3 passes double-anchor deviations.",
+  steps:()=>["The rescuer reaches the casualty and takes them onto their own descender as in a descent rescue.",
+   "Descend with the casualty until the deviation karabiner is within easy reach.",
+   "Clip a lanyard into the deviation sling to control the swing. Unclip the deviation from the ropes above you and re-clip it to the ropes below you (or let yourselves out slowly on the sling).",
+   "Let the ropes swing back gently so neither of you swings out of control. Keep your back-up high with no slack in the back-up rope.",
+   "Unclip the lanyard and continue the descent with added friction.",LAND()],
+  equip:()=>["Descender with auto-lock and anti-panic function","Back-up device","Short rescue lanyard / connector for the casualty","Spare lanyard or sling for controlling the swing","Extra karabiner for adding friction"],
+  cont:()=>["Deviation under heavy load and won't unclip: lift with a foot loop and ascender to unload it.","Double-anchor deviation in the plan: make sure a Level 3 is available to do the rescue."]},
+ {id:"reanchor",g:"obst",name:"Passing a re-anchor with a casualty",short:"Passing a re-anchor",lvl:2,ref:"TACS 6.8.6; 6.4.7",view:"front",
+  blurb:"Re-anchors (re-belays) move the ropes away from hazards or reduce stretch on long drops. The rescuer descends with the casualty through a small re-anchor (offset no more than 1.5 m).",
+  steps:()=>["With the casualty above the re-anchor, the rescuer takes them onto their own descender as in a descent rescue.",
+   "Descend until your descender is level with the re-anchor. Clip your lanyard (and one for the casualty) into the re-anchor.",
+   "Fit a second descender (or your own if you change over) to the rope below the re-anchor, lock it off, and move the casualty's connection onto it. Move both back-up devices past the re-anchor.",
+   "Transfer the combined weight onto the rope below, then remove the upper descender. Avoid tangles with the re-anchor loop.",
+   "Unclip the lanyards and continue the descent with added friction.",LAND()],
+  equip:()=>["Descender with auto-lock and anti-panic function (a second one helps)","Back-up device","Two lanyards for clipping into the re-anchor","Short rescue lanyard / connector for the casualty","Hand ascender and foot loop"],
+  cont:()=>["Re-anchor loop too tight to transfer: lift with foot loop and ascender to create slack.","Wide re-anchor (over 1.5 m): needs a Level 3 (see mid-transfer rescue)."]},
+ {id:"r2r",g:"obst",name:"Rope-to-rope transfer with a casualty",short:"Rope-to-rope",lvl:2,ref:"TACS 6.8.5",view:"front",
+  blurb:"Moves sideways with the casualty from one set of ropes to another (more than 3 m apart), e.g. to avoid an obstruction below or return to an access point.",
+  steps:()=>["The rescuer takes the casualty onto their descender on rope set A, as in a descent rescue.",
+   "Connect to rope set B with a second descender and back-up device before releasing anything on set A, keeping four points of attachment where needed.",
+   "Move across bit by bit: let out on set A while taking in on set B, so neither of you swings out of control. Use the casualty's own equipment where it helps.",
+   "When both of you hang fully on set B, remove the set A devices.",
+   "Descend on set B with added friction, clear of the obstruction under set A.",LAND()],
+  equip:()=>["Two descenders (rescuer's and casualty's)","Two back-up devices","Short rescue lanyard / connector for the casualty","Lanyards for four-point attachment","Second rope set"+L()+" rigged close enough to reach"],
+  cont:()=>["Swing risk too high: rig a cross haul from the top instead.","Rescuer tires mid-transfer: hold on both rope sets with four attachments; second rescuer comes down set B."]},
+ {id:"mid",g:"obst",name:"Mid-transfer rescue",short:"Mid-transfer",lvl:3,ref:"TACS 6.8.7",view:"front",
+  blurb:"The casualty is stuck part-way across a wide rope-to-rope transfer (more than 3 m) or a wide re-anchor (more than 1.5 m). The rescuer frees them and gets them to a safe platform or the ground.",
+  steps:()=>["Check how the casualty is attached to both rope sets (or across the re-anchor loop). Keep all of their attachments in place for now.",
+   "The rescuer descends on the rope set that leads best to a safe landing and reaches the casualty, keeping four points of attachment.",ATTACH,
+   "Take the casualty's weight onto the rescuer's system in steps, so that if any one item fails, nobody swings out of control.",
+   "Remove the casualty's connections to the other rope set one at a time, controlling the swing (let out on a lanyard or descender).",
+   "Descend together with added friction to a safe platform or the ground.",LAND()],
+  equip:()=>["Descender with auto-lock and anti-panic function","Back-up device","Lanyards for four-point attachment","Spare descender for letting out the swing","Short rescue lanyard / connector for the casualty"],
+  cont:()=>["Swing can't be controlled safely: rig a haul from the top on the other rope set to take the load.","Level 3 not available: this rescue can't be planned. Change the rigging to avoid wide transfers."]},
+ {id:"knots",g:"obst",name:"Passing mid-rope knots with a casualty",short:"Passing knots",lvl:3,ref:"TACS 6.8.8",view:"front",
+  blurb:"Knots in the middle of the ropes (joining ropes or cutting out damage) block a straight descent. The rescuer passes them with the casualty, allowing for rope stretch.",
+  steps:()=>["The rescuer takes the casualty onto their descender above the knots. The casualty's own equipment can be used.",
+   "Descend to just above the working rope knot, allowing for the stretch in the ropes.",
+   "Clip a lanyard into the knot loop, fit a descender below the knot and lock it off, then transfer the weight and remove the upper descender.",
+   "Pass the back-up rope knot the same way, keeping a back-up device on at all times.",
+   "Continue descending with added friction, with no tangles.",LAND()],
+  equip:()=>["Two descenders (use the casualty's)","Back-up device (spare one helps)","Lanyards for clipping into the knot loops","Hand ascender and foot loop","Short rescue lanyard / connector for the casualty"],
+  cont:()=>["Knots at different levels: pass each separately, never removing both back-ups at once.","Can't unload upper descender: lift with foot loop and ascender."]},
+ {id:"aid",g:"climb",name:"Rescue from an aid climb",short:"Aid climb",lvl:2,ref:"TACS 6.9.1",view:"side",
+  blurb:"The casualty is hanging from work-positioning lanyards on the structure. The rescuer climbs to them with a rescue kit, then lowers them or descends with them.",
+  steps:()=>["The rescuer climbs to the casualty with the rescue kit (a pre-rigged rope kit is quickest), keeping two attachments to the structure at all times.",
+   "Rig the rescue rope to a suitable anchor above the casualty through a lowering device, with a back-up.",
+   "Connect the rescue rope to the casualty's central attachment point and take up the slack.",
+   "Take the casualty's weight onto the rescue rope (lift slightly if needed) and unclip their work-positioning lanyards.",
+   "The rescuer stays on the structure and lowers the casualty slowly to "+landing()+", or rigs ropes and descends with them.",
+   "The ground team receives the casualty and disconnects them."],
+  equip:()=>["Pre-rigged rescue kit: rope"+L()+", lowering device, connectors","Back-up device","Anchor slings for the structure","Hand ascender and foot loop or small pulley for lifting","Twin lanyards for the rescuer's climb"],
+  cont:()=>["No anchor above the casualty: see the short connection rescue (Level 3).","Casualty can't be lowered clear of the structure: descend with them instead."]},
+ {id:"fa",g:"climb",name:"Rescue from fall arrest equipment",short:"Fall arrest",lvl:2,ref:"TACS 6.9.2",view:"side",
+  blurb:"The casualty is hanging from a fall arrest system (e.g. a ladder rail or twin fall arrest lanyards). Falls are longer, so expect injury. The rescuer climbs up with a rescue kit.",
+  steps:()=>["The rescuer climbs to the casualty on their own fall arrest system, with two independent attachments at all times, carrying the rescue kit.",
+   "Rig the rescue kit to an anchor above the casualty that can take rescue loads, with a lowering device and a back-up.",
+   "Connect the rescue rope to the casualty's harness. Check the casualty still has their second safety attachment.",
+   "Lift the casualty slightly to take the load off the fall arrest device, then unclip them from the fall arrest system.",
+   "Lower the casualty slowly to "+landing()+", or descend with them.",
+   "Check for injuries from the fall before moving them further."],
+  equip:()=>["Pre-rigged rescue kit: rope"+L()+", lowering device, connectors","Back-up device","Anchor slings","Hand ascender and foot loop or small pulley for lifting","Rescuer's own fall arrest equipment"],
+  cont:()=>["Casualty badly injured in the fall: call emergency services straight away and give first aid at the first safe point.","Fall arrest device won't release: lift more with a pulley system, never cut it under load."]},
+ {id:"short",g:"climb",name:"Aid climb rescue with a short connection",short:"Short connection",lvl:3,ref:"TACS 6.9.3",view:"side",
+  blurb:"The casualty is clipped tight to an anchor with a very short connection and there is no higher anchor. This is the hardest climbing rescue. Avoid these attachments at work.",
+  steps:()=>["The rescuer reaches the casualty and clips into their own anchors beside them. There is no higher anchor to use.",
+   "Rig a lifting system from an anchor beside the casualty (e.g. a small pulley haul, or an ascender and foot loop) to take the load off the short connection.",
+   "Connect the casualty to the rescuer's lowering or descent system first.",
+   "Lift just enough to open and remove the short connection. Keep the casualty attached at all times.",
+   "Lower the casualty onto the rescuer's system and descend with them, or lower them to "+landing()+".",
+   "Brief the team afterwards: avoid one-connector attachments direct to bolt anchors (TACS 6.9.3.1)."],
+  equip:()=>["Small pulley system with progress capture","Hand ascender and foot loop","Descender / lowering device and rescue rope"+L(),"Back-up device","Extra connectors and slings"],
+  cont:()=>["Short connection can't be unloaded: call for a second rescuer to help lift.","Make sure a Level 3 is on site. Otherwise change the work method so short connections aren't used."]}
+];
+const byId=id=>SCN.find(s=>s.id===id);
+
+function blank(){
+  return {ref:"",date:today(),client:"",site:"",task:"",height:20,env:"ground",anchors:"",hazards:"",
+    team:[{name:"",level:"L3",role:"Supervisor"},{name:"",level:"L2",role:"Rescuer"},{name:"",level:"L1",role:"Technician"}],
+    radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",notes:"",
+    cur:"lower",plans:{}};
+}
+function migrate(o){const n=Object.assign(blank(),o);if(n.plans.ascent&&!n.plans.ascentMigrated){/* old ascent plan stays under same id */}if(!byId(n.cur))n.cur="lower";return n}
+S=blank();
+try{const raw=localStorage.getItem(LS); if(raw){S=migrate(JSON.parse(raw))}}catch(e){}
 
 function defSteps(id){
   const ch=S.radio?(" on channel "+S.radio):"";
   const start=[
-    "Raise the alarm: stop all work and tell "+supName()+" and the team by radio"+ch+". Call "+(S.emerg||"emergency services / site control")+" if the casualty is injured or unresponsive.",
-    "Talk to the casualty and assess them and the scene. Check for hazards: falling objects, sharp edges"+(S.hazards?(", "+S.hazards):"")+", weather"+(S.env==="water"?", water":"")+".",
-    (S.env==="water"?"Get the rescue boat"+(S.boat?(" ("+S.boat+")"):"")+" on station below the casualty. ":"Barrier off the drop zone below and clear "+landing()+". ")+"Nobody works below the rescue.",
-    "Rescuer ("+rescuerName()+") collects the rescue kit"+(S.kitLoc?(" from "+S.kitLoc):"")+" and does a buddy check of harness, devices and connectors with the supervisor."
+    "Raise the alarm: stop all work and tell "+supName()+" and the team by radio"+ch+(S.signals?(" (back-up signals: "+S.signals+")"):"")+". Call "+(S.emerg||"emergency services / site control")+" if the casualty is hurt or not responding.",
+    "Talk to the casualty and assess them and the scene. Check for hazards: falling objects, sharp edges"+(S.hazards?(", "+S.hazards):"")+", weather"+(S.env==="water"?", water":"")+". Don't make yourself a second casualty.",
+    (S.env==="water"?"Get the rescue boat"+(S.boat?(" ("+S.boat+")"):"")+" on station below the casualty. ":"Barrier off the drop zone and clear "+landing()+". ")+"Nobody works below the rescue.",
+    "The rescuer ("+rescuerName()+") collects the rescue kit"+(S.kitLoc?(" from "+S.kitLoc):"")+" and does a buddy check of harness, devices and connectors with the supervisor. Remember rescue loads are often two people (TACS 6.8.1.1.2)."
   ];
-  const mid={
-    descent:[
-      "Rig separate rescue ropes (working and back-up) on independent anchors directly above or beside the casualty. Fit rope protection at the edge.",
-      "Rescuer descends to the casualty and stops just above them, close enough to reach the casualty's central (ventral) attachment point.",
-      "Connect the casualty's ventral attachment to the rescuer's descender attachment with the rescue lanyard / connector. Leave the casualty's back-up device connected.",
-      "Transfer the casualty's weight onto the rescuer's system: unload and remove the casualty's ascenders (chest and hand) from their working rope. Do not cut any rope.",
-      "Manage the casualty's back-up device so it runs down their back-up rope with them, or move it onto the rescuer's back-up line.",
-      "Add extra friction to the descender for the combined load and descend slowly and smoothly. Keep the casualty upright, head up and clear of the structure.",
-      "Land at "+landing()+". The ground team takes the casualty's weight, then disconnects both people from the ropes."
-    ],
-    ascent:[
-      "Rescuer rigs onto separate ropes (or onto the casualty's ropes if the method allows) and ascends from below with the back-up device moved up ahead.",
-      "Climb to just above the casualty so the rescuer's descender attachment is level with or above the casualty's ventral attachment point.",
-      "Change over from ascent to descent: fit the descender above the chest ascender, lock it off, transfer weight and remove the ascenders. Keep the back-up connected throughout.",
-      "Connect the casualty's ventral attachment to the rescuer's descender attachment with the rescue lanyard / connector.",
-      "Transfer the casualty's weight: if they are on a descender, lift them slightly (e.g. with a hand ascender and foot loop or a small haul) to unload and remove their descender. Keep their back-up connected.",
-      "Add extra friction for the combined load and descend slowly with the casualty, keeping their head up and clear of the structure.",
-      "Land at "+landing()+". The ground team takes the casualty's weight, then disconnects both people from the ropes."
-    ],
-    haul:[
-      "Set up the haul system at the top on independent anchors, e.g. a 3:1 (Z-rig) with progress capture, connected to the casualty's working rope or a separate rescue rope to their ventral point.",
-      "Rig an independent back-up (belay) to the casualty and tend it throughout the raise.",
-      "Fit an edge roller or rope protection where the ropes run over the edge. Consider a high directional so the casualty clears the edge easily.",
-      "One person gives the commands. Haul in short, controlled strokes, setting the progress capture after each stroke. Stop at once if anything snags.",
-      "At the edge, a second team member (attached and on restraint) helps the casualty over without pulling them against the structure.",
-      "Move the casualty to the safe area at the top, well away from the edge, before disconnecting them from the ropes."
-    ],
-    lower:[
-      "At the start of the job, rig the working rope through a releasable lowering device (e.g. a locked-off descender on the anchor) and have the back-up rope ready to lower or tend. Check that the ropes reach "+landing()+(ropeLen()?(" (about "+ropeLen()+" m of rope per line for a "+S.height+" m drop)"):"")+".",
-      "Confirm by radio that "+landing()+" is clear and the ground team is ready.",
-      "Rescuer at the top unlocks the lowering device, adds friction as needed and lowers the casualty slowly and smoothly.",
-      "A second person tends the back-up rope at the same speed so it stays close to tight but never loaded.",
-      "Keep talking to the ground team and the casualty. Stop and hold if the casualty snags on the structure.",
-      "Ground team receives the casualty at "+landing()+", takes their weight and disconnects them. Lock off the lowering device."
-    ]
-  }[id];
   const end=[
-    "Casualty care: keep and move the casualty as current first-aid guidance on harness suspension (suspension intolerance) says, give first aid and hand over to "+(S.medic||"the medic")+" / emergency services. Note the time they were suspended"+(S.hospital?("; nearest hospital: "+S.hospital):"")+".",
+    "Casualty care (ICOP Annex G): get the casualty out of suspension as quickly as possible. While they wait, keep their knees raised and legs moving where it's safe. Once down, give standard first aid (airway, breathing, circulation) and check for hidden injuries to the neck, back and internal organs. A fully conscious casualty may be laid down; a semi-conscious or unconscious casualty goes in the recovery position.",
+    "Anyone who hung motionless in a harness goes to hospital straight away"+(S.hospital?(" ("+S.hospital+")"):"")+". Tell the medics they may be suffering from suspension intolerance. Hand over to "+(S.medic||"the medic")+" / emergency services.",
     "Record times and actions, tell the client and complete the incident report.",
     "Take all equipment used in the incident out of service for inspection by a competent person. Work does not restart until "+supName()+" has reviewed the incident."
   ];
-  return start.concat(mid,end);
+  return start.concat(byId(id).steps(),end);
 }
 function defEquip(id){
-  const L=ropeLen()?(" ("+ropeLen()+" m or more)"):"";
-  const common=["Rescue kit kept at the work position and ready to use","Radios tested"+(S.radio?(" (channel "+S.radio+")"):""),"First aid kit","Rope protectors / edge protection","Spare connectors and slings","Rescue knife or cutter (use only as the agreed method allows)"];
-  const m={
-    descent:["Rescue rope pair"+L+" rigged or ready to rig","Descender with auto-lock and anti-panic function","Back-up device","Rescue lanyard / short connection for the casualty","Extra karabiner for adding friction","Anchor slings for independent rescue anchors"],
-    ascent:["Chest ascender and hand ascender with foot loop","Descender with auto-lock and anti-panic function","Back-up device","Rescue lanyard / short connection for the casualty","Small pulley for a lift to unload the casualty's descender","Extra karabiner for adding friction"],
-    haul:["Haul rope"+L,"Pulleys with progress capture (or pulley and rope clamp)","Rope clamps / ascenders for the haul system","Belay / back-up device and back-up rope","Edge roller or high directional","Anchor slings and rigging plate"],
-    lower:["Releasable lowering device rigged on the working rope anchor","Back-up rope"+L+" with tending device","Karabiner or bar for adding friction","Gloves for the person lowering","Rope long enough to reach the landing zone, with knot in the end","Anchor slings and rigging plate"]
-  }[id];
-  const water=S.env==="water"?["Rescue boat with crew on standby","Life jackets for the team and the casualty","Throw line"]:[];
-  return m.concat(common,water).map(t=>({t,ok:false}));
+  const common=["Rescue kit at the worksite, ready to use straight away (ICOP 2.11.11.3)","Radios tested"+(S.radio?(" (channel "+S.radio+")"):""),"First aid kit and a first aider on site (ICOP 2.11.11.6)","Rope protectors / edge protection","Spare connectors and slings"];
+  const water=S.env==="water"?["Rescue boat with crew on standby (ICOP 2.11.6.8)","Life jackets for the team and the casualty","Throw line"]:[];
+  return byId(id).equip().concat(common,water).map(t=>({t,ok:false}));
+}
+function defCont(id){
+  return byId(id).cont().concat([
+    "Rescuer can't continue: second rescuer and spare rescue kit ready to take over.",
+    "Radio fails: switch to "+(S.signals||"agreed voice / whistle signals")+".",
+    "Weather turns (wind, lightning, rain): speed up the rescue and use the simplest safe method."]);
 }
 function plan(id){
   if(!S.plans[id]) S.plans[id]={inc:id==="descent"||id==="lower",steps:defSteps(id),equip:defEquip(id),edited:false};
-  return S.plans[id];
+  const p=S.plans[id]; if(!p.cont){p.cont=defCont(id);p.contEdited=false}
+  return p;
 }
 
 /* ---------- drawing ---------- */
-const C={work:"#d32f2f",back:"#1e5bd6",res:"#15803d",resb:"#16a34a",struct:"#8a949c",structFill:"#e6eaed",ink:"#1c2329",muted:"#5d6973",casualty:"#b45309",rescuer:"#15803d"};
+const C={work:"#d32f2f",back:"#1e5bd6",res:"#15803d",resb:"#16a34a",sys2:"#7c3aed",struct:"#8a949c",structFill:"#e6eaed",ink:"#1c2329",muted:"#5d6973",cas:"#b45309",resc:"#15803d",mk:"#c2410c"};
+const FONT='font-family="Arial,Helvetica,sans-serif"';
 function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function T(x,y,t,o){o=o||{};return `<text x="${x}" y="${y}" text-anchor="${o.a||"start"}" font-size="${o.s||11}" ${o.b?'font-weight="700"':""} fill="${o.c||C.ink}" ${FONT}>${esc(t)}</text>`}
+function TB(x,y,t,o){o=o||{};const s=o.s||11,w=t.length*s*0.56+10;const x0=o.a==="middle"?x-w/2:o.a==="end"?x-w:x-5;
+  return `<rect x="${x0}" y="${y-s-1}" width="${w}" height="${s+7}" rx="3" fill="#fff" fill-opacity="0.92" stroke="${o.bc||"none"}"/>`+T(x,y,t,o)}
+function line(pts,col,w,dash){return `<polyline points="${pts.map(p=>p.join(",")).join(" ")}" fill="none" stroke="${col}" stroke-width="${w||2.6}" stroke-linejoin="round" ${dash?`stroke-dasharray="${dash}"`:""}/>`}
+function arrow(x1,y1,x2,y2,col){const a=Math.atan2(y2-y1,x2-x1),k=9;
+  return `<line x1="${x1}" y1="${y1}" x2="${x2-5*Math.cos(a)}" y2="${y2-5*Math.sin(a)}" stroke="${col}" stroke-width="2.5" stroke-dasharray="6 4"/><path d="M${x2} ${y2} L${x2-k*Math.cos(a-0.45)} ${y2-k*Math.sin(a-0.45)} L${x2-k*Math.cos(a+0.45)} ${y2-k*Math.sin(a+0.45)} Z" fill="${col}"/>`}
+function anc(x,y){return `<rect x="${x-5}" y="${y-8}" width="10" height="8" fill="${C.ink}"/>`}
+function yhang(x1,x2,y,col){const mx=(x1+x2)/2,my=y+16;return {svg:`<path d="M${x1} ${y} L${mx} ${my} L${x2} ${y}" stroke="${col}" stroke-width="2" fill="none"/>${anc(x1,y)}${anc(x2,y)}<circle cx="${mx}" cy="${my}" r="3.5" fill="#fff" stroke="${C.ink}" stroke-width="1.6"/>`,x:mx,y:my}}
+function krab(x,y){return `<circle cx="${x}" cy="${y}" r="4.5" fill="#fff" stroke="${C.ink}" stroke-width="1.8"/>`}
+function pulley(x,y){return `<circle cx="${x}" cy="${y}" r="6" fill="#fff" stroke="${C.ink}" stroke-width="2"/><circle cx="${x}" cy="${y}" r="1.6" fill="${C.ink}"/>`}
+function dev(x,y,col){return `<rect x="${x-4}" y="${y-12}" width="8" height="13" rx="2" fill="${col||C.ink}"/>`}
+function knot(x,y,col){return `<circle cx="${x}" cy="${y}" r="5" fill="${col}" stroke="${C.ink}" stroke-width="1"/>`}
 function person(x,y,col,o){ // y = harness point
-  o=o||{};const s=[];const slump=o.slump;
-  const hx=x+(slump?7:0), hy=y-30+(slump?6:0);
+  o=o||{};const s=[];const sl=o.slump;
+  const hx=x+(sl?7:0), hy=y-30+(sl?6:0);
   s.push(`<circle cx="${hx}" cy="${hy}" r="7" fill="#fff" stroke="${col}" stroke-width="2.4"/>`);
   s.push(`<path d="M${hx-8} ${hy-1} A8 8 0 0 1 ${hx+8} ${hy-1} Z" fill="${col}"/>`);
   s.push(`<line x1="${hx}" y1="${hy+7}" x2="${x}" y2="${y+4}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`);
-  if(slump){s.push(`<path d="M${x+2} ${y-14} L${x+10} ${y+4} M${x+1} ${y-14} L${x-4} ${y+6}" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`)}
-  else{s.push(`<path d="M${x-12} ${y-22} L${x} ${y-16} L${x+12} ${y-24}" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`)}
-  s.push(`<path d="M${x} ${y+4} L${x-8} ${y+24} M${x} ${y+4} L${x+(slump?4:8)} ${y+24}" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`);
+  if(sl) s.push(`<path d="M${x+2} ${y-14} L${x+10} ${y+4} M${x+1} ${y-14} L${x-4} ${y+6}" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`);
+  else s.push(`<path d="M${x-12} ${y-22} L${x} ${y-16} L${x+12} ${y-24}" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
+  s.push(`<path d="M${x} ${y+4} L${x-8} ${y+24} M${x} ${y+4} L${x+(sl?4:8)} ${y+24}" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`);
   s.push(`<rect x="${x-6}" y="${y-2}" width="12" height="6" rx="2" fill="${col}"/>`);
   return s.join("");
 }
-function marker(n,x,y){return `<circle cx="${x}" cy="${y}" r="10" fill="#c2410c"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="Arial,Helvetica,sans-serif">${n}</text>`}
-function label(x,y,t,anchor,col,size,weight){return `<text x="${x}" y="${y}" text-anchor="${anchor||"start"}" font-size="${size||11}" ${weight?'font-weight="700"':""} fill="${col||C.ink}" font-family="Arial,Helvetica,sans-serif">${esc(t)}</text>`}
-function arrow(x1,y1,x2,y2,col){const a=Math.atan2(y2-y1,x2-x1),L=9;
-  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="2.5" stroke-dasharray="6 4"/><path d="M${x2} ${y2} L${x2-L*Math.cos(a-0.45)} ${y2-L*Math.sin(a-0.45)} L${x2-L*Math.cos(a+0.45)} ${y2-L*Math.sin(a+0.45)} Z" fill="${col}"/>`}
-function anchorPair(x1,x2,y,ex,col1,col2){ // Y-hang: two anchors meeting at a point then to edge
-  const mx=(x1+x2)/2, my=y+16;
-  return `<path d="M${x1} ${y} L${mx} ${my} L${x2} ${y}" stroke="${col1}" stroke-width="2" fill="none"/>
-  <rect x="${x1-5}" y="${y-8}" width="10" height="8" fill="${C.ink}"/><rect x="${x2-5}" y="${y-8}" width="10" height="8" fill="${C.ink}"/>
-  <circle cx="${mx}" cy="${my}" r="3.5" fill="#fff" stroke="${C.ink}" stroke-width="1.6"/>`;
-}
 function draw(id){
-  const W=440,H=600,top=80,ground=500,wall=150;
-  const h=+S.height||0;
-  const s=[`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="Arial,Helvetica,sans-serif">`,`<rect width="${W}" height="${H}" fill="#fff"/>`];
-  // structure
-  s.push(`<rect x="0" y="${top}" width="${wall}" height="${ground-top}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
-  for(let yy=top+30;yy<ground;yy+=40) s.push(`<line x1="0" y1="${yy}" x2="${wall}" y2="${yy}" stroke="#d3d9dd" stroke-width="1"/>`);
-  s.push(`<line x1="0" y1="${top}" x2="${wall}" y2="${top}" stroke="${C.ink}" stroke-width="3"/>`);
-  s.push(label(8,top+18,"Structure",null,C.muted,11));
-  // bottom
-  if(S.env==="water"){
-    s.push(`<rect x="0" y="${ground}" width="${W}" height="${H-ground-62}" fill="#dbeafe"/>`);
-    for(let i=0;i<3;i++){let d=`M0 ${ground+8+i*12}`;for(let x=0;x<W;x+=24)d+=` q6 -5 12 0 t12 0`;s.push(`<path d="${d}" stroke="#3b82f6" stroke-width="1.4" fill="none"/>`)}
-    // boat
-    if(id!=="haul"){s.push(`<path d="M${wall+30} ${ground-2} L${wall+120} ${ground-2} L${wall+108} ${ground+14} L${wall+42} ${ground+14} Z" fill="#f97316" stroke="${C.ink}" stroke-width="1.4"/>`);s.push(label(wall+75,ground+30,"Rescue boat","middle",C.ink,11,1))}
-  }else{
-    s.push(`<rect x="0" y="${ground}" width="${W}" height="${H-ground-62}" fill="${S.env==="deck"?"#e7e1d6":"#e8e2d0"}"/>`);
-    s.push(`<line x1="0" y1="${ground}" x2="${W}" y2="${ground}" stroke="${C.ink}" stroke-width="2.5"/>`);
-    for(let x=6;x<W;x+=14) s.push(`<line x1="${x}" y1="${ground+2}" x2="${x-8}" y2="${ground+10}" stroke="#a69c86" stroke-width="1"/>`);
-    if(id!=="haul"){ // landing zone + barriers
-      s.push(`<rect x="${wall+18}" y="${ground-4}" width="110" height="4" fill="#facc15"/>`);
-      [wall+14,wall+132].forEach(cx=>s.push(`<path d="M${cx-6} ${ground} L${cx} ${ground-16} L${cx+6} ${ground} Z" fill="#f97316"/><rect x="${cx-3}" y="${ground-10}" width="6" height="2.5" fill="#fff"/>`));
-      s.push(label(wall+73,ground+24,(S.env==="deck"?"Deck":"Ground")+" landing zone","middle",C.ink,11,1));
-    }
+  const sc=byId(id), W=440,H=600,top=80,ground=500,wall=150;
+  const h=+S.height||0, out=[], keys=[], legend=[[C.work,"Working rope"],[C.back,"Back-up rope"],[C.res,"Rescue / haul rope"],[C.resb,"Rescue back-up","6 3"]];
+  const add=s=>out.push(s);
+  function key(text,x,y){keys.push(text);const n=keys.length;add(`<circle cx="${x}" cy="${y}" r="10" fill="${C.mk}" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" ${FONT}>${n}</text>`)}
+  function casLabel(x,y,t){add(TB(x,y,t||"Casualty",{c:C.cas,b:1,s:12,bc:C.cas}))}
+  function rescLabel(x,y,t){add(TB(x,y,t||"Rescuer",{c:C.resc,b:1,s:12}))}
+  function lz(x1,x2,lbl){
+    if(S.env==="water"){add(`<path d="M${x1+6} ${ground-2} L${x2-6} ${ground-2} L${x2-18} ${ground+14} L${x1+18} ${ground+14} Z" fill="#f97316" stroke="${C.ink}" stroke-width="1.4"/>`);add(T((x1+x2)/2,ground+30,"Rescue boat",{a:"middle",b:1}))}
+    else{add(`<rect x="${x1}" y="${ground-4}" width="${x2-x1}" height="4" fill="#facc15"/>`);[x1-4,x2+4].forEach(cx=>add(`<path d="M${cx-6} ${ground} L${cx} ${ground-16} L${cx+6} ${ground} Z" fill="#f97316"/><rect x="${cx-3}" y="${ground-10}" width="6" height="2.5" fill="#fff"/>`));
+      add(T((x1+x2)/2,ground+24,lbl||((S.env==="deck"?"Deck":"Ground")+" landing zone"),{a:"middle",b:1}))}
   }
-  // height dimension
-  s.push(`<line x1="${W-26}" y1="${top}" x2="${W-26}" y2="${ground}" stroke="${C.muted}" stroke-width="1.2"/>`);
-  s.push(`<path d="M${W-26} ${top} l-4 8 h8 Z M${W-26} ${ground} l-4 -8 h8 Z" fill="${C.muted}"/>`);
-  s.push(`<line x1="${W-34}" y1="${top}" x2="${W-18}" y2="${top}" stroke="${C.muted}"/><line x1="${W-34}" y1="${ground}" x2="${W-18}" y2="${ground}" stroke="${C.muted}"/>`);
-  s.push(`<text x="${W-12}" y="${(top+ground)/2}" text-anchor="middle" font-size="12" font-weight="700" fill="${C.ink}" transform="rotate(-90 ${W-12} ${(top+ground)/2})">${h?esc(h+" m drop"):"Drop height"}</text>`);
-  // edge protection
-  const edge=`<rect x="${wall-6}" y="${top-6}" width="14" height="12" rx="2" fill="#f59e0b" stroke="${C.ink}" stroke-width="1"/>`;
-  // casualty ropes (anchors at x 40/80)
-  const cx1=wall+12, cx2=wall+22; // casualty working & backup rope x
-  const casY=id==="lower"?250:id==="haul"?300:280;
-  const casRopeEnd=id==="lower"?ground-6:ground-40;
-  const keys=[];
-  s.push(anchorPair(30,70,top,0,C.work));
-  s.push(anchorPair(84,120,top,0,C.back));
-  s.push(`<path d="M50 ${top+16} L${wall} ${top} L${cx1} ${top+8} L${cx1} ${casRopeEnd}" stroke="${C.work}" stroke-width="2.6" fill="none"/>`);
-  s.push(`<path d="M102 ${top+16} L${wall} ${top+2} L${cx2} ${top+10} L${cx2} ${casRopeEnd}" stroke="${C.back}" stroke-width="2.6" fill="none"/>`);
-  if(id!=="lower"){s.push(`<circle cx="${cx1}" cy="${casRopeEnd}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${casRopeEnd}" r="3" fill="${C.back}"/>`)}
-  s.push(edge);
-  s.push(marker(1,50,top-26)); keys.push("Anchors: Y-hang on working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""));
-  // casualty
-  s.push(person(cx1+18,casY,C.casualty,{slump:true}));
-  s.push(`<line x1="${cx1}" y1="${casY-6}" x2="${cx1+12}" y2="${casY}" stroke="${C.ink}" stroke-width="1.6"/><line x1="${cx2}" y1="${casY+12}" x2="${cx1+16}" y2="${casY+2}" stroke="${C.back}" stroke-width="1.6"/>`);
-  s.push(`<rect x="${cx1-4}" y="${casY-12}" width="8" height="12" rx="2" fill="${C.ink}"/>`);
-  s.push(`<rect x="${wall-92}" y="${casY-42}" width="84" height="22" rx="4" fill="#fff" stroke="${C.casualty}"/>`);s.push(marker(3,wall-80,casY-31)); s.push(label(wall-66,casY-27,"Casualty",null,C.casualty,12,1));
-  if(id==="descent"){
-    const rx1=wall+70, rx2=wall+80, ry=casY-48;
-    s.push(anchorPair(16,40,top-20,0,C.res));
-    s.push(`<path d="M28 ${top-4} L${wall-2} ${top-10} L${rx1} ${top-4} L${rx1} ${ground-40}" stroke="${C.res}" stroke-width="2.6" fill="none"/>`);
-    s.push(`<path d="M28 ${top-4} L${wall-2} ${top-14} L${rx2} ${top-8} L${rx2} ${ground-40}" stroke="${C.resb}" stroke-width="2.2" stroke-dasharray="7 4" fill="none"/>`);
-    s.push(`<rect x="${rx1-4}" y="${ry-12}" width="8" height="14" rx="2" fill="${C.ink}"/>`);
-    s.push(person(rx1+16,ry,C.rescuer));
-    s.push(`<line x1="${rx1}" y1="${ry}" x2="${cx1+18}" y2="${casY}" stroke="${C.ink}" stroke-width="2"/>`);
-    s.push(arrow(rx1+60,top+40,rx1+60,ry-10,C.res));
-    s.push(arrow(rx1+60,ry+40,rx1+60,ground-50,C.res));
-    s.push(marker(2,rx1+40,ry-48)); s.push(label(rx1+54,ry-44,"Rescuer",null,C.rescuer,12,1));
-    keys.push("Rescuer descends on separate rescue ropes (green), connects to the casualty and takes their weight");
-    keys.push("Casualty: ascenders removed, back-up kept on");
-    keys.push("Rescuer and casualty descend together to "+landing());
-    s.push(marker(4,wall+70,ground-18));
-  }else if(id==="ascent"){
-    const rx1=wall+70, rx2=wall+80, ry=casY-44;
-    s.push(anchorPair(16,40,top-20,0,C.res));
-    s.push(`<path d="M28 ${top-4} L${wall-2} ${top-10} L${rx1} ${top-4} L${rx1} ${ground-6}" stroke="${C.res}" stroke-width="2.6" fill="none"/>`);
-    s.push(`<path d="M28 ${top-4} L${wall-2} ${top-14} L${rx2} ${top-8} L${rx2} ${ground-6}" stroke="${C.resb}" stroke-width="2.2" stroke-dasharray="7 4" fill="none"/>`);
-    s.push(`<g opacity="0.45">${person(rx1+16,ground-60,C.rescuer)}</g>`);
-    s.push(label(rx1+34,ground-58,"Start",null,C.muted,11));
-    s.push(arrow(rx1+60,ground-60,rx1+60,ry-14,C.res));
-    s.push(person(rx1+16,ry,C.rescuer));
-    s.push(`<rect x="${rx1-4}" y="${ry-12}" width="8" height="14" rx="2" fill="${C.ink}"/>`);
-    s.push(`<line x1="${rx1}" y1="${ry}" x2="${cx1+18}" y2="${casY}" stroke="${C.ink}" stroke-width="2"/>`);
-    s.push(arrow(rx1+90,ry+10,rx1+90,ground-50,C.casualty));
-    s.push(marker(2,rx1+40,ry-48)); s.push(label(rx1+54,ry-44,"Rescuer: changeover",null,C.rescuer,12,1));
-    keys.push("Rescuer climbs separate ropes (green) from below to just above the casualty");
-    keys.push("Casualty connected to the rescuer's descender; casualty's device unloaded and removed");
-    keys.push("Descend together to "+landing());
-    s.push(marker(4,wall+128,ground-70));
-  }else if(id==="haul"){
-    // haul system near edge on roof
-    const px=100, py=top-40;
-    s.push(`<path d="M8 ${top} L8 ${top-60}" stroke="${C.struct}" stroke-width="3"/>`);
-    s.push(`<rect x="2" y="${top-66}" width="12" height="8" fill="${C.ink}"/>`);
-    // haul rope from anchor to pulley system to edge then down to casualty (green)
-    s.push(`<path d="M14 ${top-62} L${px-30} ${py}" stroke="${C.res}" stroke-width="2.4" fill="none"/>`);
-    s.push(`<path d="M${px-30} ${py} L${px+10} ${py-6} L${px-24} ${py+10} L${px+16} ${py+6}" stroke="${C.res}" stroke-width="2.4" fill="none"/>`);
-    s.push(`<circle cx="${px-30}" cy="${py}" r="6" fill="#fff" stroke="${C.ink}" stroke-width="2"/><circle cx="${px+12}" cy="${py-4}" r="6" fill="#fff" stroke="${C.ink}" stroke-width="2"/>`);
-    s.push(`<path d="M${px+16} ${py+6} L${wall+4} ${top-14} L${wall+40} ${top-30}" stroke="${C.res}" stroke-width="2.4" fill="none"/>`);
-    s.push(`<circle cx="${wall+40}" cy="${top-30}" r="6" fill="#fff" stroke="${C.ink}" stroke-width="2"/>`);
-    s.push(`<path d="M${wall+40} ${top-24} L${wall+40} ${casY-16} L${cx1+18} ${casY-4}" stroke="${C.res}" stroke-width="2.4" fill="none"/>`);
-    s.push(`<path d="M${wall+20} ${top-40} L${wall+40} ${top-36} L${wall+60} ${top+0}" stroke="${C.struct}" stroke-width="2.4" fill="none"/>`);
-    s.push(label(wall+64,top-34,"High directional",null,C.muted,10));
-    s.push(person(px-60,top-26,C.rescuer));
-    s.push(label(px-70,top-62,"3:1 haul with progress capture",null,C.ink,10,1));
-    s.push(arrow(wall+70,casY-20,wall+70,top+30,C.res));
-    s.push(marker(2,px-82,top-40));
-    s.push(`<rect x="12" y="${top+4}" width="0" height="0"/>`);
-    keys.push("Haul team at the top: 3:1 haul system (green) with progress capture, independent back-up tended");
-    keys.push("Casualty raised on the haul rope to the edge, helped over by a second team member");
-    keys.push("Safe area at the top, away from the edge");
-    s.push(`<rect x="6" y="${top+28}" width="${wall-50}" height="22" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);
-    s.push(label(12,top+43,"Safe area at top",null,C.ink,11,1));
-    s.push(marker(4,wall-30,top+39));
-  }else if(id==="lower"){
-    s.push(`<rect x="38" y="${top+20}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
-    s.push(label(18,top+52,"Releasable lowering",null,C.ink,10,1));
-    s.push(label(18,top+64,"device on anchor",null,C.ink,10,1));
-    s.push(`<path d="M51 ${top+36} q-12 30 8 44 q20 14 -2 26" stroke="${C.work}" stroke-width="2.4" fill="none"/>`);
-    s.push(person(100,top-26,C.rescuer));
-    s.push(label(114,top-58,"Lowering",null,C.rescuer,11,1));
-    s.push(marker(2,80,top-66));
-    s.push(arrow(wall+70,casY-30,wall+70,ground-30,C.casualty));
-    // rope coil at bottom
-    s.push(`<ellipse cx="${cx1+6}" cy="${ground-4}" rx="14" ry="4" fill="none" stroke="${C.work}" stroke-width="2"/><ellipse cx="${cx1+6}" cy="${ground-8}" rx="12" ry="3.5" fill="none" stroke="${C.back}" stroke-width="2"/>`);
-    keys.push("Rescuer at the top unlocks the lowering device and lowers; second person tends the back-up");
-    keys.push("Casualty lowered on their own ropes, nobody goes down");
-    keys.push("Ground team receives the casualty at "+landing());
-    s.push(marker(4,wall+70,ground-18));
+  add(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ${FONT}>`);
+  add(`<rect width="${W}" height="${H}" fill="#fff"/>`);
+  // bottom
+  if(S.env==="water"){add(`<rect x="0" y="${ground}" width="${W}" height="${H-ground-62}" fill="#dbeafe"/>`);
+    for(let i=0;i<3;i++){let d=`M0 ${ground+8+i*12}`;for(let x=0;x<W;x+=24)d+=" q6 -5 12 0 t12 0";add(`<path d="${d}" stroke="#3b82f6" stroke-width="1.4" fill="none"/>`)}}
+  else{add(`<rect x="0" y="${ground}" width="${W}" height="${H-ground-62}" fill="#e8e2d0"/>`);add(`<line x1="0" y1="${ground}" x2="${W}" y2="${ground}" stroke="${C.ink}" stroke-width="2.5"/>`);
+    for(let x=6;x<W;x+=14) add(`<line x1="${x}" y1="${ground+2}" x2="${x-8}" y2="${ground+10}" stroke="#a69c86" stroke-width="1"/>`)}
+  // structure
+  if(sc.view==="side"){
+    add(`<rect x="0" y="${top}" width="${wall}" height="${ground-top}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
+    for(let yy=top+30;yy<ground;yy+=40) add(`<line x1="0" y1="${yy}" x2="${wall}" y2="${yy}" stroke="#d3d9dd"/>`);
+    add(`<line x1="0" y1="${top}" x2="${wall}" y2="${top}" stroke="${C.ink}" stroke-width="3"/>`);
+    add(T(8,ground-10,"Structure (side view)",{c:C.muted}));
+  }else{
+    add(`<rect x="8" y="${top}" width="392" height="${ground-top}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
+    for(let yy=top+50;yy<ground;yy+=50) add(`<line x1="8" y1="${yy}" x2="400" y2="${yy}" stroke="#d3d9dd"/>`);
+    for(let xx=80;xx<400;xx+=98) add(`<line x1="${xx}" y1="${top}" x2="${xx}" y2="${ground}" stroke="#d3d9dd"/>`);
+    add(`<rect x="8" y="${top-6}" width="392" height="6" fill="${C.ink}"/>`);
+    add(T(14,ground-10,"Structure face (front view)",{c:C.muted}));
+  }
+  // height
+  add(`<line x1="${W-22}" y1="${top}" x2="${W-22}" y2="${ground}" stroke="${C.muted}" stroke-width="1.2"/><path d="M${W-22} ${top} l-4 8 h8 Z M${W-22} ${ground} l-4 -8 h8 Z" fill="${C.muted}"/>`);
+  add(`<text x="${W-9}" y="${(top+ground)/2}" text-anchor="middle" font-size="12" font-weight="700" fill="${C.ink}" transform="rotate(-90 ${W-9} ${(top+ground)/2})" ${FONT}>${h?esc(h+" m drop"):"Drop height"}</text>`);
+
+  const edge=()=>add(`<rect x="${wall-6}" y="${top-6}" width="14" height="12" rx="2" fill="#f59e0b" stroke="${C.ink}" stroke-width="1"/>`);
+  const cx1=wall+12,cx2=wall+22;
+  function casRopes(endY,withEnds){ // side view: Y-hangs on roof, over the edge, down
+    const a=yhang(30,70,top,C.work),b=yhang(84,120,top,C.back);add(a.svg);add(b.svg);
+    add(line([[a.x,a.y],[wall,top],[cx1,top+8],[cx1,endY]],C.work));
+    add(line([[b.x,b.y],[wall,top+2],[cx2,top+10],[cx2,endY]],C.back));
+    if(withEnds!==false){add(`<circle cx="${cx1}" cy="${endY}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${endY}" r="3" fill="${C.back}"/>`)}
+    edge(); key("Anchors: Y-hangs for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),50,top-26);
+  }
+  function rescRopesSide(x,endY){ // separate rescue ropes from roof
+    const r=yhang(10,40,top-20,C.res);add(r.svg);
+    add(line([[r.x,r.y],[wall-2,top-10],[x,top-4],[x,endY]],C.res));
+    add(line([[r.x,r.y],[wall-2,top-14],[x+10,top-8],[x+10,endY]],C.resb,2.2,"7 4"));
+  }
+  function casualtyOn(x,y){add(dev(x,y));add(person(x+18,y+6,C.cas,{slump:true}));add(`<line x1="${x}" y1="${y}" x2="${x+16}" y2="${y+6}" stroke="${C.ink}" stroke-width="1.6"/>`)}
+  function frontPair(x,y0,y1){add(line([[x,y0],[x,y1]],C.work));add(line([[x+9,y0],[x+9,y1]],C.back))}
+
+  switch(id){
+  case "lower":{
+    casRopes(ground-6,false);
+    add(`<rect x="38" y="${top+20}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
+    add(TB(14,top+54,"Releasable lowering",{s:10,b:1}));add(TB(14,top+67,"device on anchor",{s:10,b:1}));
+    add(`<path d="M51 ${top+36} q-12 30 8 44 q20 14 -2 26" stroke="${C.work}" stroke-width="2.4" fill="none"/>`);
+    add(person(100,top-26,C.resc));rescLabel(116,top-56,"Lowering");
+    key("Person at the top unlocks the lowering device and lowers; a second person tends the back-up",88,top-70);
+    casualtyOn(cx1,250);casLabel(wall-92,240);key("Casualty lowered on their own ropes; nobody goes down",wall-104,236);
+    add(arrow(wall+80,230,wall+80,ground-30,C.cas));
+    add(`<ellipse cx="${cx1+6}" cy="${ground-4}" rx="14" ry="4" fill="none" stroke="${C.work}" stroke-width="2"/><ellipse cx="${cx1+6}" cy="${ground-8}" rx="12" ry="3.5" fill="none" stroke="${C.back}" stroke-width="2"/>`);
+    lz(wall+18,wall+128);key("Ground team receives the casualty",wall+73,ground-20);
+    break}
+  case "haul":{
+    casRopes(ground-40);const px=100,py=top-40;
+    add(`<path d="M8 ${top} L8 ${top-60}" stroke="${C.struct}" stroke-width="3"/>`);add(anc(8,top-58));
+    add(line([[14,top-62],[px-30,py]],C.res,2.4));add(line([[px-30,py],[px+10,py-6],[px-24,py+10],[px+16,py+6]],C.res,2.4));
+    add(pulley(px-30,py));add(pulley(px+12,py-4));
+    add(line([[px+16,py+6],[wall+4,top-14],[wall+40,top-30]],C.res,2.4));add(pulley(wall+40,top-30));
+    add(line([[wall+40,top-24],[wall+40,300-18],[cx1+18,300]],C.res,2.4));
+    add(line([[wall+20,top-40],[wall+40,top-36],[wall+60,top]],C.struct,2.4));add(T(wall+64,top-34,"High directional",{c:C.muted,s:10}));
+    add(TB(px-64,top-64,"3:1 haul with progress capture",{s:10,b:1}));
+    key("Haul team at the top: 3:1 haul (green) with progress capture; independent back-up tended",px-84,top-34);
+    casualtyOn(cx1,294);casLabel(wall-92,300);key("Casualty raised to the edge and helped over by a second team member",wall-104,296);
+    add(arrow(wall+80,280,wall+80,top+30,C.res));
+    add(`<rect x="6" y="${top+30}" width="${wall-40}" height="22" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);add(T(14,top+45,"Safe area at top",{b:1}));
+    key("Safe area at the top, away from the edge",wall-22,top+41);
+    break}
+  case "cross":{
+    const a=yhang(30,70,top,C.res);add(a.svg);edge();
+    add(`<rect x="340" y="${top+60}" width="16" height="${ground-top-60}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
+    add(`<rect x="332" y="${top+54}" width="32" height="8" fill="${C.ink}"/>`);add(T(348,ground-12,"Mast",{a:"middle",c:C.muted,s:10}));
+    const cx=260,cy=300;
+    add(line([[a.x,a.y],[wall,top],[wall+10,top+8],[cx-4,cy-8]],C.res));
+    add(line([[a.x,a.y+3],[wall,top+3],[wall+4,top+12],[cx-10,cy-4]],C.resb,2.2,"7 4"));
+    add(pulley(348,top+64));
+    add(line([[348,top+70],[cx+4,cy-8]],C.sys2));add(line([[342,top+70],[cx+10,cy-4]],C.sys2,2,"7 4"));
+    add(person(cx,cy+6,C.cas,{slump:true}));
+    add(`<rect x="${wall}" y="400" width="120" height="100" fill="#cbd2d8" stroke="${C.struct}"/>`);add(T(wall+60,454,"Obstruction",{a:"middle",b:1,c:C.muted}));
+    key("System A (green) from the structure anchors, with its own back-up",50,top-26);
+    key("System B (purple) from the second anchor point, with its own back-up",370,top+44);
+    casLabel(cx-110,250);key("Casualty attached to both systems and both back-ups",cx-122,246);
+    add(arrow(cx+10,cy+30,cx+70,ground-40,C.cas));
+    lz(300,390);key("Haul on B, let out on A, then lower together to the landing zone",345,ground-22);
+    legend.push([C.sys2,"Second haul system"]);
+    break}
+  case "tension":{
+    const a=yhang(30,70,top,C.res);add(a.svg);edge();
+    const gx=380,gy=ground-6,ex=wall+6,ey=top+4;
+    add(line([[a.x,a.y],[wall,top],[gx,gy]],C.res,2.4));add(line([[a.x,a.y+4],[wall,top+5],[gx,gy+4]],C.res,2.4));
+    add(`<rect x="${gx-8}" y="${gy-4}" width="16" height="10" fill="${C.ink}"/>`);
+    const t=0.42,px=ex+(gx-ex)*t,py=ey+(gy-ey)*t;
+    add(pulley(px,py+2));add(`<line x1="${px}" y1="${py+8}" x2="${px}" y2="${py+30}" stroke="${C.ink}" stroke-width="1.8"/>`);
+    add(person(px,py+34,C.cas,{slump:true}));
+    add(`<rect x="88" y="${top+20}" width="22" height="14" rx="3" fill="${C.work}" stroke="${C.ink}"/>`);
+    add(line([[99,top+20],[wall,top-4],[px,py+30]],C.work,2.2));
+    key("Tensioned rope pair (green) on equalised anchors, load shared between both ropes",50,top-26);
+    key("Control rope (red) with back-up lowers the casualty from the top",100,top+50);
+    casLabel(px+24,py+18);key("Casualty on pulleys on both tensioned ropes",px+12,py-8);
+    add(arrow(px+40,py+70,px+120,py+150,C.cas));
+    lz(300,370,"Ground anchor area");key("Ground anchor beyond the obstruction; team receives casualty",gx-30,gy-30);
+    legend[2]=[C.res,"Tensioned ropes"];
+    break}
+  case "descent":{
+    casRopes(ground-40);const rx=wall+70,cy=290,ry=cy-46;
+    rescRopesSide(rx,ground-40);
+    casualtyOn(cx1,cy);
+    add(dev(rx,ry));add(person(rx+16,ry,C.resc));add(`<line x1="${rx}" y1="${ry}" x2="${cx1+18}" y2="${cy+6}" stroke="${C.ink}" stroke-width="2"/>`);
+    add(arrow(rx+64,top+40,rx+64,ry-14,C.res));add(arrow(rx+64,ry+40,rx+64,ground-50,C.res));
+    rescLabel(rx+30,ry-44);key("Rescuer descends on separate rescue ropes (green) and connects to the casualty",rx+18,ry-48);
+    casLabel(wall-92,cy-4);key("Casualty's descender / ascenders removed; back-up kept on",wall-104,cy-8);
+    lz(wall+18,wall+128);key("Descend together to "+landing(),wall+73,ground-20);
+    break}
+  case "own":{
+    casRopes(ground-40);const cy=300,ry=cy-50;
+    casualtyOn(cx1,cy);
+    add(dev(cx1,ry,C.resc));add(person(cx1+42,ry,C.resc));add(`<line x1="${cx1}" y1="${ry}" x2="${cx1+40}" y2="${ry}" stroke="${C.ink}" stroke-width="1.8"/>`);
+    add(`<line x1="${cx1+40}" y1="${ry+2}" x2="${cx1+18}" y2="${cy+6}" stroke="${C.ink}" stroke-width="2"/>`);
+    add(arrow(wall+110,top+30,wall+110,ry-20,C.res));add(arrow(wall+110,ry+40,wall+110,ground-50,C.res));
+    rescLabel(cx1+60,ry-40);key("Rescuer descends the casualty's own ropes, above the casualty",cx1+48,ry-56);
+    casLabel(wall-92,cy-4);key("Casualty attached to rescuer; weight moved off their device",wall-104,cy-8);
+    lz(wall+18,wall+128);key("Descend together to "+landing(),wall+73,ground-20);
+    break}
+  case "ascent":{
+    casRopes(ground-40);const rx=wall+70,cy=280,ry=cy-44;
+    rescRopesSide(rx,ground-6);
+    casualtyOn(cx1,cy);add(`<rect x="${cx1-4}" y="${cy+14}" width="8" height="10" rx="2" fill="${C.ink}"/>`);
+    add(`<g opacity="0.45">${person(rx+16,ground-60,C.resc)}</g>`);add(T(rx+34,ground-58,"Start",{c:C.muted}));
+    add(arrow(rx+64,ground-60,rx+64,ry-14,C.res));
+    add(dev(rx,ry));add(person(rx+16,ry,C.resc));add(`<line x1="${rx}" y1="${ry}" x2="${cx1+18}" y2="${cy+6}" stroke="${C.ink}" stroke-width="2"/>`);
+    add(arrow(rx+100,ry+10,rx+100,ground-50,C.cas));
+    rescLabel(rx+30,ry-44,"Rescuer: changeover");key("Rescuer climbs separate ropes (green) to just above the casualty, then changes to descent",rx+18,ry-48);
+    casLabel(wall-120,cy-4,"Casualty on ascenders");key("Casualty lifted to free the chest ascender, then removed from it",wall-132,cy-8);
+    key("Descend together to "+landing(),wall+128,ground-74);lz(wall+18,wall+128);
+    break}
+  case "aid":{
+    add(`<rect x="${wall}" y="210" width="190" height="14" fill="${C.struct}" stroke="${C.ink}"/>`);add(T(wall+4,204,"Beam / deck underside",{c:C.muted,s:10}));
+    const cx=300;add(line([[cx-8,224],[cx,262]],C.ink,2));add(line([[cx+8,224],[cx+2,262]],C.ink,2));add(krab(cx-8,226));add(krab(cx+8,226));
+    add(person(cx,266,C.cas,{slump:true}));
+    const rx=220;add(line([[rx-6,224],[rx,250]],C.ink,2));add(line([[rx+6,224],[rx,250]],C.ink,2));add(person(rx,254,C.resc));
+    add(`<rect x="${cx-30}" y="224" width="10" height="8" fill="${C.ink}"/>`);add(`<rect x="${cx-34}" y="234" width="16" height="12" rx="2" fill="${C.res}" stroke="${C.ink}"/>`);
+    add(line([[cx-26,246],[cx-4,262]],C.res,2.2));add(line([[cx-26,246],[rx+10,262]],C.res,2,"5 3"));
+    add(`<rect x="${rx-26}" y="268" width="18" height="22" rx="4" fill="#f97316" stroke="${C.ink}"/>`);add(T(rx-34,304,"Rescue kit",{s:10,c:C.muted}));
+    key("Casualty hanging from work-positioning lanyards",cx+30,250);casLabel(cx+44,254);
+    rescLabel(rx-88,250);key("Rescuer climbs out with the rescue kit, always on two attachments",rx-100,246);
+    key("Rescue rope rigged through a lowering device on an anchor above the casualty",cx-12,194);
+    add(arrow(cx+30,300,cx+30,ground-40,C.cas));
+    lz(260,370);key("Casualty lowered (or rescuer descends with them) to "+landing(),315,ground-22);
+    break}
+  case "fa":{
+    const lx1=wall+6,lx2=wall+26;add(line([[lx1,top],[lx1,ground]],C.struct,3));add(line([[lx2,top],[lx2,ground]],C.struct,3));
+    for(let y=top+12;y<ground;y+=16) add(`<line x1="${lx1}" y1="${y}" x2="${lx2}" y2="${y}" stroke="${C.struct}" stroke-width="2"/>`);
+    add(line([[lx2+5,top],[lx2+5,ground]],"#f59e0b",3));add(T(lx2+12,top+14,"Fall arrest rail / line",{s:10,b:1,c:"#b45309"}));
+    const cy=330;add(`<rect x="${lx2+1}" y="${cy-28}" width="9" height="10" rx="2" fill="${C.ink}"/>`);add(line([[lx2+6,cy-18],[lx2+26,cy]],C.ink,1.8));
+    add(person(lx2+28,cy+4,C.cas,{slump:true}));
+    const ry=220;add(person(lx2+20,ry,C.resc));add(`<rect x="${lx2+1}" y="${ry-12}" width="9" height="10" rx="2" fill="${C.ink}"/>`);
+    add(`<rect x="${lx1-4}" y="${ry-50}" width="34" height="5" fill="${C.ink}"/>`);add(`<rect x="${lx2+30}" y="${ry-46}" width="16" height="12" rx="2" fill="${C.res}" stroke="${C.ink}"/>`);
+    add(line([[lx2+38,ry-34],[lx2+40,cy-4]],C.res,2.2));add(line([[lx2+44,ry-34],[lx2+46,cy-2]],C.resb,2,"6 3"));
+    rescLabel(lx2+60,ry-50);key("Rescuer climbs on own fall arrest, rigs rescue kit to an anchor above the casualty",lx2+60,ry-30);
+    casLabel(lx2+60,cy-8);key("Casualty lifted off the fall arrest device, then unclipped",lx2+60,cy+18);
+    add(arrow(lx2+90,cy+40,lx2+90,ground-40,C.cas));
+    lz(wall+40,wall+150);key("Casualty lowered to "+landing()+"; check for fall injuries",wall+95,ground-22);
+    break}
+  case "short":{
+    add(`<rect x="${wall}" y="190" width="200" height="16" fill="${C.struct}" stroke="${C.ink}"/>`);add(T(wall+10,184,"Overhang / beam - no higher anchor",{c:C.muted,s:10}));
+    const cx=300;add(`<rect x="${cx-5}" y="206" width="10" height="7" fill="${C.ink}"/>`);add(krab(cx,216));
+    add(person(cx,240,C.cas,{slump:true}));
+    const rx=225;add(`<rect x="${rx-5}" y="206" width="10" height="7" fill="${C.ink}"/>`);add(line([[rx,213],[rx,236]],C.ink,2));add(person(rx,240,C.resc));
+    add(`<rect x="${cx-35}" y="206" width="10" height="7" fill="${C.ink}"/>`);add(pulley(cx-30,222));add(line([[cx-30,228],[cx-4,240]],C.res,2.2));add(line([[cx-36,222],[rx+12,236]],C.res,2.2));
+    add(line([[rx+4,246],[cx-6,250]],C.res,2,"5 3"));
+    key("Casualty clipped tight to the anchor with a short connection",cx+28,226);casLabel(cx+42,231);
+    rescLabel(rx-70,300);key("Rescuer on own anchor beside the casualty",rx-90,296);
+    key("Small haul from a side anchor lifts the casualty so the short connection can be removed",cx-30,158);
+    add(arrow(cx+20,290,cx+20,ground-40,C.cas));
+    lz(260,370);key("Lower or descend with the casualty to "+landing(),315,ground-22);
+    break}
+  case "dev":{
+    const a=yhang(110,150,top,C.work);add(a.svg);
+    const dx=220,dy=270;
+    add(line([[a.x-4,a.y],[dx-4,dy],[dx-4,ground-40]],C.work));add(line([[a.x+5,a.y],[dx+5,dy],[dx+5,ground-40]],C.back));
+    add(`<rect x="290" y="${dy-6}" width="10" height="10" fill="${C.ink}"/>`);add(line([[295,dy],[dx+2,dy]],"#f59e0b",3));add(krab(dx,dy));
+    add(line([[a.x,a.y],[a.x,ground-60]],C.muted,1.4,"3 4"));
+    add(`<rect x="100" y="300" width="70" height="40" fill="#cbd2d8" stroke="${C.struct}"/>`);add(T(135,325,"Hazard",{a:"middle",b:1,c:C.muted}));
+    key("Anchors at the top",130,top-26);
+    key("Deviation: sling to a side anchor pulls the ropes clear of the hazard",300,dy-22);
+    const t=0.55,px=a.x+(dx-a.x)*t,py=a.y+(dy-a.y)*t;
+    add(person(px+14,py+6,C.cas,{slump:true}));add(person(px+40,py-4,C.resc));add(line([[px+38,py-2],[px+16,py+6]],C.ink,2));add(dev(px+4,py-6));
+    casLabel(20,py+30);key("Rescuer with casualty on the rescuer's descender, above the deviation",px+70,py-30);
+    add(arrow(dx+40,dy+20,dx+40,ground-50,C.cas));
+    lz(dx-40,dx+70);key("Pass the deviation under control, then descend to "+landing(),dx+15,ground-22);
+    break}
+  case "reanchor":{
+    const a=yhang(100,140,top,C.work);add(a.svg);
+    const rx=220,ry=290;
+    add(`<path d="M${a.x-4} ${a.y} L${a.x+10} 250 Q ${a.x+30} 350 ${rx-4} ${ry}" stroke="${C.work}" stroke-width="2.6" fill="none"/>`);
+    add(`<path d="M${a.x+5} ${a.y} L${a.x+19} 250 Q ${a.x+40} 358 ${rx+5} ${ry}" stroke="${C.back}" stroke-width="2.6" fill="none"/>`);
+    frontPair(rx-4,ry,ground-40);
+    add(`<rect x="${rx+18}" y="${ry-6}" width="10" height="10" fill="${C.ink}"/>`);add(line([[rx+18,ry],[rx,ry]],"#f59e0b",3));
+    add(`<rect x="90" y="360" width="80" height="50" fill="#cbd2d8" stroke="${C.struct}"/>`);add(T(130,390,"Hazard",{a:"middle",b:1,c:C.muted}));
+    key("Anchors at the top",120,top-26);
+    key("Small re-anchor (offset no more than 1.5 m) with a loop of slack above it",rx+50,ry-6);
+    const py=190;add(person(a.x+22,py+6,C.cas,{slump:true}));add(person(a.x+48,py-4,C.resc));add(line([[a.x+46,py-2],[a.x+24,py+6]],C.ink,2));add(dev(a.x+12,py-6));
+    casLabel(20,py+40);key("Rescuer with casualty above the re-anchor",a.x+76,py-30);
+    add(arrow(rx+40,ry+30,rx+40,ground-50,C.cas));
+    lz(rx-50,rx+60);key("Transfer onto the rope below the re-anchor, then descend to "+landing(),rx+5,ground-22);
+    break}
+  case "r2r":{
+    const A=yhang(80,120,top,C.work),B=yhang(270,310,top,C.work);add(A.svg);add(B.svg);
+    frontPair(A.x-4,A.y,360);frontPair(B.x-4,B.y,ground-40);
+    add(`<rect x="40" y="370" width="140" height="${ground-370}" fill="#cbd2d8" stroke="${C.struct}"/>`);add(T(110,440,"Obstruction",{a:"middle",b:1,c:C.muted}));
+    key("Rope set A",A.x,top-26);key("Rope set B, more than 3 m away",B.x,top-26);
+    const py=230;add(person(A.x+18,py+6,C.cas,{slump:true}));add(person(A.x+44,py-4,C.resc));add(line([[A.x+42,py-2],[A.x+20,py+6]],C.ink,2));add(dev(A.x+6,py-6));
+    casLabel(20,py-40);
+    add(arrow(A.x+70,py+30,B.x-20,py+30,C.cas));add(arrow(B.x+30,py+50,B.x+30,ground-50,C.cas));
+    key("Move across with the casualty, letting out on A and taking in on B",(A.x+B.x)/2,py+8);
+    lz(B.x-50,B.x+60);key("Descend on set B to "+landing(),B.x+5,ground-22);
+    break}
+  case "mid":{
+    const A=yhang(70,110,top,C.work),B=yhang(280,320,top,C.work);add(A.svg);add(B.svg);
+    frontPair(A.x-4,A.y,ground-40);frontPair(B.x-4,B.y,ground-40);
+    const cx=195,cy=280;add(line([[A.x,230],[cx-4,cy-6]],C.ink,2));add(line([[B.x,230],[cx+4,cy-6]],C.ink,2));add(dev(A.x,230));add(dev(B.x,230));
+    add(person(cx,cy+6,C.cas,{slump:true}));
+    key("Rope sets more than 3 m apart (or a wide re-anchor over 1.5 m)",A.x,top-26);
+    casLabel(cx-40,cy+60);key("Casualty stuck between the two rope sets",cx+44,cy+10);
+    const ry=180;add(person(B.x+28,ry,C.resc));add(dev(B.x+8,ry-6));
+    add(arrow(B.x+40,top+30,B.x+40,ry-40,C.res));
+    rescLabel(B.x-12,ry-50);key("Rescuer descends set B with four points of attachment",B.x+60,ry-30);
+    add(arrow(B.x+50,cy+40,B.x+50,ground-50,C.cas));
+    lz(B.x-40,B.x+70);key("Take the casualty over, remove links to set A one at a time, descend",B.x+15,ground-22);
+    break}
+  case "knots":{
+    const a=yhang(180,220,top,C.work);add(a.svg);frontPair(a.x-4,a.y,ground-40);
+    add(knot(a.x-4,330,C.work));add(knot(a.x+5,350,C.back));add(T(a.x+22,344,"Mid-rope knots",{b:1,s:10}));
+    key("Anchors at the top",a.x,top-26);
+    const py=220;add(person(a.x+18,py+6,C.cas,{slump:true}));add(person(a.x+44,py-4,C.resc));add(line([[a.x+42,py-2],[a.x+20,py+6]],C.ink,2));add(dev(a.x-4,py-6));
+    casLabel(40,py+10);key("Rescuer with casualty above the knots",a.x+70,py-30);
+    key("Pass each knot separately, allowing for rope stretch; keep a back-up on",a.x-40,340);
+    add(arrow(a.x+60,py+40,a.x+60,ground-50,C.cas));
+    lz(a.x-50,a.x+60);key("Descend to "+landing(),a.x+5,ground-22);
+    break}
   }
   // legend
-  const ly=H-56;
-  s.push(`<rect x="0" y="${ly-6}" width="${W}" height="62" fill="#fff"/>`);
-  const leg=[[C.work,"Working rope",0],[C.back,"Back-up rope",0],[C.res,"Rescue rope",0],[C.resb,"Rescue back-up",1]];
-  leg.forEach((l,i)=>{const x=8+i*108;s.push(`<line x1="${x}" y1="${ly+4}" x2="${x+22}" y2="${ly+4}" stroke="${l[0]}" stroke-width="3" ${l[2]?'stroke-dasharray="6 3"':""}/>`);s.push(label(x+27,ly+8,l[1],null,C.ink,10))});
-  s.push(`<circle cx="14" cy="${ly+24}" r="5" fill="#f59e0b"/>`);s.push(label(24,ly+28,"Edge protection",null,C.ink,10));
-  s.push(`<path d="M120 ${ly+24} h22" stroke="${C.ink}" stroke-width="2.5" stroke-dasharray="6 4"/>`);s.push(label(148,ly+28,"Direction of travel",null,C.ink,10));
-  s.push(label(8,ly+48,SCN.find(x=>x.id===id).name+(S.site?" - "+S.site:""),null,C.muted,10));
-  s.push(`</svg>`);
-  return {svg:s.join(""),keys};
+  const ly=H-56;add(`<rect x="0" y="${ly-6}" width="${W}" height="62" fill="#fff"/>`);
+  let lx=8,lr=0;legend.forEach((l,i)=>{const wdt=l[1].length*5.3+40;if(lx+wdt>W-10){lx=8;lr++}const x=lx,y=ly+4+lr*18;lx+=wdt;add(`<line x1="${x}" y1="${y}" x2="${x+22}" y2="${y}" stroke="${l[0]}" stroke-width="3" ${l[2]?`stroke-dasharray="${l[2]}"`:""}/>`);add(T(x+27,y+4,l[1],{s:10}))});
+  const r2=ly+4+(lr+1)*18;
+  add(`<path d="M8 ${r2} h22" stroke="${C.ink}" stroke-width="2.5" stroke-dasharray="6 4"/>`);add(T(35,r2+4,"Direction of travel",{s:10}));
+  add(`<circle cx="150" cy="${r2}" r="7" fill="${C.mk}"/>`);add(T(162,r2+4,"Numbered point, see key",{s:10}));
+  if(lr<1) add(T(8,r2+20,sc.name+(S.site?" - "+S.site:""),{s:10,c:C.muted}));
+  add(`</svg>`);
+  return {svg:out.join(""),keys};
+}
+
+/* ---------- checks ---------- */
+function checks(){
+  const r=[],tm=S.team.filter(p=>p.name||p.role),techs=tm.filter(p=>LV[p.level]>0);
+  const maxL=Math.max(0,...techs.map(p=>LV[p.level]));
+  const inc=SCN.filter(sc=>plan(sc.id).inc);
+  const add=(st,t,ref)=>r.push({st,t,ref});
+  techs.length>=2?add("ok","Team has "+techs.length+" rope access technicians.","ICOP 2.11.6.2"):add("bad","IRATA needs at least two rope access technicians in the team.","ICOP 2.11.6.2");
+  tm.some(p=>p.level==="L3")?add("ok","A Level 3 supervisor is in the team"+(S.team.find(p=>p.level==="L3"&&p.name)?" ("+supName()+")":"")+".","ICOP 2.11.6.4"):add("bad","The team needs a Level 3 rope access safety supervisor.","ICOP 2.11.6.4");
+  const onlyLower=inc.length>0&&inc.every(sc=>sc.id==="lower");
+  if(techs.length<3&&!onlyLower) add("wn","With rescues other than a straight lower, three technicians is the normal minimum team.","ICOP 2.11.6.3");
+  if(!inc.length) add("bad","No rescue setups ticked yet.","TACS 6.2.8");
+  if(inc.length&&!inc.some(sc=>sc.g==="rig")) add("wn","No rig-for-rescue setup ticked. IRATA says to use rig-for-rescue systems where feasible.","TACS 6.5.1.1.2");
+  inc.forEach(sc=>{ if(maxL<sc.lvl) add("bad",sc.name+" needs a Level "+sc.lvl+" in the team.",sc.ref); });
+  if(inc.some(sc=>sc.id==="dev")&&maxL<3) add("wn","Double-anchor deviations need a Level 3 for the rescue; single-anchor only with Level 2.","TACS 6.8.4");
+  S.radio||S.signals?add("ok","Communication method set.","TACS 6.2.8.1 f"):add("wn","Set a radio channel or agreed signals.","TACS 6.2.8.1 f");
+  S.medic?add("ok","First aider named.","ICOP 2.11.11.6"):add("wn","Name the first aider on site.","ICOP 2.11.11.6");
+  if(S.env==="water") S.boat?add("ok","Rescue boat arranged.","ICOP 2.11.6.8"):add("bad","Working over water: arrange a rescue boat or other prompt water rescue.","ICOP 2.11.6.8");
+  S.kitLoc?add("ok","Rescue kit location set.","ICOP 2.11.11.3"):add("wn","Say where the rescue kit is kept; it must be ready for immediate use.","ICOP 2.11.11.3");
+  S.anchors?add("ok","Anchors described.","TACS 6.2.8.1 a"):add("wn","Describe the anchors to be used.","TACS 6.2.8.1 a");
+  add("wn","Practise the rescues regularly and brief the team on this plan before work each day.","ICOP 2.5.2.9; 2.11.7.2");
+  return r;
+}
+function renderChecks(){
+  const ic={ok:"✓",bad:"✕",wn:"!"};
+  $("#checks").innerHTML=checks().map(c=>`<li class="${c.st}"><span class="ic">${ic[c.st]}</span><span>${esc(c.t)} <span class="ref">${esc(c.ref)}</span></span></li>`).join("");
 }
 
 /* ---------- UI ---------- */
 const $=q=>document.querySelector(q);
 let saveT=null;
 function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}},300)}
+function changed(){refreshDefaults();renderScn(true);renderChecks();save()}
 function bindFields(){
   document.querySelectorAll("[data-k]").forEach(el=>{
     const k=el.dataset.k; el.value=S[k]==null?"":S[k];
-    el.oninput=()=>{S[k]=el.type==="number"?el.value:el.value; refreshDefaults(); renderScn(true); save(); boatVis()};
+    el.oninput=()=>{S[k]=el.value;boatVis();changed()};
   });
   boatVis();
 }
 function boatVis(){$("#boatLbl").style.display=S.env==="water"?"":"none"}
-function refreshDefaults(){ // rebuild steps/equipment for plans the user hasn't edited
-  SCN.forEach(sc=>{const p=S.plans[sc.id]; if(p&&!p.edited){p.steps=defSteps(sc.id);const old={};p.equip.forEach(e=>old[e.t]=e.ok);p.equip=defEquip(sc.id).map(e=>({t:e.t,ok:!!old[e.t]}))}});
+function refreshDefaults(){
+  SCN.forEach(sc=>{const p=S.plans[sc.id]; if(!p) return;
+    if(!p.edited){p.steps=defSteps(sc.id);const old={};p.equip.forEach(e=>old[e.t]=e.ok);p.equip=defEquip(sc.id).map(e=>({t:e.t,ok:!!old[e.t]}))}
+    if(!p.contEdited) p.cont=defCont(sc.id);
+  });
 }
 function renderTeam(){
   const box=$("#team"); box.innerHTML="";
@@ -398,31 +691,31 @@ function renderTeam(){
     const d=document.createElement("div"); d.className="tm";
     d.innerHTML=`<input type="text" placeholder="Name" aria-label="Name"><select aria-label="Level"><option>L3</option><option>L2</option><option>L1</option><option>Other</option></select><input type="text" placeholder="Role (e.g. Rescuer)" aria-label="Role"><button class="mini" title="Remove">✕</button>`;
     const [n,l,r,b]=d.children; n.value=p.name; l.value=p.level; r.value=p.role;
-    n.oninput=()=>{p.name=n.value;refreshDefaults();renderScn(true);save()};
-    l.onchange=()=>{p.level=l.value;refreshDefaults();renderScn(true);save()};
-    r.oninput=()=>{p.role=r.value;refreshDefaults();renderScn(true);save()};
-    b.onclick=()=>{S.team.splice(i,1);renderTeam();refreshDefaults();renderScn(true);save()};
+    n.oninput=()=>{p.name=n.value;changed()};
+    l.onchange=()=>{p.level=l.value;changed()};
+    r.oninput=()=>{p.role=r.value;changed()};
+    b.onclick=()=>{S.team.splice(i,1);renderTeam();changed()};
     box.appendChild(d);
   });
 }
-$("#addTm").onclick=()=>{S.team.push({name:"",level:"L1",role:"Technician"});renderTeam();save()};
+$("#addTm").onclick=()=>{S.team.push({name:"",level:"L1",role:"Technician"});renderTeam();changed()};
 
-function renderTabs(){
-  const t=$("#tabs"); t.innerHTML="";
-  SCN.forEach(sc=>{const b=document.createElement("button");b.className="tab"+(S.cur===sc.id?" on":"");
-    b.innerHTML=esc(sc.short)+(plan(sc.id).inc?'<span class="dot" title="In plan"></span>':"");
-    b.onclick=()=>{S.cur=sc.id;renderTabs();renderScn();save()};t.appendChild(b)});
+function renderPicker(){
+  $("#picker").innerHTML=GROUPS.map(([g,label])=>`<div class="grp"><h4>${esc(label)}</h4><div class="chips">${SCN.filter(s=>s.g===g).map(s=>`<button class="chip${S.cur===s.id?" on":""}" data-id="${s.id}">${plan(s.id).inc?'<span class="dot" title="In plan"></span>':""}${esc(s.short)} <span class="lv">L${s.lvl}+</span></button>`).join("")}</div></div>`).join("");
+  document.querySelectorAll("#picker .chip").forEach(b=>b.onclick=()=>{S.cur=b.dataset.id;renderPicker();renderScn();save()});
 }
 function renderScn(onlyDrawing){
-  const id=S.cur, p=plan(id), sc=SCN.find(x=>x.id===id), d=draw(id);
+  const id=S.cur, p=plan(id), sc=byId(id), d=draw(id);
   if(onlyDrawing&&$("#scnDraw")){
-    $("#scnDraw").innerHTML=d.svg; $("#scnKeys").innerHTML=d.keys.map((k,i)=>`<li>${esc(k)}</li>`).join("");
-    if(!p.edited){fillSteps(p);fillEquip(p)}
+    $("#scnDraw").innerHTML=d.svg; $("#scnKeys").innerHTML=d.keys.map(k=>`<li>${esc(k)}</li>`).join("");
+    if(!p.edited){fillSteps(p);fillEquip(p)} if(!p.contEdited) fillCont(p);
     return;
   }
   $("#scn").innerHTML=`
-   <label class="inc"><input type="checkbox" id="incBox"> Include <strong>${esc(sc.name)}</strong> in the plan</label>
-   <p class="muted" style="margin:0 0 12px">${esc(sc.blurb)}</p>
+   <h3 style="margin:6px 0 4px;font-size:17px">${esc(sc.name)}</h3>
+   <div class="meta"><span>Lowest level trained: <b>Level ${sc.lvl}</b></span><span>IRATA reference: <b>${esc(sc.ref)}</b></span></div>
+   <p style="margin:0 0 8px">${esc(sc.blurb)}</p>
+   <label class="inc"><input type="checkbox" id="incBox"> Include this setup in the plan</label>
    <div class="scn">
      <div>
        <div class="draw" id="scnDraw">${d.svg}</div>
@@ -430,38 +723,44 @@ function renderScn(onlyDrawing){
        <ol id="scnKeys" style="margin:0;padding-left:20px;font-size:14px">${d.keys.map(k=>`<li>${esc(k)}</li>`).join("")}</ol>
      </div>
      <div>
-       <div class="row" style="justify-content:space-between"><h3 style="margin:0">Method</h3><button class="mini" id="resetBtn" title="Rebuild steps and equipment from the job details">Reset to default</button></div>
+       <div class="row" style="justify-content:space-between"><h3 style="margin:0">Method</h3><button class="mini" id="resetBtn" title="Rebuild this setup from the job details">Reset to default</button></div>
        <p class="muted" id="editNote" style="margin:4px 0 8px"></p>
        <ol class="steps" id="steps"></ol>
        <button class="mini" id="addStep" style="margin-top:8px">+ Add step</button>
+       <h3>If things go wrong (backup plan)</h3>
+       <ol class="steps cont" id="cont"></ol>
+       <button class="mini" id="addCont" style="margin-top:8px">+ Add item</button>
        <h3>Equipment checklist</h3>
        <div class="eq" id="equip"></div>
        <button class="mini" id="addEq" style="margin-top:8px">+ Add item</button>
      </div>
    </div>`;
-  const inc=$("#incBox"); inc.checked=p.inc; inc.onchange=()=>{p.inc=inc.checked;renderTabs();save()};
-  $("#resetBtn").onclick=()=>{p.steps=defSteps(id);p.equip=defEquip(id);p.edited=false;fillSteps(p);fillEquip(p);save()};
+  const inc=$("#incBox"); inc.checked=p.inc; inc.onchange=()=>{p.inc=inc.checked;renderPicker();renderChecks();save()};
+  $("#resetBtn").onclick=()=>{p.steps=defSteps(id);p.equip=defEquip(id);p.cont=defCont(id);p.edited=false;p.contEdited=false;fillSteps(p);fillEquip(p);fillCont(p);save()};
   $("#addStep").onclick=()=>{p.steps.push("");mark(p);fillSteps(p);const t=document.querySelectorAll("#steps textarea");t[t.length-1].focus();save()};
+  $("#addCont").onclick=()=>{p.cont.push("");p.contEdited=true;fillCont(p);const t=document.querySelectorAll("#cont textarea");t[t.length-1].focus();save()};
   $("#addEq").onclick=()=>{p.equip.push({t:"",ok:false});mark(p);fillEquip(p);const t=document.querySelectorAll("#equip input[type=text]");t[t.length-1].focus();save()};
-  fillSteps(p);fillEquip(p);
+  fillSteps(p);fillEquip(p);fillCont(p);
 }
-function mark(p){p.edited=true;const n=$("#editNote");if(n)n.textContent="Edited by you, so it won't change when job details change. Use Reset to rebuild."}
+const EDITED="Edited by you, so it won't change when job details change. Use Reset to rebuild it.";
+function mark(p){p.edited=true;const n=$("#editNote");if(n)n.textContent=EDITED}
 function autosize(t){t.style.height="auto";t.style.height=(t.scrollHeight+2)+"px"}
-function fillSteps(p){
-  const ol=$("#steps"); if(!ol) return; ol.innerHTML="";
-  $("#editNote").textContent=p.edited?"Edited by you, so it won't change when job details change. Use Reset to rebuild.":"Fills in from the job details. Edit any step to make it your own.";
-  p.steps.forEach((st,i)=>{
+function listEditor(ol,arr,onEdit,refill){
+  ol.innerHTML="";
+  arr.forEach((st,i)=>{
     const li=document.createElement("li");
-    li.innerHTML=`<textarea rows="2" aria-label="Step ${i+1}"></textarea><div class="ctl"><button title="Move up">▲</button><button title="Move down">▼</button><button title="Delete">✕</button></div>`;
+    li.innerHTML=`<textarea rows="2"></textarea><div class="ctl"><button title="Move up">▲</button><button title="Move down">▼</button><button title="Delete">✕</button></div>`;
     const ta=li.querySelector("textarea"); ta.value=st;
-    ta.oninput=()=>{p.steps[i]=ta.value;mark(p);autosize(ta);save()};
+    ta.oninput=()=>{arr[i]=ta.value;onEdit();autosize(ta);save()};
     const [u,dn,x]=li.querySelectorAll("button");
-    u.onclick=()=>{if(i>0){[p.steps[i-1],p.steps[i]]=[p.steps[i],p.steps[i-1]];mark(p);fillSteps(p);save()}};
-    dn.onclick=()=>{if(i<p.steps.length-1){[p.steps[i+1],p.steps[i]]=[p.steps[i],p.steps[i+1]];mark(p);fillSteps(p);save()}};
-    x.onclick=()=>{p.steps.splice(i,1);mark(p);fillSteps(p);save()};
+    u.onclick=()=>{if(i>0){[arr[i-1],arr[i]]=[arr[i],arr[i-1]];onEdit();refill();save()}};
+    dn.onclick=()=>{if(i<arr.length-1){[arr[i+1],arr[i]]=[arr[i],arr[i+1]];onEdit();refill();save()}};
+    x.onclick=()=>{arr.splice(i,1);onEdit();refill();save()};
     ol.appendChild(li); requestAnimationFrame(()=>autosize(ta));
   });
 }
+function fillSteps(p){const ol=$("#steps");if(!ol)return;$("#editNote").textContent=p.edited?EDITED:"Fills in from the job details. Edit any step to make it your own.";listEditor(ol,p.steps,()=>mark(p),()=>fillSteps(p))}
+function fillCont(p){const ol=$("#cont");if(!ol)return;listEditor(ol,p.cont,()=>{p.contEdited=true},()=>fillCont(p))}
 function fillEquip(p){
   const box=$("#equip"); if(!box) return; box.innerHTML="";
   p.equip.forEach((e,i)=>{
@@ -477,17 +776,16 @@ function fillEquip(p){
 
 /* ---------- plan code ---------- */
 function encode(){return btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
-$("#copyBtn").onclick=async()=>{const c=encode();$("#code").value=c;try{await navigator.clipboard.writeText(c);msg("Plan code copied.")}catch(e){$("#code").select();msg("Code shown below – copy it.")}};
-$("#loadBtn").onclick=()=>{try{const o=JSON.parse(decodeURIComponent(escape(atob($("#code").value.trim()))));S=Object.assign(blank(),o);initAll();save();msg("Plan loaded.")}catch(e){msg("That code didn't work. Check it was copied in full.",1)}};
-$("#newBtn").onclick=()=>{if(!confirmNew())return;S=blank();initAll();save();msg("New plan started.")};
+$("#copyBtn").onclick=async()=>{const c=encode();$("#code").value=c;try{await navigator.clipboard.writeText(c);msg("Plan code copied.")}catch(e){$("#code").select();msg("Code shown below. Copy it.")}};
+$("#loadBtn").onclick=()=>{try{const o=JSON.parse(decodeURIComponent(escape(atob($("#code").value.trim()))));S=migrate(o);initAll();save();msg("Plan loaded.")}catch(e){msg("That code didn't work. Check it was copied in full.",1)}};
 let newArmed=0;
-function confirmNew(){if(Date.now()-newArmed<4000)return true;newArmed=Date.now();msg("Press New plan again to clear this plan.",1);return false}
+$("#newBtn").onclick=()=>{if(Date.now()-newArmed>4000){newArmed=Date.now();msg("Press New plan again to clear this plan.",1);return}S=blank();initAll();save();msg("New plan started.")};
 function msg(t,err){const m=$("#msg");m.textContent=t;m.style.color=err?"var(--accent)":"var(--muted)"}
 
 /* ---------- PDF ---------- */
 let dlNs=null;
 try{ if(window.claude&&typeof window.claude.use==="function") window.claude.use("downloads").then(ns=>{dlNs=ns}).catch(()=>{}) }catch(e){}
-function ansi(t){return String(t||"").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"...").replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g,"")}
+function ansi(t){return String(t||"").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"...").replace(/✓/g,"OK").replace(/✕/g,"X").replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g,"")}
 function svgToPng(svg,scale){
   return new Promise((res,rej)=>{const img=new Image();const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
     img.onload=()=>{const c=document.createElement("canvas");c.width=440*scale;c.height=600*scale;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>b?b.arrayBuffer().then(res):rej(new Error("png")),"image/png")};
@@ -498,46 +796,47 @@ async function makePdf(){
   const doc=await PDFDocument.create();
   const F=await doc.embedFont(StandardFonts.Helvetica), B=await doc.embedFont(StandardFonts.HelveticaBold);
   const PW=595.28,PH=841.89,M=40,CW=PW-2*M;
-  const ink=rgb(.11,.14,.16),mut=rgb(.36,.41,.45),acc=rgb(.76,.25,.05),line=rgb(.82,.85,.87);
+  const ink=rgb(.11,.14,.16),mut=rgb(.36,.41,.45),acc=rgb(.76,.25,.05),line=rgb(.82,.85,.87),okc=rgb(.08,.5,.24),badc=rgb(.72,.11,.11);
   let pg,y,pageNo=0;
-  const title=ansi("Rope access rescue plan"+(S.ref?" - "+S.ref:""));
+  const title=ansi("Rope access rescue plan"+(S.ref?" - "+S.ref:"")+(S.site?" - "+S.site:""));
   function newPage(){pg=doc.addPage([PW,PH]);pageNo++;y=PH-M;
     pg.drawText(title,{x:M,y:PH-26,size:8,font:F,color:mut});
-    pg.drawText(ansi("DRAFT - check against IRATA ICOP/TACS; approval by Level 3 supervisor required"),{x:M,y:22,size:7.5,font:F,color:acc});
+    pg.drawText(ansi("DRAFT until approved by the Level 3 supervisor. Based on IRATA ICOP (TC-102) and TACS (TC-101 issue 006)."),{x:M,y:22,size:7.5,font:F,color:acc});
     pg.drawText("Page "+pageNo,{x:PW-M-30,y:22,size:7.5,font:F,color:mut});}
   function wrap(t,font,size,w){const out=[];ansi(t).split("\n").forEach(par=>{let cur="";par.split(/\s+/).forEach(word=>{const tr=cur?cur+" "+word:word;if(font.widthOfTextAtSize(tr,size)>w&&cur){out.push(cur);cur=word}else cur=tr});out.push(cur)});return out}
   function need(h){if(y-h<40)newPage()}
   function text(t,o){o=o||{};const size=o.size||10,font=o.bold?B:F,x=o.x||M,w=o.w||CW-(x-M),lh=size*1.35;
     wrap(t,font,size,w).forEach(l=>{need(lh);pg.drawText(l,{x,y:y-size,size,font,color:o.color||ink});y-=lh});}
-  function heading(t){need(30);y-=8;pg.drawText(ansi(t),{x:M,y:y-13,size:13,font:B,color:acc});y-=18;pg.drawLine({start:{x:M,y},end:{x:PW-M,y},thickness:.8,color:line});y-=8}
+  function heading(t){need(36);y-=8;pg.drawText(ansi(t),{x:M,y:y-13,size:13,font:B,color:acc});y-=18;pg.drawLine({start:{x:M,y},end:{x:PW-M,y},thickness:.8,color:line});y-=8}
   function kv(rows){rows.filter(r=>r[1]).forEach(r=>{const lines=wrap(r[1],F,10,CW-130);need(lines.length*13.5+2);pg.drawText(ansi(r[0]),{x:M,y:y-10,size:9,font:B,color:mut});lines.forEach((l,i)=>pg.drawText(l,{x:M+130,y:y-10-i*13.5,size:10,font:F,color:ink}));y-=lines.length*13.5+3})}
+  function numbered(arr,mark){arr.filter(s=>s.trim()).forEach((st,i)=>{const lines=wrap(st,F,10,CW-26);need(lines.length*13.5+4);pg.drawText(mark?mark:String(i+1)+".",{x:M,y:y-10,size:10,font:B,color:acc});lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-10-j*13.5,size:10,font:F,color:ink}));y-=lines.length*13.5+4})}
 
   newPage();
-  pg.drawText(ansi("Rope access rescue plan"),{x:M,y:y-22,size:22,font:B,color:ink});y-=32;
-  text(S.site||S.task?[S.site,S.task].filter(Boolean).join(" - "):"",{size:11,color:mut});
-  y-=4;
-  need(40);pg.drawRectangle({x:M,y:y-34,width:CW,height:34,color:rgb(1,.97,.84)});
-  const wl=wrap("DRAFT. Based on general IRATA-style rope access practice. Check against the current IRATA ICOP and TACS, the site risk assessment and manufacturers' instructions. Approval by the Level 3 supervisor is required before work starts.",F,8.5,CW-16);
-  wl.forEach((l,i)=>pg.drawText(l,{x:M+8,y:y-12-i*11,size:8.5,font:F,color:rgb(.42,.3,0)}));y-=42;
+  pg.drawText("Rope access rescue plan",{x:M,y:y-22,size:22,font:B,color:ink});y-=32;
+  if(S.site||S.task) text([S.site,S.task].filter(Boolean).join(" - "),{size:11,color:mut});
+  y-=4;need(44);pg.drawRectangle({x:M,y:y-36,width:CW,height:36,color:rgb(1,.97,.84)});
+  wrap("DRAFT until approved. Setups and steps follow the IRATA ICOP and TACS rescue requirements. Check against the site risk assessment and manufacturers' instructions. The Level 3 supervisor must approve the plan and brief the team before work starts (ICOP 2.11.6.6).",F,8.5,CW-16).forEach((l,i)=>pg.drawText(l,{x:M+8,y:y-12-i*11,size:8.5,font:F,color:rgb(.42,.3,0)}));y-=44;
   heading("Job details");
-  kv([["Plan reference",S.ref],["Date",S.date],["Client",S.client],["Site / location",S.site],["Work task",S.task],["Drop height",S.height?S.height+" m":""],["Below the work",{ground:"Ground",deck:"Deck / platform",water:"Water"}[S.env]],["Anchors",S.anchors],["Edge / hazards",S.hazards]]);
-  heading("Team");
+  kv([["Plan reference",S.ref],["Date",S.date],["Client",S.client],["Site / location",S.site],["Work task",S.task],["Drop height",S.height?S.height+" m":""],["Below the work",{ground:"Ground",deck:"Deck / platform",water:"Water"}[S.env]],["Designated anchors",S.anchors],["Edge / hazards",S.hazards]]);
+  heading("Team and supervision");
   const tm=S.team.filter(p=>p.name||p.role);
   if(tm.length){tm.forEach(p=>{need(14);pg.drawText(ansi(p.level),{x:M,y:y-10,size:10,font:B,color:acc});pg.drawText(ansi(p.name||"-"),{x:M+50,y:y-10,size:10,font:F,color:ink});pg.drawText(ansi(p.role),{x:M+260,y:y-10,size:10,font:F,color:mut});y-=14})}else text("Not filled in.",{color:mut});
-  heading("Emergency arrangements");
-  kv([["Radio channel",S.radio],["Emergency number",S.emerg],["First aider / medic",S.medic],["Nearest hospital",S.hospital],["Rescue kit location",S.kitLoc],["Rescue boat / standby",S.env==="water"?S.boat:""]]);
+  heading("Communication and first aid");
+  kv([["Radio channel",S.radio],["Back-up signals",S.signals],["Emergency number",S.emerg],["First aider / medic",S.medic],["Nearest hospital",S.hospital],["Rescue kit location",S.kitLoc],["Rescue boat / standby",S.env==="water"?S.boat:""]]);
   const inc=SCN.filter(sc=>plan(sc.id).inc);
-  heading("Rescue methods in this plan");
-  if(!inc.length) text("No rescue methods selected.",{color:mut});
-  inc.forEach(sc=>text("- "+sc.name+": "+sc.blurb));
+  heading("Rescue setups in this plan");
+  if(!inc.length) text("No rescue setups selected.",{color:mut});
+  inc.forEach(sc=>text("- "+sc.name+" (Level "+sc.lvl+"+, "+sc.ref+")"));
+  heading("Plan checks");
+  checks().forEach(c=>{const lines=wrap(c.t+"  ["+c.ref+"]",F,9.5,CW-22);need(lines.length*12.5+3);pg.drawText(c.st==="ok"?"OK":c.st==="bad"?"X":"!",{x:M,y:y-9.5,size:9.5,font:B,color:c.st==="ok"?okc:c.st==="bad"?badc:acc});lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-9.5-j*12.5,size:9.5,font:F,color:ink}));y-=lines.length*12.5+3});
   if(S.notes){heading("Notes");text(S.notes)}
 
   for(const sc of inc){
     const p=plan(sc.id), d=draw(sc.id);
     newPage();
-    pg.drawText(ansi(sc.name),{x:M,y:y-18,size:18,font:B,color:ink});y-=26;
+    pg.drawText(ansi(sc.name),{x:M,y:y-18,size:18,font:B,color:ink});y-=24;
+    text("Lowest level trained: Level "+sc.lvl+"    IRATA reference: "+sc.ref,{size:9,color:acc,bold:true});
     text(sc.blurb,{size:10,color:mut});y-=6;
-    // drawing left, keys right
     const png=await doc.embedPng(await svgToPng(d.svg,2));
     const iw=280,ih=iw*600/440;
     pg.drawImage(png,{x:M,y:y-ih,width:iw,height:ih});
@@ -545,15 +844,14 @@ async function makePdf(){
     let ky=y; const kx=M+iw+16, kw=CW-iw-16;
     pg.drawText("Drawing key",{x:kx,y:ky-11,size:11,font:B,color:acc});ky-=20;
     d.keys.forEach((k,i)=>{pg.drawCircle({x:kx+7,y:ky-6,size:7,color:acc});pg.drawText(String(i+1),{x:kx+4.3,y:ky-9,size:8,font:B,color:rgb(1,1,1)});
-      wrap(k,F,9.5,kw-20).forEach((l,j)=>{pg.drawText(l,{x:kx+20,y:ky-9-j*12.5,size:9.5,font:F,color:ink})});ky-=wrap(k,F,9.5,kw-20).length*12.5+8});
+      const wl=wrap(k,F,9.5,kw-20);wl.forEach((l,j)=>pg.drawText(l,{x:kx+20,y:ky-9-j*12.5,size:9.5,font:F,color:ink}));ky-=wl.length*12.5+8});
     y-=ih+10;
-    heading("Method - "+sc.short);
-    p.steps.filter(s=>s.trim()).forEach((st,i)=>{const lines=wrap(st,F,10,CW-26);need(lines.length*13.5+4);pg.drawText(String(i+1)+".",{x:M,y:y-10,size:10,font:B,color:acc});lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-10-j*13.5,size:10,font:F,color:ink}));y-=lines.length*13.5+4});
+    heading("Method - "+sc.short);numbered(p.steps);
+    heading("If things go wrong - "+sc.short);numbered(p.cont,"!");
     heading("Equipment checklist - "+sc.short);
     p.equip.filter(e=>e.t.trim()).forEach(e=>{const lines=wrap(e.t,F,10,CW-26);need(lines.length*13.5+4);pg.drawRectangle({x:M+1,y:y-11,width:10,height:10,borderColor:ink,borderWidth:.8});if(e.ok){pg.drawLine({start:{x:M+3,y:y-6},end:{x:M+5.5,y:y-9},thickness:1.4,color:ink});pg.drawLine({start:{x:M+5.5,y:y-9},end:{x:M+10,y:y-2.5},thickness:1.4,color:ink})}lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-10-j*13.5,size:10,font:F,color:ink}));y-=lines.length*13.5+4});
   }
-  // sign-off
-  need(170); heading("Sign-off");
+  need(190); heading("Sign-off");
   const box=(lab,name,x,w)=>{pg.drawText(ansi(lab),{x,y:y-10,size:9,font:B,color:mut});pg.drawText(ansi(name||""),{x,y:y-26,size:10,font:F,color:ink});
     pg.drawText("Signature",{x,y:y-52,size:8,font:F,color:mut});pg.drawLine({start:{x:x+42,y:y-52},end:{x:x+w,y:y-52},thickness:.6,color:ink});
     pg.drawText("Date",{x,y:y-72,size:8,font:F,color:mut});pg.drawLine({start:{x:x+42,y:y-72},end:{x:x+w,y:y-72},thickness:.6,color:ink})};
@@ -564,7 +862,7 @@ async function makePdf(){
 }
 $("#pdfBtn").onclick=async()=>{
   if(!window.PDFLib){msg("The PDF tool didn't load. Check your connection and reload.",1);return}
-  if(!SCN.some(sc=>plan(sc.id).inc)){msg("Tick at least one rescue method to include.",1);return}
+  if(!SCN.some(sc=>plan(sc.id).inc)){msg("Tick at least one rescue setup to include.",1);return}
   msg("Building PDF…");
   try{
     const out=await makePdf();
@@ -578,9 +876,9 @@ $("#pdfBtn").onclick=async()=>{
   }catch(e){console.error(e);msg("PDF failed: "+e.message,1)}
 };
 
-function initAll(){bindFields();renderTeam();SCN.forEach(sc=>plan(sc.id));renderTabs();renderScn()}
+function initAll(){bindFields();renderTeam();SCN.forEach(sc=>plan(sc.id));renderPicker();renderScn();renderChecks()}
 initAll();
-window.RRP={makePdf,draw,S:()=>S};
+window.RRP={makePdf,draw,SCN,S:()=>S,set:o=>{S=migrate(o);initAll()}};
 })();
 </script>
 
