@@ -455,7 +455,7 @@ function checks(){
     if(mx>0&&(mx-mn)>0.4*mx) out.push(`The phases are unbalanced (breakers on L1 ${t[0]} A, L2 ${t[1]} A, L3 ${t[2]} A).`);
   }
   const unl=all.filter(c=>!c.name.trim()||GENERIC.test(c.name.trim()));
-  if(unl.length) out.push(`${unl.length} ${pl(unl.length,"circuit is","circuits are")} not labelled. Every circuit should be labelled at the board.`);
+  if(unl.length) out.push(`${unl.length} ${pl(unl.length,"circuit is","circuits are")} not labelled. Every circuit should be labelled at the board (SANS 10142-1 6.6.1.19).`);
   if(s.inv.on){
     if(!s.inv.bypass) out.push("No bypass switch. If the inverter fails, the backup circuits can't be switched to the grid.");
     if(s.pv.on&&!s.pv.spd) out.push("No DC surge arrester on the solar side.");
@@ -507,7 +507,9 @@ function makeFixed(){
     if(f.pv.on&&!f.pv.spd){f.pv.spd=true; ch.push("Fit a DC surge arrester on the solar side.")}
   }
   const unl=f.circuits.filter(c=>!String(c.name).trim()||GENERIC.test(String(c.name).trim()));
-  if(unl.length) ch.push("Label every circuit and put a circuit list inside the board door.");
+  if(unl.length) ch.push("Label every circuit and put a circuit list inside the board door (SANS 10142-1 6.6.1.19 and 6.8.2.2).");
+  ch.push("Fit a blanking plate to every unused opening in the board (6.6.1.18), and a label showing where the board is fed from if there is more than one board (6.6.1.20).");
+  if(f.inv.on) ch.push("Inverter (alternative supply, SANS 10142-1 7.12.2.1): fit a notice at the main switch saying an inverter is connected, a power-on indicator on the board, and a notice that the inverter must also be switched off in an emergency.");
   ch.push("Check and tighten all connections, test the earth leakage and earthing, and issue a Certificate of Compliance (CoC).");
   f.changes=ch;
   f.notes=(found.notes||[]).map(n=>"Repair: "+n);
@@ -832,12 +834,13 @@ function colours(){
     ? {L:"#7b4a22",N:"#2563c7",E:"#2f9a3a",Eband:"#e9c81c",Lname:"AC live (brown)",Nname:"AC neutral (blue)",Ename:"Earth (green/yellow)"}
     : {L:"#cf2a1f",N:"#1c1c1c",E:"#2f9a3a",Eband:null,Lname:"AC live (red)",Nname:"AC neutral (black)",Ename:"Earth (green)"};
 }
-/* Cable sizes: smallest Surfix size whose SANS 10142-1 rating (single phase, in conduit) is at least the breaker size.
-   1.5mm² 16.5A, 2.5mm² 23A, 4mm² 30A, 6mm² 38A, 10mm² 52A, 16mm² 69A, 25mm² 90A. */
-function acCable(a){
-  if(a<=16) return "1.5"; if(a<=20) return "2.5"; if(a<=25) return "4"; if(a<=32) return "6";
-  if(a<=50) return "10"; if(a<=63) return "16"; if(a<=80) return "25"; return null;
-}
+/* Cable sizes: smallest multicore PVC (Surfix) size whose rating in SANS 10142-1 table 6.3(a),
+   installation method 2 (in conduit on a wall or ceiling), is at least the breaker size.
+   Single phase: 1.5 16.5A, 2.5 23A, 4 30A, 6 38A, 10 52A, 16 69A, 25 90A, 35 111A, 50 133A.
+   Three phase:  1.5 15A, 2.5 20A, 4 27A, 6 34A, 10 46A, 16 62A, 25 80A, 35 99A, 50 118A. */
+const CAB1=[[16.5,"1.5"],[23,"2.5"],[30,"4"],[38,"6"],[52,"10"],[69,"16"],[90,"25"],[111,"35"],[133,"50"]];
+const CAB3=[[15,"1.5"],[20,"2.5"],[27,"4"],[34,"6"],[46,"10"],[62,"16"],[80,"25"],[99,"35"],[118,"50"]];
+function acCable(a,three){const r=(three?CAB3:CAB1).find(([amp])=>amp>=a); return r?r[1]:null}
 const acTxt=a=>{const c=acCable(a); return c?c+" mm²":"cable: ask electrician"};
 /* DC battery and PV cables: typical copper sizes for short runs (under about 3 m). Not from SANS tables. */
 function battCable(a){return {63:"16",80:"25",100:"35",125:"35",160:"50",200:"70",250:"95"}[a]||null}
@@ -953,7 +956,7 @@ function buildSvg(){
   const cab=a=>s.cables?`  ·  ${acTxt(a)}`:"";
   const phTag=d=>nP===3&&!(d.c&&onBackup(d.c))?`  ·  ${PHS[d.k==="cbinv"?invPh:phIdx(d.c)]}`:"";
   const outLabel=d=>d.k==="cbinv"?`To inverter AC IN  ${d.a}A${phTag(d)}${cab(d.a)}`:`${d.num}  ${d.c.name||"Circuit "+d.num}  ${d.c.a}A${phTag(d)}${d.noEl?"  ·  no E/L":""}${cab(d.c.a)}`;
-  const supLabels=nP===3?["Supply  L1  400V","Supply  L2","Supply  L3","Supply  N"]:[`Supply  L  230V${cab(s.mainA)}`,"Supply  N"];
+  const supLabels=nP===3?[`Supply  L1  400V${s.cables?(acCable(s.mainA,true)?`  ·  ${acCable(s.mainA,true)} mm² 4-core`:"  ·  cable: ask electrician"):""}`,"Supply  L2","Supply  L3","Supply  N"]:[`Supply  L  230V${cab(s.mainA)}`,"Supply  N"];
   const allLabels=sec1.concat(sec2).filter(d=>d.k==="cb"||d.k==="cbinv").map(outLabel)
     .concat(supLabels).concat(["Earth in","From inverter AC OUT  L"]).concat(inv&&s.inv.bypass?["Grid N  for bypass"]:[]).concat(inv&&s.inv.ne==="contactor"?["Coil L  from grid (INV breaker)"]:[]);
   const longest=Math.max(...allLabels.map(t=>t.length));
@@ -1335,7 +1338,7 @@ function buildSvg(){
   }
   let note=txt(M,py+6,"This drawing is based on a photo and the information supplied. It is subject to on-site inspection by a registered electrician.",{size:10,weight:700,fill:"#3b4650"}), noteH=22;
   if(s.cables){
-    note+=txt(M,py+21,"Cable sizes: SANS 10142-1 current ratings for Surfix in conduit (1.5 mm² 16.5 A, 2.5 mm² 23 A, 4 mm² 30 A, 6 mm² 38 A, 10 mm² 52 A, 16 mm² 69 A, 25 mm² 90 A)."+(nP===3?" Three-phase supply cables must be sized by the electrician.":""),{size:10,fill:"#3b4650"})+
+    note+=txt(M,py+21,"Cable sizes: SANS 10142-1 table 6.3(a), multicore PVC cable in conduit (method 2): 1.5 mm² 16.5 A, 2.5 mm² 23 A, 4 mm² 30 A, 6 mm² 38 A, 10 mm² 52 A, 16 mm² 69 A, 25 mm² 90 A. Inside an insulated wall the ratings are lower (1.5 mm² only 14 A).",{size:10,fill:"#3b4650"})+
       txt(M,py+36,"Battery and solar cable sizes are typical for short runs. Long runs, roof spaces or bunched cables may need thicker cable. A registered electrician must confirm all sizes.",{size:10,fill:"#3b4650"});
     noteH=52;
   }
