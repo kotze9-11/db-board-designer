@@ -420,6 +420,8 @@ function ordered(){return dispGroups().flatMap(g=>g.list)}
 
 /* ---------- problems and the corrected version ---------- */
 const GATE=/gate/i;
+const GEYSER=/geyser|water\s*heater|heat\s*pump|hot\s*water/i;
+const mustEl=c=>c.a===20||GATE.test(c.name)||GEYSER.test(c.name);
 const AIRCON=/air\s*-?\s*con|airco|\ba\/c\b|\bac unit/i;
 const GENERIC=/^(top|bottom|circuit|row|cb)\s*\d+$/i;
 function phaseTotals(b){
@@ -433,8 +435,10 @@ function checks(){
   const ne=(dispGroups().find(x=>x.key==="ne")||{list:[]}).list;
   if(!s.el.on) out.push("No earth leakage fitted. Plug and light circuits must be protected by a 30 mA earth leakage.");
   else{
-    const ne20=ne.filter(c=>c.a===20||GATE.test(c.name));
-    if(ne20.length) out.push(`${ne20.length} 20 A ${pl(ne20.length,"circuit is","circuits are")} not on the earth leakage (no. ${ne20.map(num).join(", ")}). Plugs (usually 20 A) and gate motors must be on a 30 mA earth leakage.`);
+    const neG=ne.filter(c=>GEYSER.test(c.name));
+    const neP=ne.filter(c=>!GEYSER.test(c.name)&&(c.a===20||GATE.test(c.name)));
+    if(neG.length) out.push(`Geyser ${pl(neG.length,"circuit","circuits")} not on the earth leakage (no. ${neG.map(num).join(", ")}). SANS 10142-1 clause 6.7.5.1 c) requires earth leakage on circuits supplying water heaters.`);
+    if(neP.length) out.push(`${neP.length} ${pl(neP.length,"circuit is","circuits are")} not on the earth leakage (no. ${neP.map(num).join(", ")}). Plug circuits (usually 20 A) must be on a 30 mA earth leakage (SANS 10142-1 clause 6.7.5.1 a and b), and gate motors should be too.`);
     if(s.el.ma>30) out.push(`The earth leakage trips at ${s.el.ma} mA. Use 30 mA for plugs and lights.`);
     if(!s.inv.on&&s.el.a<s.mainA) out.push(`The earth leakage (${s.el.a} A) is smaller than the main switch (${s.mainA} A), so it can be overloaded.`);
     if(s.inv.on&&s.specs.elType==="AC") out.push("The earth leakage is Type AC. With an inverter, Type A is recommended.");
@@ -478,14 +482,14 @@ function makeFixed(){
   if(!f.spd){f.spd=true; f.specs.spdKa=40; ch.push(`Fit a Type 2, 40 kA ${poles} AC surge arrester.`)}
   const old=f.circuits.filter(c=>c.a===15||c.a===30);
   if(old.length){old.forEach(c=>{c.a=c.a===15?16:32}); ch.push(`Replace ${old.length} old 15 A / 30 A ${old.length>1?"breakers":"breaker"} with 16 A / 32 A (check each cable first).`)}
-  // earth leakage rule: 20 A circuits (plugs) and gate motors on the earth leakage; other 10 A (lights) and 32 A circuits fed straight from the main switch
+  // earth leakage rule (SANS 10142-1 6.7.5.1): plugs (20 A), geysers and gate motors on the earth leakage; other 10 A (lights) and 32 A circuits fed straight from the main switch
   const toEl=[], offEl=[];
   f.circuits.forEach(c=>{
     if(bk(c)||AIRCON.test(c.name)) return;
-    if((c.a===20||GATE.test(c.name))&&c.noEl){c.noEl=false; toEl.push(c)}
-    else if(!GATE.test(c.name)&&(c.a===10||c.a===32)&&!c.noEl){c.noEl=true; offEl.push(c)}
+    if(mustEl(c)&&c.noEl){c.noEl=false; toEl.push(c)}
+    else if(!mustEl(c)&&(c.a===10||c.a===32)&&!c.noEl){c.noEl=true; offEl.push(c)}
   });
-  if(toEl.length) ch.push(`Move ${toEl.length} ${toEl.length>1?"circuits":"circuit"} onto the earth leakage: plugs (20 A) and gate motors (${names(toEl)}).`);
+  if(toEl.length) ch.push(`Move ${toEl.length} ${toEl.length>1?"circuits":"circuit"} onto the earth leakage: plugs (20 A), geysers and gate motors (${names(toEl)}).`);
   const acs=f.circuits.filter(c=>!bk(c)&&AIRCON.test(c.name));
   if(acs.length) ch.push(`Check the aircon installation manual and put the aircon ${acs.length>1?"circuits":"circuit"} (${names(acs)}) on the earth leakage if the manual asks for it.`);
   if(offEl.length) ch.push(`Feed ${offEl.length} 10 A / 32 A ${offEl.length>1?"circuits":"circuit"} straight from the main switch, not through the earth leakage (${names(offEl)}).`);
