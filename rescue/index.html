@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Rope Rescue Planner</title>
+<style>
+:root{--bg:#eef1f3;--fg:#1c2329;--muted:#5d6973;--panel:#fff;--line:#d2d9de;--accent:#c2410c;--accent-fg:#fff;--soft:#fff4ed;--warn-bg:#fff7d6;--warn-fg:#6b4e00;--ok:#15803d;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13181c;--fg:#e3e8ec;--muted:#98a4ad;--panel:#1c2329;--line:#323e47;--accent:#fb8a4c;--accent-fg:#1a0d05;--soft:#2a1f18;--warn-bg:#3a3110;--warn-fg:#f3dc8a;--ok:#4ade80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#13181c;--fg:#e3e8ec;--muted:#98a4ad;--panel:#1c2329;--line:#323e47;--accent:#fb8a4c;--accent-fg:#1a0d05;--soft:#2a1f18;--warn-bg:#3a3110;--warn-fg:#f3dc8a;--ok:#4ade80;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:16px 16px 60px;display:grid;gap:14px}
+h1{font-size:24px;margin:0;letter-spacing:-.01em}
+h2{font-size:17px;margin:0 0 10px}
+h3{font-size:15px;margin:14px 0 6px}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.warn{background:var(--warn-bg);color:var(--warn-fg);border-radius:10px;padding:10px 14px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px 14px}
+label{display:grid;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+input[type=text],input[type=number],input[type=date],select,textarea{font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:40px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+button{font:inherit;font-size:14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:8px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+button.mini{padding:4px 8px;font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tab{border-radius:999px;padding:7px 14px}
+.tab.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.tab .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-left:6px;vertical-align:middle}
+.scn{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+@media (max-width:760px){.scn{grid-template-columns:1fr}}
+.draw{background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px}
+.draw svg{display:block;width:100%;height:auto}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:6px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);font-weight:700;font-size:13px;margin-top:6px}
+.steps .ctl{display:flex;flex-direction:column;gap:2px}
+.steps .ctl button{padding:1px 7px;font-size:12px;line-height:1.4}
+.eq{display:grid;gap:5px}
+.eq .it{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
+.eq input[type=checkbox],.inc input{accent-color:var(--accent);width:18px;height:18px}
+.team .tm{display:grid;grid-template-columns:minmax(0,1.4fr) 110px minmax(0,1.2fr) auto;gap:6px;margin-bottom:6px}
+@media (max-width:560px){.team .tm{grid-template-columns:1fr 1fr}.team .tm input:first-child{grid-column:1/-1}}
+.inc{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--fg);margin-bottom:8px}
+.muted{color:var(--muted);font-size:13px}
+.msg{font-size:14px;min-height:1.2em;margin:6px 0 0}
+details summary{cursor:pointer;font-weight:600}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Rope rescue planner</h1>
+    <p class="sub">Build a rescue plan for a rope access job: drawings, step-by-step method and equipment list for each rescue, then save it as a PDF.</p>
+  </header>
+
+  <div class="warn"><strong>Draft plan.</strong> Steps and drawings follow general IRATA-style rope access practice. Check every plan against the current IRATA ICOP and TACS, the site risk assessment and the equipment makers' instructions. It must be approved by the Level 3 supervisor before work starts.</div>
+
+  <section class="card">
+    <h2>1. Job details</h2>
+    <div class="grid">
+      <label>Plan reference<input type="text" data-k="ref" placeholder="e.g. RP-001"></label>
+      <label>Date<input type="date" data-k="date"></label>
+      <label>Client<input type="text" data-k="client"></label>
+      <label>Site / location<input type="text" data-k="site" placeholder="e.g. Tank 3, north face"></label>
+      <label style="grid-column:1/-1">Work task<input type="text" data-k="task" placeholder="e.g. Blasting and painting of tank shell"></label>
+      <label>Drop height (m)<input type="number" min="1" step="0.5" data-k="height"></label>
+      <label>Below the work<select data-k="env"><option value="ground">Ground</option><option value="deck">Deck / platform</option><option value="water">Water</option></select></label>
+      <label>Anchors<input type="text" data-k="anchors" placeholder="e.g. Handrail stanchions, beam slings"></label>
+      <label>Edge / hazards<input type="text" data-k="hazards" placeholder="e.g. Sharp roof edge, hot surfaces"></label>
+    </div>
+  </section>
+
+  <section class="card team">
+    <h2>2. Team</h2>
+    <p class="muted" style="margin:-4px 0 10px">IRATA requires a Level 3 supervising and at least one other team member able to carry out a rescue.</p>
+    <div id="team"></div>
+    <button class="mini" id="addTm">+ Add person</button>
+  </section>
+
+  <section class="card">
+    <h2>3. Emergency arrangements</h2>
+    <div class="grid">
+      <label>Radio channel<input type="text" data-k="radio"></label>
+      <label>Emergency number<input type="text" data-k="emerg" placeholder="e.g. 112 / site control"></label>
+      <label>First aider / medic<input type="text" data-k="medic"></label>
+      <label>Nearest hospital<input type="text" data-k="hospital"></label>
+      <label>Rescue kit location<input type="text" data-k="kitLoc" placeholder="e.g. At top anchor point"></label>
+      <label id="boatLbl">Rescue boat / standby<input type="text" data-k="boat"></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>4. Rescue methods</h2>
+    <p class="muted" style="margin:-4px 0 10px">Tick each rescue you want in the plan. Steps and equipment fill in from your job details and can be edited.</p>
+    <div class="tabs" id="tabs"></div>
+    <div id="scn"></div>
+  </section>
+
+  <section class="card">
+    <h2>5. Sign-off and save</h2>
+    <div class="grid">
+      <label>Prepared by<input type="text" data-k="prepBy"></label>
+      <label>Approved by (Level 3)<input type="text" data-k="apprBy"></label>
+      <label style="grid-column:1/-1">Extra notes<textarea data-k="notes" rows="2"></textarea></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" id="pdfBtn">Save plan as PDF</button>
+      <button id="newBtn">New plan</button>
+    </div>
+    <p class="msg" id="msg"></p>
+    <details style="margin-top:10px">
+      <summary>Copy or load a plan code</summary>
+      <p class="muted">Copy the code to keep a plan or move it to another device; paste a code and press Load to open it.</p>
+      <textarea id="code" rows="3" style="font-family:ui-monospace,monospace;font-size:12px"></textarea>
+      <div class="row" style="margin-top:6px"><button class="mini" id="copyBtn">Copy code</button><button class="mini" id="loadBtn">Load code</button></div>
+    </details>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+(function(){
+const LS="ropeRescuePlan.v1";
+const SCN=[
+  {id:"descent",name:"Descent rescue",short:"Descent",blurb:"Rescuer descends on separate ropes from above, picks off the casualty and descends with them."},
+  {id:"ascent",name:"Ascent rescue",short:"Ascent",blurb:"Rescuer climbs from below to above the casualty, changes over to descent and descends with them."},
+  {id:"haul",name:"Hauling (raise to top)",short:"Hauling",blurb:"Casualty is raised to the top with a mechanical-advantage haul system and an independent back-up."},
+  {id:"lower",name:"Pre-rigged lowering",short:"Pre-rigged",blurb:"Casualty's ropes are rigged releasable at the anchors so the team at the top can lower them without anyone going down."}
+];
+
+function today(){const d=new Date();return d.toISOString().slice(0,10)}
+function blank(){
+  return {ref:"",date:today(),client:"",site:"",task:"",height:20,env:"ground",anchors:"",hazards:"",
+    team:[{name:"",level:"L3",role:"Supervisor"},{name:"",level:"L2",role:"Rescuer"},{name:"",level:"L1",role:"Technician"}],
+    radio:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",notes:"",
+    cur:"descent",plans:{}};
+}
+let S=blank();
+try{const raw=localStorage.getItem(LS); if(raw){S=Object.assign(blank(),JSON.parse(raw))}}catch(e){}
+
+/* ---------- default content ---------- */
+function rescuerName(){const t=S.team.find(p=>/rescu/i.test(p.role)&&p.name)||S.team.find(p=>p.level!=="L3"&&p.name);return t?t.name:"the rescuer"}
+function supName(){const t=S.team.find(p=>p.level==="L3"&&p.name);return t?t.name:"the Level 3 supervisor"}
+function landing(){return S.env==="water"?"the rescue boat":S.env==="deck"?"the deck landing area":"the landing area at the bottom"}
+function ropeLen(){const h=+S.height||0;return h?Math.ceil(h*1.3+5):0}
+
+function defSteps(id){
+  const ch=S.radio?(" on channel "+S.radio):"";
+  const start=[
+    "Raise the alarm: stop all work and tell "+supName()+" and the team by radio"+ch+". Call "+(S.emerg||"emergency services / site control")+" if the casualty is injured or unresponsive.",
+    "Talk to the casualty and assess them and the scene. Check for hazards: falling objects, sharp edges"+(S.hazards?(", "+S.hazards):"")+", weather"+(S.env==="water"?", water":"")+".",
+    (S.env==="water"?"Get the rescue boat"+(S.boat?(" ("+S.boat+")"):"")+" on station below the casualty. ":"Barrier off the drop zone below and clear "+landing()+". ")+"Nobody works below the rescue.",
+    "Rescuer ("+rescuerName()+") collects the rescue kit"+(S.kitLoc?(" from "+S.kitLoc):"")+" and does a buddy check of harness, devices and connectors with the supervisor."
+  ];
+  const mid={
+    descent:[
+      "Rig separate rescue ropes (working and back-up) on independent anchors directly above or beside the casualty. Fit rope protection at the edge.",
+      "Rescuer descends to the casualty and stops just above them, close enough to reach the casualty's central (ventral) attachment point.",
+      "Connect the casualty's ventral attachment to the rescuer's descender attachment with the rescue lanyard / connector. Leave the casualty's back-up device connected.",
+      "Transfer the casualty's weight onto the rescuer's system: unload and remove the casualty's ascenders (chest and hand) from their working rope. Do not cut any rope.",
+      "Manage the casualty's back-up device so it runs down their back-up rope with them, or move it onto the rescuer's back-up line.",
+      "Add extra friction to the descender for the combined load and descend slowly and smoothly. Keep the casualty upright, head up and clear of the structure.",
+      "Land at "+landing()+". The ground team takes the casualty's weight, then disconnects both people from the ropes."
+    ],
+    ascent:[
+      "Rescuer rigs onto separate ropes (or onto the casualty's ropes if the method allows) and ascends from below with the back-up device moved up ahead.",
+      "Climb to just above the casualty so the rescuer's descender attachment is level with or above the casualty's ventral attachment point.",
+      "Change over from ascent to descent: fit the descender above the chest ascender, lock it off, transfer weight and remove the ascenders. Keep the back-up connected throughout.",
+      "Connect the casualty's ventral attachment to the rescuer's descender attachment with the rescue lanyard / connector.",
+      "Transfer the casualty's weight: if they are on a descender, lift them slightly (e.g. with a hand ascender and foot loop or a small haul) to unload and remove their descender. Keep their back-up connected.",
+      "Add extra friction for the combined load and descend slowly with the casualty, keeping their head up and clear of the structure.",
+      "Land at "+landing()+". The ground team takes the casualty's weight, then disconnects both people from the ropes."
+    ],
+    haul:[
+      "Set up the haul system at the top on independent anchors, e.g. a 3:1 (Z-rig) with progress capture, connected to the casualty's working rope or a separate rescue rope to their ventral point.",
+      "Rig an independent back-up (belay) to the casualty and tend it throughout the raise.",
+      "Fit an edge roller or rope protection where the ropes run over the edge. Consider a high directional so the casualty clears the edge easily.",
+      "One person gives the commands. Haul in short, controlled strokes, setting the progress capture after each stroke. Stop at once if anything snags.",
+      "At the edge, a second team member (attached and on restraint) helps the casualty over without pulling them against the structure.",
+      "Move the casualty to the safe area at the top, well away from the edge, before disconnecting them from the ropes."
+    ],
+    lower:[
+      "At the start of the job, rig the working rope through a releasable lowering device (e.g. a locked-off descender on the anchor) and have the back-up rope ready to lower or tend. Check that the ropes reach "+landing()+(ropeLen()?(" (about "+ropeLen()+" m of rope per line for a "+S.height+" m drop)"):"")+".",
+      "Confirm by radio that "+landing()+" is clear and the ground team is ready.",
+      "Rescuer at the top unlocks the lowering device, adds friction as needed and lowers the casualty slowly and smoothly.",
+      "A second person tends the back-up rope at the same speed so it stays close to tight but never loaded.",
+      "Keep talking to the ground team and the casualty. Stop and hold if the casualty snags on the structure.",
+      "Ground team receives the casualty at "+landing()+", takes their weight and disconnects them. Lock off the lowering device."
+    ]
+  }[id];
+  const end=[
+    "Casualty care: keep and move the casualty as current first-aid guidance on harness suspension (suspension intolerance) says, give first aid and hand over to "+(S.medic||"the medic")+" / emergency services. Note the time they were suspended"+(S.hospital?("; nearest hospital: "+S.hospital):"")+".",
+    "Record times and actions, tell the client and complete the incident report.",
+    "Take all equipment used in the incident out of service for inspection by a competent person. Work does not restart until "+supName()+" has reviewed the incident."
+  ];
+  return start.concat(mid,end);
+}
+function defEquip(id){
+  const L=ropeLen()?(" ("+ropeLen()+" m or more)"):"";
+  const common=["Rescue kit kept at the work position and ready to use","Radios tested"+(S.radio?(" (channel "+S.radio+")"):""),"First aid kit","Rope protectors / edge protection","Spare connectors and slings","Rescue knife or cutter (use only as the agreed method allows)"];
+  const m={
+    descent:["Rescue rope pair"+L+" rigged or ready to rig","Descender with auto-lock and anti-panic function","Back-up device","Rescue lanyard / short connection for the casualty","Extra karabiner for adding friction","Anchor slings for independent rescue anchors"],
+    ascent:["Chest ascender and hand ascender with foot loop","Descender with auto-lock and anti-panic function","Back-up device","Rescue lanyard / short connection for the casualty","Small pulley for a lift to unload the casualty's descender","Extra karabiner for adding friction"],
+    haul:["Haul rope"+L,"Pulleys with progress capture (or pulley and rope clamp)","Rope clamps / ascenders for the haul system","Belay / back-up device and back-up rope","Edge roller or high directional","Anchor slings and rigging plate"],
+    lower:["Releasable lowering device rigged on the working rope anchor","Back-up rope"+L+" with tending device","Karabiner or bar for adding friction","Gloves for the person lowering","Rope long enough to reach the landing zone, with knot in the end","Anchor slings and rigging plate"]
+  }[id];
+  const water=S.env==="water"?["Rescue boat with crew on standby","Life jackets for the team and the casualty","Throw line"]:[];
+  return m.concat(common,water).map(t=>({t,ok:false}));
+}
+function plan(id){
+  if(!S.plans[id]) S.plans[id]={inc:id==="descent"||id==="lower",steps:defSteps(id),equip:defEquip(id),edited:false};
+  return S.plans[id];
+}
+
+/* ---------- drawing ---------- */
+const C={work:"#d32f2f",back:"#1e5bd6",res:"#15803d",resb:"#16a34a",struct:"#8a949c",structFill:"#e6eaed",ink:"#1c2329",muted:"#5d6973",casualty:"#b45309",rescuer:"#15803d"};
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function person(x,y,col,o){ // y = harness point
+  o=o||{};const s=[];const slump=o.slump;
+  const hx=x+(slump?7:0), hy=y-30+(slump?6:0);
+  s.push(`<circle cx="${hx}" cy="${hy}" r="7" fill="#fff" stroke="${col}" stroke-width="2.4"/>`);
+  s.push(`<path d="M${hx-8} ${hy-1} A8 8 0 0 1 ${hx+8} ${hy-1} Z" fill="${col}"/>`);
+  s.push(`<line x1="${hx}" y1="${hy+7}" x2="${x}" y2="${y+4}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`);
+  if(slump){s.push(`<path d="M${x+2} ${y-14} L${x+10} ${y+4} M${x+1} ${y-14} L${x-4} ${y+6}" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`)}
+  else{s.push(`<path d="M${x-12} ${y-22} L${x} ${y-16} L${x+12} ${y-24}" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`)}
+  s.push(`<path d="M${x} ${y+4} L${x-8} ${y+24} M${x} ${y+4} L${x+(slump?4:8)} ${y+24}" stroke="${col}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`);
+  s.push(`<rect x="${x-6}" y="${y-2}" width="12" height="6" rx="2" fill="${col}"/>`);
+  return s.join("");
+}
+function marker(n,x,y){return `<circle cx="${x}" cy="${y}" r="10" fill="#c2410c"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="Arial,Helvetica,sans-serif">${n}</text>`}
+function label(x,y,t,anchor,col,size,weight){return `<text x="${x}" y="${y}" text-anchor="${anchor||"start"}" font-size="${size||11}" ${weight?'font-weight="700"':""} fill="${col||C.ink}" font-family="Arial,Helvetica,sans-serif">${esc(t)}</text>`}
+function arrow(x1,y1,x2,y2,col){const a=Math.atan2(y2-y1,x2-x1),L=9;
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="2.5" stroke-dasharray="6 4"/><path d="M${x2} ${y2} L${x2-L*Math.cos(a-0.45)} ${y2-L*Math.sin(a-0.45)} L${x2-L*Math.cos(a+0.45)} ${y2-L*Math.sin(a+0.45)} Z" fill="${col}"/>`}
+function anchorPair(x1,x2,y,ex,col1,col2){ // Y-hang: two anchors meeting at a point then to edge
+  const mx=(x1+x2)/2, my=y+16;
+  return `<path d="M${x1} ${y} L${mx} ${my} L${x2} ${y}" stroke="${col1}" stroke-width="2" fill="none"/>
+  <rect x="${x1-5}" y="${y-8}" width="10" height="8" fill="${C.ink}"/><rect x="${x2-5}" y="${y-8}" width="10" height="8" fill="${C.ink}"/>
+  <circle cx="${mx}" cy="${my}" r="3.5" fill="#fff" stroke="${C.ink}" stroke-width="1.6"/>`;
+}
+function draw(id){
+  const W=440,H=600,top=80,ground=500,wall=150;
+  const h=+S.height||0;
+  const s=[`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="Arial,Helvetica,sans-serif">`,`<rect width="${W}" height="${H}" fill="#fff"/>`];
+  // structure
+  s.push(`<rect x="0" y="${top}" width="${wall}" height="${ground-top}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
+  for(let yy=top+30;yy<ground;yy+=40) s.push(`<line x1="0" y1="${yy}" x2="${wall}" y2="${yy}" stroke="#d3d9dd" stroke-width="1"/>`);
+  s.push(`<line x1="0" y1="${top}" x2="${wall}" y2="${top}" stroke="${C.ink}" stroke-width="3"/>`);
+  s.push(label(8,top+18,"Structure",null,C.muted,11));
+  // bottom
+  if(S.env==="water"){
+    s.push(`<rect x="0" y="${ground}" width="${W}" height="${H-ground-62}" fill="#dbeafe"/>`);
+    for(let i=0;i<3;i++){let d=`M0 ${ground+8+i*12}`;for(let x=0;x<W;x+=24)d+=` q6 -5 12 0 t12 0`;s.push(`<path d="${d}" stroke="#3b82f6" stroke-width="1.4" fill="none"/>`)}
+    // boat
+    if(id!=="haul"){s.push(`<path d="M${wall+30} ${ground-2} L${wall+120} ${ground-2} L${wall+108} ${ground+14} L${wall+42} ${ground+14} Z" fill="#f97316" stroke="${C.ink}" stroke-width="1.4"/>`);s.push(label(wall+75,ground+30,"Rescue boat","middle",C.ink,11,1))}
+  }else{
+    s.push(`<rect x="0" y="${ground}" width="${W}" height="${H-ground-62}" fill="${S.env==="deck"?"#e7e1d6":"#e8e2d0"}"/>`);
+    s.push(`<line x1="0" y1="${ground}" x2="${W}" y2="${ground}" stroke="${C.ink}" stroke-width="2.5"/>`);
+    for(let x=6;x<W;x+=14) s.push(`<line x1="${x}" y1="${ground+2}" x2="${x-8}" y2="${ground+10}" stroke="#a69c86" stroke-width="1"/>`);
+    if(id!=="haul"){ // landing zone + barriers
+      s.push(`<rect x="${wall+18}" y="${ground-4}" width="110" height="4" fill="#facc15"/>`);
+      [wall+14,wall+132].forEach(cx=>s.push(`<path d="M${cx-6} ${ground} L${cx} ${ground-16} L${cx+6} ${ground} Z" fill="#f97316"/><rect x="${cx-3}" y="${ground-10}" width="6" height="2.5" fill="#fff"/>`));
+      s.push(label(wall+73,ground+24,(S.env==="deck"?"Deck":"Ground")+" landing zone","middle",C.ink,11,1));
+    }
+  }
+  // height dimension
+  s.push(`<line x1="${W-26}" y1="${top}" x2="${W-26}" y2="${ground}" stroke="${C.muted}" stroke-width="1.2"/>`);
+  s.push(`<path d="M${W-26} ${top} l-4 8 h8 Z M${W-26} ${ground} l-4 -8 h8 Z" fill="${C.muted}"/>`);
+  s.push(`<line x1="${W-34}" y1="${top}" x2="${W-18}" y2="${top}" stroke="${C.muted}"/><line x1="${W-34}" y1="${ground}" x2="${W-18}" y2="${ground}" stroke="${C.muted}"/>`);
+  s.push(`<text x="${W-12}" y="${(top+ground)/2}" text-anchor="middle" font-size="12" font-weight="700" fill="${C.ink}" transform="rotate(-90 ${W-12} ${(top+ground)/2})">${h?esc(h+" m drop"):"Drop height"}</text>`);
+  // edge protection
+  const edge=`<rect x="${wall-6}" y="${top-6}" width="14" height="12" rx="2" fill="#f59e0b" stroke="${C.ink}" stroke-width="1"/>`;
+  // casualty ropes (anchors at x 40/80)
+  const cx1=wall+12, cx2=wall+22; // casualty working & backup rope x
+  const casY=id==="lower"?250:id==="haul"?300:280;
+  const casRopeEnd=id==="lower"?ground-6:ground-40;
+  const keys=[];
+  s.push(anchorPair(30,70,top,0,C.work));
+  s.push(anchorPair(84,120,top,0,C.back));
+  s.push(`<path d="M50 ${top+16} L${wall} ${top} L${cx1} ${top+8} L${cx1} ${casRopeEnd}" stroke="${C.work}" stroke-width="2.6" fill="none"/>`);
+  s.push(`<path d="M102 ${top+16} L${wall} ${top+2} L${cx2} ${top+10} L${cx2} ${casRopeEnd}" stroke="${C.back}" stroke-width="2.6" fill="none"/>`);
+  if(id!=="lower"){s.push(`<circle cx="${cx1}" cy="${casRopeEnd}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${casRopeEnd}" r="3" fill="${C.back}"/>`)}
+  s.push(edge);
+  s.push(marker(1,50,top-26)); keys.push("Anchors: Y-hang on working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""));
+  // casualty
+  s.push(person(cx1+18,casY,C.casualty,{slump:true}));
+  s.push(`<line x1="${cx1}" y1="${casY-6}" x2="${cx1+12}" y2="${casY}" stroke="${C.ink}" stroke-width="1.6"/><line x1="${cx2}" y1="${casY+12}" x2="${cx1+16}" y2="${casY+2}" stroke="${C.back}" stroke-width="1.6"/>`);
+  s.push(`<rect x="${cx1-4}" y="${casY-12}" width="8" height="12" rx="2" fill="${C.ink}"/>`);
+  s.push(`<rect x="${wall-92}" y="${casY-42}" width="84" height="22" rx="4" fill="#fff" stroke="${C.casualty}"/>`);s.push(marker(3,wall-80,casY-31)); s.push(label(wall-66,casY-27,"Casualty",null,C.casualty,12,1));
+  if(id==="descent"){
+    const rx1=wall+70, rx2=wall+80, ry=casY-48;
+    s.push(anchorPair(16,40,top-20,0,C.res));
+    s.push(`<path d="M28 ${top-4} L${wall-2} ${top-10} L${rx1} ${top-4} L${rx1} ${ground-40}" stroke="${C.res}" stroke-width="2.6" fill="none"/>`);
+    s.push(`<path d="M28 ${top-4} L${wall-2} ${top-14} L${rx2} ${top-8} L${rx2} ${ground-40}" stroke="${C.resb}" stroke-width="2.2" stroke-dasharray="7 4" fill="none"/>`);
+    s.push(`<rect x="${rx1-4}" y="${ry-12}" width="8" height="14" rx="2" fill="${C.ink}"/>`);
+    s.push(person(rx1+16,ry,C.rescuer));
+    s.push(`<line x1="${rx1}" y1="${ry}" x2="${cx1+18}" y2="${casY}" stroke="${C.ink}" stroke-width="2"/>`);
+    s.push(arrow(rx1+60,top+40,rx1+60,ry-10,C.res));
+    s.push(arrow(rx1+60,ry+40,rx1+60,ground-50,C.res));
+    s.push(marker(2,rx1+40,ry-48)); s.push(label(rx1+54,ry-44,"Rescuer",null,C.rescuer,12,1));
+    keys.push("Rescuer descends on separate rescue ropes (green), connects to the casualty and takes their weight");
+    keys.push("Casualty: ascenders removed, back-up kept on");
+    keys.push("Rescuer and casualty descend together to "+landing());
+    s.push(marker(4,wall+70,ground-18));
+  }else if(id==="ascent"){
+    const rx1=wall+70, rx2=wall+80, ry=casY-44;
+    s.push(anchorPair(16,40,top-20,0,C.res));
+    s.push(`<path d="M28 ${top-4} L${wall-2} ${top-10} L${rx1} ${top-4} L${rx1} ${ground-6}" stroke="${C.res}" stroke-width="2.6" fill="none"/>`);
+    s.push(`<path d="M28 ${top-4} L${wall-2} ${top-14} L${rx2} ${top-8} L${rx2} ${ground-6}" stroke="${C.resb}" stroke-width="2.2" stroke-dasharray="7 4" fill="none"/>`);
+    s.push(`<g opacity="0.45">${person(rx1+16,ground-60,C.rescuer)}</g>`);
+    s.push(label(rx1+34,ground-58,"Start",null,C.muted,11));
+    s.push(arrow(rx1+60,ground-60,rx1+60,ry-14,C.res));
+    s.push(person(rx1+16,ry,C.rescuer));
+    s.push(`<rect x="${rx1-4}" y="${ry-12}" width="8" height="14" rx="2" fill="${C.ink}"/>`);
+    s.push(`<line x1="${rx1}" y1="${ry}" x2="${cx1+18}" y2="${casY}" stroke="${C.ink}" stroke-width="2"/>`);
+    s.push(arrow(rx1+90,ry+10,rx1+90,ground-50,C.casualty));
+    s.push(marker(2,rx1+40,ry-48)); s.push(label(rx1+54,ry-44,"Rescuer: changeover",null,C.rescuer,12,1));
+    keys.push("Rescuer climbs separate ropes (green) from below to just above the casualty");
+    keys.push("Casualty connected to the rescuer's descender; casualty's device unloaded and removed");
+    keys.push("Descend together to "+landing());
+    s.push(marker(4,wall+128,ground-70));
+  }else if(id==="haul"){
+    // haul system near edge on roof
+    const px=100, py=top-40;
+    s.push(`<path d="M8 ${top} L8 ${top-60}" stroke="${C.struct}" stroke-width="3"/>`);
+    s.push(`<rect x="2" y="${top-66}" width="12" height="8" fill="${C.ink}"/>`);
+    // haul rope from anchor to pulley system to edge then down to casualty (green)
+    s.push(`<path d="M14 ${top-62} L${px-30} ${py}" stroke="${C.res}" stroke-width="2.4" fill="none"/>`);
+    s.push(`<path d="M${px-30} ${py} L${px+10} ${py-6} L${px-24} ${py+10} L${px+16} ${py+6}" stroke="${C.res}" stroke-width="2.4" fill="none"/>`);
+    s.push(`<circle cx="${px-30}" cy="${py}" r="6" fill="#fff" stroke="${C.ink}" stroke-width="2"/><circle cx="${px+12}" cy="${py-4}" r="6" fill="#fff" stroke="${C.ink}" stroke-width="2"/>`);
+    s.push(`<path d="M${px+16} ${py+6} L${wall+4} ${top-14} L${wall+40} ${top-30}" stroke="${C.res}" stroke-width="2.4" fill="none"/>`);
+    s.push(`<circle cx="${wall+40}" cy="${top-30}" r="6" fill="#fff" stroke="${C.ink}" stroke-width="2"/>`);
+    s.push(`<path d="M${wall+40} ${top-24} L${wall+40} ${casY-16} L${cx1+18} ${casY-4}" stroke="${C.res}" stroke-width="2.4" fill="none"/>`);
+    s.push(`<path d="M${wall+20} ${top-40} L${wall+40} ${top-36} L${wall+60} ${top+0}" stroke="${C.struct}" stroke-width="2.4" fill="none"/>`);
+    s.push(label(wall+64,top-34,"High directional",null,C.muted,10));
+    s.push(person(px-60,top-26,C.rescuer));
+    s.push(label(px-70,top-62,"3:1 haul with progress capture",null,C.ink,10,1));
+    s.push(arrow(wall+70,casY-20,wall+70,top+30,C.res));
+    s.push(marker(2,px-82,top-40));
+    s.push(`<rect x="12" y="${top+4}" width="0" height="0"/>`);
+    keys.push("Haul team at the top: 3:1 haul system (green) with progress capture, independent back-up tended");
+    keys.push("Casualty raised on the haul rope to the edge, helped over by a second team member");
+    keys.push("Safe area at the top, away from the edge");
+    s.push(`<rect x="6" y="${top+28}" width="${wall-50}" height="22" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);
+    s.push(label(12,top+43,"Safe area at top",null,C.ink,11,1));
+    s.push(marker(4,wall-30,top+39));
+  }else if(id==="lower"){
+    s.push(`<rect x="38" y="${top+20}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
+    s.push(label(18,top+52,"Releasable lowering",null,C.ink,10,1));
+    s.push(label(18,top+64,"device on anchor",null,C.ink,10,1));
+    s.push(`<path d="M51 ${top+36} q-12 30 8 44 q20 14 -2 26" stroke="${C.work}" stroke-width="2.4" fill="none"/>`);
+    s.push(person(100,top-26,C.rescuer));
+    s.push(label(114,top-58,"Lowering",null,C.rescuer,11,1));
+    s.push(marker(2,80,top-66));
+    s.push(arrow(wall+70,casY-30,wall+70,ground-30,C.casualty));
+    // rope coil at bottom
+    s.push(`<ellipse cx="${cx1+6}" cy="${ground-4}" rx="14" ry="4" fill="none" stroke="${C.work}" stroke-width="2"/><ellipse cx="${cx1+6}" cy="${ground-8}" rx="12" ry="3.5" fill="none" stroke="${C.back}" stroke-width="2"/>`);
+    keys.push("Rescuer at the top unlocks the lowering device and lowers; second person tends the back-up");
+    keys.push("Casualty lowered on their own ropes, nobody goes down");
+    keys.push("Ground team receives the casualty at "+landing());
+    s.push(marker(4,wall+70,ground-18));
+  }
+  // legend
+  const ly=H-56;
+  s.push(`<rect x="0" y="${ly-6}" width="${W}" height="62" fill="#fff"/>`);
+  const leg=[[C.work,"Working rope",0],[C.back,"Back-up rope",0],[C.res,"Rescue rope",0],[C.resb,"Rescue back-up",1]];
+  leg.forEach((l,i)=>{const x=8+i*108;s.push(`<line x1="${x}" y1="${ly+4}" x2="${x+22}" y2="${ly+4}" stroke="${l[0]}" stroke-width="3" ${l[2]?'stroke-dasharray="6 3"':""}/>`);s.push(label(x+27,ly+8,l[1],null,C.ink,10))});
+  s.push(`<circle cx="14" cy="${ly+24}" r="5" fill="#f59e0b"/>`);s.push(label(24,ly+28,"Edge protection",null,C.ink,10));
+  s.push(`<path d="M120 ${ly+24} h22" stroke="${C.ink}" stroke-width="2.5" stroke-dasharray="6 4"/>`);s.push(label(148,ly+28,"Direction of travel",null,C.ink,10));
+  s.push(label(8,ly+48,SCN.find(x=>x.id===id).name+(S.site?" - "+S.site:""),null,C.muted,10));
+  s.push(`</svg>`);
+  return {svg:s.join(""),keys};
+}
+
+/* ---------- UI ---------- */
+const $=q=>document.querySelector(q);
+let saveT=null;
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}},300)}
+function bindFields(){
+  document.querySelectorAll("[data-k]").forEach(el=>{
+    const k=el.dataset.k; el.value=S[k]==null?"":S[k];
+    el.oninput=()=>{S[k]=el.type==="number"?el.value:el.value; refreshDefaults(); renderScn(true); save(); boatVis()};
+  });
+  boatVis();
+}
+function boatVis(){$("#boatLbl").style.display=S.env==="water"?"":"none"}
+function refreshDefaults(){ // rebuild steps/equipment for plans the user hasn't edited
+  SCN.forEach(sc=>{const p=S.plans[sc.id]; if(p&&!p.edited){p.steps=defSteps(sc.id);const old={};p.equip.forEach(e=>old[e.t]=e.ok);p.equip=defEquip(sc.id).map(e=>({t:e.t,ok:!!old[e.t]}))}});
+}
+function renderTeam(){
+  const box=$("#team"); box.innerHTML="";
+  S.team.forEach((p,i)=>{
+    const d=document.createElement("div"); d.className="tm";
+    d.innerHTML=`<input type="text" placeholder="Name" aria-label="Name"><select aria-label="Level"><option>L3</option><option>L2</option><option>L1</option><option>Other</option></select><input type="text" placeholder="Role (e.g. Rescuer)" aria-label="Role"><button class="mini" title="Remove">✕</button>`;
+    const [n,l,r,b]=d.children; n.value=p.name; l.value=p.level; r.value=p.role;
+    n.oninput=()=>{p.name=n.value;refreshDefaults();renderScn(true);save()};
+    l.onchange=()=>{p.level=l.value;refreshDefaults();renderScn(true);save()};
+    r.oninput=()=>{p.role=r.value;refreshDefaults();renderScn(true);save()};
+    b.onclick=()=>{S.team.splice(i,1);renderTeam();refreshDefaults();renderScn(true);save()};
+    box.appendChild(d);
+  });
+}
+$("#addTm").onclick=()=>{S.team.push({name:"",level:"L1",role:"Technician"});renderTeam();save()};
+
+function renderTabs(){
+  const t=$("#tabs"); t.innerHTML="";
+  SCN.forEach(sc=>{const b=document.createElement("button");b.className="tab"+(S.cur===sc.id?" on":"");
+    b.innerHTML=esc(sc.short)+(plan(sc.id).inc?'<span class="dot" title="In plan"></span>':"");
+    b.onclick=()=>{S.cur=sc.id;renderTabs();renderScn();save()};t.appendChild(b)});
+}
+function renderScn(onlyDrawing){
+  const id=S.cur, p=plan(id), sc=SCN.find(x=>x.id===id), d=draw(id);
+  if(onlyDrawing&&$("#scnDraw")){
+    $("#scnDraw").innerHTML=d.svg; $("#scnKeys").innerHTML=d.keys.map((k,i)=>`<li>${esc(k)}</li>`).join("");
+    if(!p.edited){fillSteps(p);fillEquip(p)}
+    return;
+  }
+  $("#scn").innerHTML=`
+   <label class="inc"><input type="checkbox" id="incBox"> Include <strong>${esc(sc.name)}</strong> in the plan</label>
+   <p class="muted" style="margin:0 0 12px">${esc(sc.blurb)}</p>
+   <div class="scn">
+     <div>
+       <div class="draw" id="scnDraw">${d.svg}</div>
+       <h3>Drawing key</h3>
+       <ol id="scnKeys" style="margin:0;padding-left:20px;font-size:14px">${d.keys.map(k=>`<li>${esc(k)}</li>`).join("")}</ol>
+     </div>
+     <div>
+       <div class="row" style="justify-content:space-between"><h3 style="margin:0">Method</h3><button class="mini" id="resetBtn" title="Rebuild steps and equipment from the job details">Reset to default</button></div>
+       <p class="muted" id="editNote" style="margin:4px 0 8px"></p>
+       <ol class="steps" id="steps"></ol>
+       <button class="mini" id="addStep" style="margin-top:8px">+ Add step</button>
+       <h3>Equipment checklist</h3>
+       <div class="eq" id="equip"></div>
+       <button class="mini" id="addEq" style="margin-top:8px">+ Add item</button>
+     </div>
+   </div>`;
+  const inc=$("#incBox"); inc.checked=p.inc; inc.onchange=()=>{p.inc=inc.checked;renderTabs();save()};
+  $("#resetBtn").onclick=()=>{p.steps=defSteps(id);p.equip=defEquip(id);p.edited=false;fillSteps(p);fillEquip(p);save()};
+  $("#addStep").onclick=()=>{p.steps.push("");mark(p);fillSteps(p);const t=document.querySelectorAll("#steps textarea");t[t.length-1].focus();save()};
+  $("#addEq").onclick=()=>{p.equip.push({t:"",ok:false});mark(p);fillEquip(p);const t=document.querySelectorAll("#equip input[type=text]");t[t.length-1].focus();save()};
+  fillSteps(p);fillEquip(p);
+}
+function mark(p){p.edited=true;const n=$("#editNote");if(n)n.textContent="Edited by you, so it won't change when job details change. Use Reset to rebuild."}
+function autosize(t){t.style.height="auto";t.style.height=(t.scrollHeight+2)+"px"}
+function fillSteps(p){
+  const ol=$("#steps"); if(!ol) return; ol.innerHTML="";
+  $("#editNote").textContent=p.edited?"Edited by you, so it won't change when job details change. Use Reset to rebuild.":"Fills in from the job details. Edit any step to make it your own.";
+  p.steps.forEach((st,i)=>{
+    const li=document.createElement("li");
+    li.innerHTML=`<textarea rows="2" aria-label="Step ${i+1}"></textarea><div class="ctl"><button title="Move up">▲</button><button title="Move down">▼</button><button title="Delete">✕</button></div>`;
+    const ta=li.querySelector("textarea"); ta.value=st;
+    ta.oninput=()=>{p.steps[i]=ta.value;mark(p);autosize(ta);save()};
+    const [u,dn,x]=li.querySelectorAll("button");
+    u.onclick=()=>{if(i>0){[p.steps[i-1],p.steps[i]]=[p.steps[i],p.steps[i-1]];mark(p);fillSteps(p);save()}};
+    dn.onclick=()=>{if(i<p.steps.length-1){[p.steps[i+1],p.steps[i]]=[p.steps[i],p.steps[i+1]];mark(p);fillSteps(p);save()}};
+    x.onclick=()=>{p.steps.splice(i,1);mark(p);fillSteps(p);save()};
+    ol.appendChild(li); requestAnimationFrame(()=>autosize(ta));
+  });
+}
+function fillEquip(p){
+  const box=$("#equip"); if(!box) return; box.innerHTML="";
+  p.equip.forEach((e,i)=>{
+    const d=document.createElement("div"); d.className="it";
+    d.innerHTML=`<input type="checkbox" title="Checked"><input type="text"><button class="mini" title="Delete">✕</button>`;
+    const [c,t,x]=d.children; c.checked=e.ok; t.value=e.t;
+    c.onchange=()=>{e.ok=c.checked;save()};
+    t.oninput=()=>{e.t=t.value;mark(p);save()};
+    x.onclick=()=>{p.equip.splice(i,1);mark(p);fillEquip(p);save()};
+    box.appendChild(d);
+  });
+}
+
+/* ---------- plan code ---------- */
+function encode(){return btoa(unescape(encodeURIComponent(JSON.stringify(S))))}
+$("#copyBtn").onclick=async()=>{const c=encode();$("#code").value=c;try{await navigator.clipboard.writeText(c);msg("Plan code copied.")}catch(e){$("#code").select();msg("Code shown below – copy it.")}};
+$("#loadBtn").onclick=()=>{try{const o=JSON.parse(decodeURIComponent(escape(atob($("#code").value.trim()))));S=Object.assign(blank(),o);initAll();save();msg("Plan loaded.")}catch(e){msg("That code didn't work. Check it was copied in full.",1)}};
+$("#newBtn").onclick=()=>{if(!confirmNew())return;S=blank();initAll();save();msg("New plan started.")};
+let newArmed=0;
+function confirmNew(){if(Date.now()-newArmed<4000)return true;newArmed=Date.now();msg("Press New plan again to clear this plan.",1);return false}
+function msg(t,err){const m=$("#msg");m.textContent=t;m.style.color=err?"var(--accent)":"var(--muted)"}
+
+/* ---------- PDF ---------- */
+let dlNs=null;
+try{ if(window.claude&&typeof window.claude.use==="function") window.claude.use("downloads").then(ns=>{dlNs=ns}).catch(()=>{}) }catch(e){}
+function ansi(t){return String(t||"").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"...").replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g,"")}
+function svgToPng(svg,scale){
+  return new Promise((res,rej)=>{const img=new Image();const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+    img.onload=()=>{const c=document.createElement("canvas");c.width=440*scale;c.height=600*scale;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>b?b.arrayBuffer().then(res):rej(new Error("png")),"image/png")};
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("svg"))};img.src=url});
+}
+async function makePdf(){
+  const {PDFDocument,StandardFonts,rgb}=window.PDFLib;
+  const doc=await PDFDocument.create();
+  const F=await doc.embedFont(StandardFonts.Helvetica), B=await doc.embedFont(StandardFonts.HelveticaBold);
+  const PW=595.28,PH=841.89,M=40,CW=PW-2*M;
+  const ink=rgb(.11,.14,.16),mut=rgb(.36,.41,.45),acc=rgb(.76,.25,.05),line=rgb(.82,.85,.87);
+  let pg,y,pageNo=0;
+  const title=ansi("Rope access rescue plan"+(S.ref?" - "+S.ref:""));
+  function newPage(){pg=doc.addPage([PW,PH]);pageNo++;y=PH-M;
+    pg.drawText(title,{x:M,y:PH-26,size:8,font:F,color:mut});
+    pg.drawText(ansi("DRAFT - check against IRATA ICOP/TACS; approval by Level 3 supervisor required"),{x:M,y:22,size:7.5,font:F,color:acc});
+    pg.drawText("Page "+pageNo,{x:PW-M-30,y:22,size:7.5,font:F,color:mut});}
+  function wrap(t,font,size,w){const out=[];ansi(t).split("\n").forEach(par=>{let cur="";par.split(/\s+/).forEach(word=>{const tr=cur?cur+" "+word:word;if(font.widthOfTextAtSize(tr,size)>w&&cur){out.push(cur);cur=word}else cur=tr});out.push(cur)});return out}
+  function need(h){if(y-h<40)newPage()}
+  function text(t,o){o=o||{};const size=o.size||10,font=o.bold?B:F,x=o.x||M,w=o.w||CW-(x-M),lh=size*1.35;
+    wrap(t,font,size,w).forEach(l=>{need(lh);pg.drawText(l,{x,y:y-size,size,font,color:o.color||ink});y-=lh});}
+  function heading(t){need(30);y-=8;pg.drawText(ansi(t),{x:M,y:y-13,size:13,font:B,color:acc});y-=18;pg.drawLine({start:{x:M,y},end:{x:PW-M,y},thickness:.8,color:line});y-=8}
+  function kv(rows){rows.filter(r=>r[1]).forEach(r=>{const lines=wrap(r[1],F,10,CW-130);need(lines.length*13.5+2);pg.drawText(ansi(r[0]),{x:M,y:y-10,size:9,font:B,color:mut});lines.forEach((l,i)=>pg.drawText(l,{x:M+130,y:y-10-i*13.5,size:10,font:F,color:ink}));y-=lines.length*13.5+3})}
+
+  newPage();
+  pg.drawText(ansi("Rope access rescue plan"),{x:M,y:y-22,size:22,font:B,color:ink});y-=32;
+  text(S.site||S.task?[S.site,S.task].filter(Boolean).join(" - "):"",{size:11,color:mut});
+  y-=4;
+  need(40);pg.drawRectangle({x:M,y:y-34,width:CW,height:34,color:rgb(1,.97,.84)});
+  const wl=wrap("DRAFT. Based on general IRATA-style rope access practice. Check against the current IRATA ICOP and TACS, the site risk assessment and manufacturers' instructions. Approval by the Level 3 supervisor is required before work starts.",F,8.5,CW-16);
+  wl.forEach((l,i)=>pg.drawText(l,{x:M+8,y:y-12-i*11,size:8.5,font:F,color:rgb(.42,.3,0)}));y-=42;
+  heading("Job details");
+  kv([["Plan reference",S.ref],["Date",S.date],["Client",S.client],["Site / location",S.site],["Work task",S.task],["Drop height",S.height?S.height+" m":""],["Below the work",{ground:"Ground",deck:"Deck / platform",water:"Water"}[S.env]],["Anchors",S.anchors],["Edge / hazards",S.hazards]]);
+  heading("Team");
+  const tm=S.team.filter(p=>p.name||p.role);
+  if(tm.length){tm.forEach(p=>{need(14);pg.drawText(ansi(p.level),{x:M,y:y-10,size:10,font:B,color:acc});pg.drawText(ansi(p.name||"-"),{x:M+50,y:y-10,size:10,font:F,color:ink});pg.drawText(ansi(p.role),{x:M+260,y:y-10,size:10,font:F,color:mut});y-=14})}else text("Not filled in.",{color:mut});
+  heading("Emergency arrangements");
+  kv([["Radio channel",S.radio],["Emergency number",S.emerg],["First aider / medic",S.medic],["Nearest hospital",S.hospital],["Rescue kit location",S.kitLoc],["Rescue boat / standby",S.env==="water"?S.boat:""]]);
+  const inc=SCN.filter(sc=>plan(sc.id).inc);
+  heading("Rescue methods in this plan");
+  if(!inc.length) text("No rescue methods selected.",{color:mut});
+  inc.forEach(sc=>text("- "+sc.name+": "+sc.blurb));
+  if(S.notes){heading("Notes");text(S.notes)}
+
+  for(const sc of inc){
+    const p=plan(sc.id), d=draw(sc.id);
+    newPage();
+    pg.drawText(ansi(sc.name),{x:M,y:y-18,size:18,font:B,color:ink});y-=26;
+    text(sc.blurb,{size:10,color:mut});y-=6;
+    // drawing left, keys right
+    const png=await doc.embedPng(await svgToPng(d.svg,2));
+    const iw=280,ih=iw*600/440;
+    pg.drawImage(png,{x:M,y:y-ih,width:iw,height:ih});
+    pg.drawRectangle({x:M,y:y-ih,width:iw,height:ih,borderColor:line,borderWidth:.8});
+    let ky=y; const kx=M+iw+16, kw=CW-iw-16;
+    pg.drawText("Drawing key",{x:kx,y:ky-11,size:11,font:B,color:acc});ky-=20;
+    d.keys.forEach((k,i)=>{pg.drawCircle({x:kx+7,y:ky-6,size:7,color:acc});pg.drawText(String(i+1),{x:kx+4.3,y:ky-9,size:8,font:B,color:rgb(1,1,1)});
+      wrap(k,F,9.5,kw-20).forEach((l,j)=>{pg.drawText(l,{x:kx+20,y:ky-9-j*12.5,size:9.5,font:F,color:ink})});ky-=wrap(k,F,9.5,kw-20).length*12.5+8});
+    y-=ih+10;
+    heading("Method - "+sc.short);
+    p.steps.filter(s=>s.trim()).forEach((st,i)=>{const lines=wrap(st,F,10,CW-26);need(lines.length*13.5+4);pg.drawText(String(i+1)+".",{x:M,y:y-10,size:10,font:B,color:acc});lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-10-j*13.5,size:10,font:F,color:ink}));y-=lines.length*13.5+4});
+    heading("Equipment checklist - "+sc.short);
+    p.equip.filter(e=>e.t.trim()).forEach(e=>{const lines=wrap(e.t,F,10,CW-26);need(lines.length*13.5+4);pg.drawRectangle({x:M+1,y:y-11,width:10,height:10,borderColor:ink,borderWidth:.8});if(e.ok){pg.drawLine({start:{x:M+3,y:y-6},end:{x:M+5.5,y:y-9},thickness:1.4,color:ink});pg.drawLine({start:{x:M+5.5,y:y-9},end:{x:M+10,y:y-2.5},thickness:1.4,color:ink})}lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-10-j*13.5,size:10,font:F,color:ink}));y-=lines.length*13.5+4});
+  }
+  // sign-off
+  need(170); heading("Sign-off");
+  const box=(lab,name,x,w)=>{pg.drawText(ansi(lab),{x,y:y-10,size:9,font:B,color:mut});pg.drawText(ansi(name||""),{x,y:y-26,size:10,font:F,color:ink});
+    pg.drawText("Signature",{x,y:y-52,size:8,font:F,color:mut});pg.drawLine({start:{x:x+42,y:y-52},end:{x:x+w,y:y-52},thickness:.6,color:ink});
+    pg.drawText("Date",{x,y:y-72,size:8,font:F,color:mut});pg.drawLine({start:{x:x+42,y:y-72},end:{x:x+w,y:y-72},thickness:.6,color:ink})};
+  box("Prepared by",S.prepBy,M,CW/2-14); box("Approved by (Level 3)",S.apprBy,M+CW/2+6,CW/2-6); y-=86;
+  text("Team briefed on this plan (names and signatures):",{size:9,color:mut,bold:true});y-=4;
+  for(let i=0;i<4;i++){need(20);pg.drawLine({start:{x:M,y:y-14},end:{x:M+CW/2-14,y:y-14},thickness:.5,color:line});pg.drawLine({start:{x:M+CW/2+6,y:y-14},end:{x:PW-M,y:y-14},thickness:.5,color:line});y-=22}
+  return await doc.save();
+}
+$("#pdfBtn").onclick=async()=>{
+  if(!window.PDFLib){msg("The PDF tool didn't load. Check your connection and reload.",1);return}
+  if(!SCN.some(sc=>plan(sc.id).inc)){msg("Tick at least one rescue method to include.",1);return}
+  msg("Building PDF…");
+  try{
+    const out=await makePdf();
+    const fname=("Rescue-plan"+(S.ref?"-"+S.ref:"")+(S.site?"-"+S.site:"")).replace(/[^\w\-]+/g,"_").slice(0,80)+".pdf";
+    if(dlNs){
+      try{await dlNs.save({filename:fname,data:new Blob([out],{type:"application/pdf"})});msg("Saved "+fname+".")}
+      catch(e){msg(e&&e.code==="declined"?"Save cancelled.":"Couldn't save here: "+((e&&e.message)||"unknown error"),1)}
+    }else{
+      const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([out],{type:"application/pdf"}));a.download=fname;document.body.appendChild(a);a.click();a.remove();msg("PDF downloaded: "+fname+".")
+    }
+  }catch(e){console.error(e);msg("PDF failed: "+e.message,1)}
+};
+
+function initAll(){bindFields();renderTeam();SCN.forEach(sc=>plan(sc.id));renderTabs();renderScn()}
+initAll();
+window.RRP={makePdf,draw,S:()=>S};
+})();
+</script>
+
+</body>
+</html>
