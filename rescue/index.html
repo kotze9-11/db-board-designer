@@ -83,20 +83,35 @@ details summary{cursor:pointer;font-weight:600}
       <label style="grid-column:1/-1">Work task<input type="text" data-k="task" placeholder="e.g. Blasting and painting of tank shell"></label>
       <label>Drop height (m)<input type="number" min="1" step="0.5" data-k="height"></label>
       <label>Below the work<select data-k="env"><option value="ground">Ground</option><option value="deck">Deck / platform</option><option value="water">Water</option></select></label>
-      <label>Anchors<input type="text" data-k="anchors" placeholder="e.g. Handrail stanchions, beam slings"></label>
       <label>Edge / hazards<input type="text" data-k="hazards" placeholder="e.g. Sharp roof edge, hot surfaces"></label>
+      <label>Confined space depth (m)<input type="number" min="0.5" step="0.5" data-k="cseDepth" placeholder="Only for confined space"></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Anchors</h2>
+    <p class="muted" style="margin:-4px 0 10px">Choose the main anchor type. The rescue drawings and equipment lists use it, and the rules for that anchor type are listed below the drawing.</p>
+    <div class="grid">
+      <label>Main anchor type<select data-k="anchorType" id="anchorSel"></select></label>
+      <label>Confined space anchor<select data-k="cseAnchor"><option value="tripod">Tripod over the opening</option><option value="davit">Davit arm</option><option value="beam">Overhead beam above the opening</option></select></label>
+      <label style="grid-column:1/-1">Anchor description (where exactly)<input type="text" data-k="anchors" placeholder="e.g. Two slings round the main deck beam above Tank 3 hatch"></label>
+    </div>
+    <div class="scn" style="margin-top:12px">
+      <div class="draw" id="ancDraw"></div>
+      <div><h3 style="margin-top:0">Anchor rules</h3><ul id="ancNotes" style="margin:0;padding-left:20px;font-size:14px;display:grid;gap:4px"></ul></div>
     </div>
   </section>
 
   <section class="card team">
-    <h2>2. Team</h2>
+    <h2>3. Team</h2>
     <p class="muted" style="margin:-4px 0 10px">IRATA: at least two technicians and one Level 3 supervisor. Three is the normal minimum unless every rescue is a straight lower to a safe place (ICOP 2.11.6).</p>
     <div id="team"></div>
     <button class="mini" id="addTm">+ Add person</button>
+    <label class="inc" style="margin-top:12px"><input type="checkbox" id="cseBox"> Team is trained in confined space entry and rescue</label>
   </section>
 
   <section class="card">
-    <h2>3. Emergency arrangements</h2>
+    <h2>4. Emergency arrangements</h2>
     <div class="grid">
       <label>Radio channel<input type="text" data-k="radio"></label>
       <label>Back-up signals if radio fails<input type="text" data-k="signals" placeholder="e.g. Whistle: 3 blasts = stop"></label>
@@ -109,20 +124,20 @@ details summary{cursor:pointer;font-weight:600}
   </section>
 
   <section class="card">
-    <h2>4. Rescue setups</h2>
-    <p class="muted" style="margin:-4px 0 12px">Tap a setup to see it, then tick "Include" to put it in the plan. IRATA prefers rig-for-rescue systems where they're possible (TACS 6.5.1). The level shown is the lowest IRATA level trained for that rescue.</p>
+    <h2>5. Rescue setups</h2>
+    <p class="muted" style="margin:-4px 0 12px">Tap a setup to see it, then tick "Include" to put it in the plan. IRATA prefers rig-for-rescue systems where they're possible (TACS 6.5.1). The level shown is the lowest IRATA level trained for that rescue. Confined space rescues are not part of IRATA training, so they need separate confined space training.</p>
     <div id="picker"></div>
     <div id="scn" style="margin-top:6px"></div>
   </section>
 
   <section class="card">
-    <h2>5. Plan checks</h2>
+    <h2>6. Plan checks</h2>
     <p class="muted" style="margin:-4px 0 10px">Automatic checks against the ICOP and TACS. They update as you fill in the plan.</p>
     <ul class="checks" id="checks"></ul>
   </section>
 
   <section class="card">
-    <h2>6. Sign-off and save</h2>
+    <h2>7. Sign-off and save</h2>
     <div class="grid">
       <label>Prepared by<input type="text" data-k="prepBy"></label>
       <label>Approved by (Level 3)<input type="text" data-k="apprBy"></label>
@@ -160,8 +175,29 @@ const LAND=()=>"Land at "+landing()+". The ground team takes the casualty's weig
 const ATTACH="Connect the casualty's central (ventral) attachment point to the rescuer's descender attachment with a short rescue lanyard or connector. Keep the casualty's back-up device connected.";
 const FRICTION="Add extra friction to the descender for the two-person load and descend slowly and smoothly. Keep the casualty upright, head up and clear of the structure.";
 
+/* ---------- anchor types (ICOP 2.11.2) ---------- */
+const ANCH=[
+ {id:"ya",name:"Y-hang between two structural anchors",equip:["Anchor slings or rope for the Y-hang","Connectors for each anchor"],
+  notes:["Y-hang: use anchors of 15 kN each, or link two weaker anchors (at least 10 kN each) so the pair shares the load and reaches 15 kN (ICOP 2.11.2.10).","Keep the angle at the bottom of the Y low: 90° or less is best, and never more than 120° (ICOP 2.11.2.11)."]},
+ {id:"sling",name:"Slings around a steel beam or column",equip:["Anchor slings: textile 22 kN or more, wire or chain 15 kN or more (ICOP 2.11.2.13)","Sling protectors for sharp steel edges"],
+  notes:["Anchor slings: textile slings at least 22 kN, steel wire or chain slings at least 15 kN (ICOP 2.11.2.13).","Avoid lark's-footing (choking) a sling unless the sling and the steel are suitable for it (ICOP 2.11.2.14).","Stop slings sliding along smooth beams: choke them, wrap several times, or tie back to an opposing anchor (ICOP 2.11.2.15).","Protect slings from sharp steel edges."]},
+ {id:"eyebolt",name:"Installed anchor points / eyebolts",equip:["Connectors suited to the anchor eyes"],
+  notes:["Fixed anchors must be installed and inspected by a competent person, and loaded sideways (in shear) where possible (ICOP 2.11.2.12; Annex F).","Check the anchor marking before use: installer, next inspection date, maximum load and loading direction (ICOP 2.11.2.16)."]},
+ {id:"clamp",name:"Beam (girder) clamps",equip:["Beam clamps rated for the load and sized for the beam flange","Connectors for the clamp eyes"],
+  notes:["Use beam clamps rated for the load and sized for the beam flange width and thickness. Follow the maker's instructions.","Fit them so they can't slide along the beam, and load them only in the direction the maker allows."]},
+ {id:"rail",name:"Handrail stanchions",equip:["Anchor slings rigged low on the stanchions","Sling protectors"],
+  notes:["Only use handrails or stanchions if a competent person has confirmed each anchor can take at least 15 kN. Many can't.","Rig low, round the base of the stanchion, and spread the load over several posts with a Y-hang.","Protect slings from sharp edges on the rail."]},
+ {id:"tripod",name:"Tripod or davit (portable anchor)",equip:["Tripod or davit rated for rescue loads, legs locked and feet restrained","Pulley / attachment points on the tripod head"],
+  notes:["Set the tripod or davit up on firm, level ground, with legs locked and feet chained or restrained.","It must be rated by the maker for the rescue load (often two people). Use only the maker's attachment points for winches and fall arresters.","Keep the load inside the footprint of the legs."]},
+ {id:"weight",name:"Deadweight anchor (flat roof)",equip:["Deadweight anchor with the full set of weights from the maker"],
+  notes:["Use deadweight anchors only on flat roofs within the maker's limits: roof slope, surface type and distance from the edge.","Use the full number of weights the maker specifies. Check whether wet or icy roofs are allowed."]}
+];
+const ANCH_COMMON=["Two independent anchors: at least one for the working rope and one for the back-up rope, even on a large steel beam (ICOP 2.11.2.2-3).","Each anchor should have a static strength of at least 15 kN (ICOP 2.11.2.6). Remember that rescue loads are often two people.","Link the two anchors together where you can, e.g. with a double figure-of-eight (bunny) knot (ICOP 2.11.2.9).","Rescues may need extra anchors, e.g. for a rescue rope or haul system. Plan them now (ICOP 2.11.2.22)."];
+const ancT=()=>ANCH.find(a=>a.id===S.anchorType)||ANCH[0];
+function ancNotes(){return ANCH_COMMON.concat(ancT().notes)}
+
 /* ---------- scenario library (TACS 6.5, 6.8, 6.9) ---------- */
-const GROUPS=[["rig","Rig-for-rescue (team at the top)"],["rope","Rescue on ropes"],["obst","Passing obstacles with a casualty"],["climb","Climbing rescues"]];
+const GROUPS=[["rig","Rig-for-rescue (team at the top)"],["rope","Rescue on ropes"],["obst","Passing obstacles with a casualty"],["climb","Climbing rescues"],["cse","Confined space rescue (not IRATA)"]];
 const SCN=[
  {id:"lower",g:"rig",name:"Pre-rigged lowering",short:"Pre-rigged lower",lvl:1,ref:"TACS 6.5.2; ICOP 2.11.11.3",view:"side",
   blurb:"The casualty's ropes are rigged on releasable anchors from the start, so the team at the top can lower them straight down without anyone going onto the ropes. Best first choice where there is a clear drop.",
@@ -299,14 +335,34 @@ const SCN=[
    "Lower the casualty onto the rescuer's system and descend with them, or lower them to "+landing()+".",
    "Brief the team afterwards: avoid one-connector attachments direct to bolt anchors (TACS 6.9.3.1)."],
   equip:()=>["Small pulley system with progress capture","Hand ascender and foot loop","Descender / lowering device and rescue rope"+L(),"Back-up device","Extra connectors and slings"],
-  cont:()=>["Short connection can't be unloaded: call for a second rescuer to help lift.","Make sure a Level 3 is on site. Otherwise change the work method so short connections aren't used."]}
+  cont:()=>["Short connection can't be unloaded: call for a second rescuer to help lift.","Make sure a Level 3 is on site. Otherwise change the work method so short connections aren't used."]},
+ {id:"cseRet",g:"cse",name:"Confined space: retrieval without entry",short:"CSE retrieval",lvl:0,ref:"Site confined space procedure and permit; ICOP 2.11.6.7",view:"cse",
+  blurb:"The entrant is clipped to a retrieval line from a tripod or davit over the opening the whole time they're inside. If they collapse, the team winches them out without anyone going in. This is the first choice for vertical entries.",
+  steps:()=>["Check the casualty is still attached to the retrieval line: the rescue winch, or a fall arrester with a rescue winch.",
+   "Switch the device into winch (rescue) mode as the maker's instructions say.",
+   "Winch the casualty up steadily. A second person guides the line and watches for snags at the rim of the opening.",
+   "At the opening, keep the casualty upright and guide their head and shoulders through. The person helping at the edge is on restraint.",
+   "Move the casualty clear of the opening into fresh air, then disconnect them."],
+  equip:()=>[cseAncName()+" rated for rescue loads","Rescue winch, or a fall arrester with a rescue winch (3-way device)","Harness with a top (dorsal) or shoulder attachment so the casualty comes up upright","Multi-gas detector, plus continuous monitoring","Ventilation fan and ducting","Barrier around the opening","Stretcher suited to the space, if needed"],
+  cont:()=>["Casualty not attached or jammed inside: switch to the entry rescue. Only the trained, equipped rescue team goes in.","Gas alarm goes off: nobody enters without breathing apparatus. Increase ventilation and call the emergency team.","Winch fails: change to the back-up line or haul system rigged on the tripod."]},
+ {id:"cseEnt",g:"cse",name:"Confined space: entry rescue on ropes",short:"CSE entry rescue",lvl:2,ref:"Site confined space procedure and permit; ICOP 2.11.6.7; TACS 6.5.3",view:"cse",
+  blurb:"A trained rescuer is lowered into the space on a separate line, connects the casualty, and the team at the top hauls them out. Only for a rescue team trained and equipped for confined spaces.",
+  steps:()=>["Don't rush in. Check the gas readings. The rescuer wears breathing apparatus unless the air is proven safe.",
+   "Rig two independent lines on the "+cseAncName().toLowerCase()+": one for the rescuer and one for the casualty, each with a winch or haul system and a back-up (fall arrester).",
+   "Lower the rescuer into the space. The attendant at the opening keeps talking to them and watches the gas readings.",
+   "The rescuer checks the casualty and connects them to the casualty line. Use a top or shoulder attachment so they come up upright through the opening; fit a rescue triangle or stretcher if needed.",
+   "The team winches the casualty up while the rescuer guides them from below and keeps them clear of obstructions.",
+   "At the opening, guide the casualty through and move them into fresh air. Then raise the rescuer."],
+  equip:()=>[cseAncName()+" rated for two lines / rescue loads","Two rescue winches or haul systems, each with a fall arrester back-up","Breathing apparatus for the entry rescuer","Multi-gas detector, plus continuous monitoring","Ventilation fan and ducting","Rescue triangle or confined space stretcher","Radio or voice communication with the rescuer inside"],
+  cont:()=>["Rescuer's breathing apparatus runs low: withdraw the rescuer and send in the standby rescuer.","Casualty won't fit through the opening upright: use a confined space stretcher or a different attachment point.","Rescuer gets into trouble: winch the rescuer out on their own line straight away."]}
 ];
 const byId=id=>SCN.find(s=>s.id===id);
+function cseAncName(){return {tripod:"Tripod",davit:"Davit arm",beam:"Overhead beam anchor"}[S.cseAnchor]||"Tripod"}
 
 function blank(){
   return {ref:"",date:today(),client:"",site:"",task:"",height:20,env:"ground",anchors:"",hazards:"",
     team:[{name:"",level:"L3",role:"Supervisor"},{name:"",level:"L2",role:"Rescuer"},{name:"",level:"L1",role:"Technician"}],
-    radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",notes:"",
+    anchorType:"ya",cseAnchor:"tripod",cseDepth:"",cseTrained:false,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",notes:"",
     cur:"lower",plans:{}};
 }
 function migrate(o){const n=Object.assign(blank(),o);if(n.plans.ascent&&!n.plans.ascentMigrated){/* old ascent plan stays under same id */}if(!byId(n.cur))n.cur="lower";return n}
@@ -315,6 +371,17 @@ try{const raw=localStorage.getItem(LS); if(raw){S=migrate(JSON.parse(raw))}}catc
 
 function defSteps(id){
   const ch=S.radio?(" on channel "+S.radio):"";
+  if(byId(id).g==="cse"){
+    const startC=["The attendant at the opening raises the alarm by radio"+ch+", tells "+supName()+" and calls "+(S.emerg||"emergency services / site control")+". The attendant never goes into the space.",
+      "Check the gas readings at the opening and keep the ventilation running. Nobody enters unless the readings are safe, or they wear breathing apparatus and are part of the trained rescue team.",
+      "Barrier off the opening and keep everyone else clear.",
+      "The rescue team brings the rescue kit"+(S.kitLoc?(" from "+S.kitLoc):"")+" to the opening. The "+cseAncName().toLowerCase()+" should already be set up there for the entry."];
+    const endC=["Casualty care: give first aid in fresh air (airway, breathing, circulation). If they hung in a harness, follow ICOP Annex G: lay down if fully conscious, recovery position if not.",
+      "Send the casualty to hospital"+(S.hospital?(" ("+S.hospital+")"):"")+". Tell the medics the gas readings and how long the casualty was in the space. Hand over to "+(S.medic||"the medic")+".",
+      "Close the permit, record times and actions, tell the client and complete the incident report.",
+      "Take all equipment used out of service for inspection. Nobody re-enters until "+supName()+" and the permit issuer have reviewed the incident."];
+    return startC.concat(byId(id).steps(),endC);
+  }
   const start=[
     "Raise the alarm: stop all work and tell "+supName()+" and the team by radio"+ch+(S.signals?(" (back-up signals: "+S.signals+")"):"")+". Call "+(S.emerg||"emergency services / site control")+" if the casualty is hurt or not responding.",
     "Talk to the casualty and assess them and the scene. Check for hazards: falling objects, sharp edges"+(S.hazards?(", "+S.hazards):"")+", weather"+(S.env==="water"?", water":"")+". Don't make yourself a second casualty.",
@@ -331,8 +398,10 @@ function defSteps(id){
 }
 function defEquip(id){
   const common=["Rescue kit at the worksite, ready to use straight away (ICOP 2.11.11.3)","Radios tested"+(S.radio?(" (channel "+S.radio+")"):""),"First aid kit and a first aider on site (ICOP 2.11.11.6)","Rope protectors / edge protection","Spare connectors and slings"];
-  const water=S.env==="water"?["Rescue boat with crew on standby (ICOP 2.11.6.8)","Life jackets for the team and the casualty","Throw line"]:[];
-  return byId(id).equip().concat(common,water).map(t=>({t,ok:false}));
+  const waterList=S.env==="water"?["Rescue boat with crew on standby (ICOP 2.11.6.8)","Life jackets for the team and the casualty","Throw line"]:[];
+  const anc=byId(id).g==="cse"?[]:ancT().equip;
+  const water=byId(id).g==="cse"?[]:waterList;
+  return byId(id).equip().concat(anc,common,water).map(t=>({t,ok:false}));
 }
 function defCont(id){
   return byId(id).cont().concat([
@@ -357,7 +426,20 @@ function line(pts,col,w,dash){return `<polyline points="${pts.map(p=>p.join(",")
 function arrow(x1,y1,x2,y2,col){const a=Math.atan2(y2-y1,x2-x1),k=9;
   return `<line x1="${x1}" y1="${y1}" x2="${x2-5*Math.cos(a)}" y2="${y2-5*Math.sin(a)}" stroke="${col}" stroke-width="2.5" stroke-dasharray="6 4"/><path d="M${x2} ${y2} L${x2-k*Math.cos(a-0.45)} ${y2-k*Math.sin(a-0.45)} L${x2-k*Math.cos(a+0.45)} ${y2-k*Math.sin(a+0.45)} Z" fill="${col}"/>`}
 function anc(x,y){return `<rect x="${x-5}" y="${y-8}" width="10" height="8" fill="${C.ink}"/>`}
-function yhang(x1,x2,y,col){const mx=(x1+x2)/2,my=y+16;return {svg:`<path d="M${x1} ${y} L${mx} ${my} L${x2} ${y}" stroke="${col}" stroke-width="2" fill="none"/>${anc(x1,y)}${anc(x2,y)}<circle cx="${mx}" cy="${my}" r="3.5" fill="#fff" stroke="${C.ink}" stroke-width="1.6"/>`,x:mx,y:my}}
+function yhang(x1,x2,y,col,type){
+  type=type||S.anchorType||"ya";const mx=(x1+x2)/2;let my=y+16,pre="",a1=[x1,y],a2=[x2,y];
+  const beam=()=>`<rect x="${x1-12}" y="${y-14}" width="${x2-x1+24}" height="10" fill="#9aa4ab" stroke="${C.ink}" stroke-width="1"/><line x1="${x1-12}" y1="${y-11}" x2="${x2+12}" y2="${y-11}" stroke="${C.ink}" stroke-width=".6"/><line x1="${x1-12}" y1="${y-7}" x2="${x2+12}" y2="${y-7}" stroke="${C.ink}" stroke-width=".6"/>`;
+  if(type==="ya"){pre=anc(x1,y)+anc(x2,y)}
+  else if(type==="sling"){pre=beam()+[x1,x2].map(x=>`<ellipse cx="${x}" cy="${y-9}" rx="4" ry="8" fill="none" stroke="#f59e0b" stroke-width="2.4"/>`).join("");a1=[x1,y-2];a2=[x2,y-2]}
+  else if(type==="clamp"){pre=beam()+[x1,x2].map(x=>`<path d="M${x-6} ${y-16} v13 h12 v-13" fill="none" stroke="${C.ink}" stroke-width="2.4"/><circle cx="${x}" cy="${y}" r="3" fill="none" stroke="${C.ink}" stroke-width="1.8"/>`).join("");a1=[x1,y+2];a2=[x2,y+2]}
+  else if(type==="eyebolt"){pre=[x1,x2].map(x=>`<rect x="${x-2}" y="${y-4}" width="4" height="6" fill="${C.ink}"/><circle cx="${x}" cy="${y-9}" r="5" fill="none" stroke="${C.ink}" stroke-width="2.4"/>`).join("");a1=[x1,y-4];a2=[x2,y-4]}
+  else if(type==="rail"){pre=`<line x1="${x1-14}" y1="${y-24}" x2="${x2+14}" y2="${y-24}" stroke="#9aa4ab" stroke-width="3"/>`+[x1,x2].map(x=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y-26}" stroke="#9aa4ab" stroke-width="3.5"/><ellipse cx="${x}" cy="${y-4}" rx="5" ry="3" fill="none" stroke="#f59e0b" stroke-width="2.2"/>`).join("");a1=[x1,y-2];a2=[x2,y-2]}
+  else if(type==="weight"){pre=[x1,x2].map(x=>`<rect x="${x-9}" y="${y-14}" width="18" height="14" fill="#6b7280" stroke="${C.ink}"/><line x1="${x-9}" y1="${y-9}" x2="${x+9}" y2="${y-9}" stroke="#d1d5db"/><line x1="${x-9}" y1="${y-4}" x2="${x+9}" y2="${y-4}" stroke="#d1d5db"/>`).join("");a1=[x1+9,y-7];a2=[x2-9,y-7]}
+  else if(type==="tripod"){const ax=mx,ay=y-38;pre=`<path d="M${mx-24} ${y} L${ax} ${ay} L${mx+24} ${y} M${ax} ${ay} L${ax+6} ${y}" stroke="#9aa4ab" stroke-width="3" fill="none"/><rect x="${ax-6}" y="${ay-5}" width="12" height="7" rx="2" fill="${C.ink}"/>`;
+    return {svg:pre+`<path d="M${ax-2} ${ay+2} L${ax} ${ay+8} L${ax+2} ${ay+2}" stroke="${col}" stroke-width="2" fill="none"/>`+pulleyS(ax,ay+8),x:ax,y:ay+8}}
+  return {svg:pre+`<path d="M${a1[0]} ${a1[1]} L${mx} ${my} L${a2[0]} ${a2[1]}" stroke="${col}" stroke-width="2" fill="none"/><circle cx="${mx}" cy="${my}" r="3.5" fill="#fff" stroke="${C.ink}" stroke-width="1.6"/>`,x:mx,y:my};
+}
+function pulleyS(x,y){return `<circle cx="${x}" cy="${y}" r="4.5" fill="#fff" stroke="${C.ink}" stroke-width="1.8"/>`}
 function krab(x,y){return `<circle cx="${x}" cy="${y}" r="4.5" fill="#fff" stroke="${C.ink}" stroke-width="1.8"/>`}
 function pulley(x,y){return `<circle cx="${x}" cy="${y}" r="6" fill="#fff" stroke="${C.ink}" stroke-width="2"/><circle cx="${x}" cy="${y}" r="1.6" fill="${C.ink}"/>`}
 function dev(x,y,col){return `<rect x="${x-4}" y="${y-12}" width="8" height="13" rx="2" fill="${col||C.ink}"/>`}
@@ -393,6 +475,7 @@ function draw(id){
     for(let i=0;i<3;i++){let d=`M0 ${ground+8+i*12}`;for(let x=0;x<W;x+=24)d+=" q6 -5 12 0 t12 0";add(`<path d="${d}" stroke="#3b82f6" stroke-width="1.4" fill="none"/>`)}}
   else{add(`<rect x="0" y="${ground}" width="${W}" height="${H-ground-62}" fill="#e8e2d0"/>`);add(`<line x1="0" y1="${ground}" x2="${W}" y2="${ground}" stroke="${C.ink}" stroke-width="2.5"/>`);
     for(let x=6;x<W;x+=14) add(`<line x1="${x}" y1="${ground+2}" x2="${x-8}" y2="${ground+10}" stroke="#a69c86" stroke-width="1"/>`)}
+  if(sc.view==="cse") return drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H);
   // structure
   if(sc.view==="side"){
     add(`<rect x="0" y="${top}" width="${wall}" height="${ground-top}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
@@ -413,14 +496,14 @@ function draw(id){
   const edge=()=>add(`<rect x="${wall-6}" y="${top-6}" width="14" height="12" rx="2" fill="#f59e0b" stroke="${C.ink}" stroke-width="1"/>`);
   const cx1=wall+12,cx2=wall+22;
   function casRopes(endY,withEnds){ // side view: Y-hangs on roof, over the edge, down
-    const a=yhang(30,70,top,C.work),b=yhang(84,120,top,C.back);add(a.svg);add(b.svg);
+    const a=yhang(58,88,top,C.work),b=yhang(104,134,top,C.back);add(a.svg);add(b.svg);
     add(line([[a.x,a.y],[wall,top],[cx1,top+8],[cx1,endY]],C.work));
     add(line([[b.x,b.y],[wall,top+2],[cx2,top+10],[cx2,endY]],C.back));
     if(withEnds!==false){add(`<circle cx="${cx1}" cy="${endY}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${endY}" r="3" fill="${C.back}"/>`)}
-    edge(); key("Anchors: Y-hangs for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),50,top-26);
+    edge(); key("Anchors ("+ancT().name.toLowerCase()+") for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),96,top-(S.anchorType==="tripod"?62:38));
   }
   function rescRopesSide(x,endY){ // separate rescue ropes from roof
-    const r=yhang(10,40,top-20,C.res);add(r.svg);
+    const r=yhang(8,40,top,C.res);add(r.svg);
     add(line([[r.x,r.y],[wall-2,top-10],[x,top-4],[x,endY]],C.res));
     add(line([[r.x,r.y],[wall-2,top-14],[x+10,top-8],[x+10,endY]],C.resb,2.2,"7 4"));
   }
@@ -430,11 +513,11 @@ function draw(id){
   switch(id){
   case "lower":{
     casRopes(ground-6,false);
-    add(`<rect x="38" y="${top+20}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
-    add(TB(14,top+54,"Releasable lowering",{s:10,b:1}));add(TB(14,top+67,"device on anchor",{s:10,b:1}));
-    add(`<path d="M51 ${top+36} q-12 30 8 44 q20 14 -2 26" stroke="${C.work}" stroke-width="2.4" fill="none"/>`);
-    add(person(100,top-26,C.resc));rescLabel(116,top-56,"Lowering");
-    key("Person at the top unlocks the lowering device and lowers; a second person tends the back-up",88,top-70);
+    add(`<rect x="60" y="${top+22}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
+    add(TB(14,top+56,"Releasable lowering",{s:10,b:1}));add(TB(14,top+69,"device on anchor",{s:10,b:1}));
+    add(`<path d="M73 ${top+38} q-12 30 8 44 q20 14 -2 26" stroke="${C.work}" stroke-width="2.4" fill="none"/>`);
+    add(person(30,top-26,C.resc));rescLabel(8,top-62,"Lowering");
+    key("Person at the top unlocks the lowering device and lowers; a second person tends the back-up",80,top-66);
     casualtyOn(cx1,250);casLabel(wall-92,240);key("Casualty lowered on their own ropes; nobody goes down",wall-104,236);
     add(arrow(wall+80,230,wall+80,ground-30,C.cas));
     add(`<ellipse cx="${cx1+6}" cy="${ground-4}" rx="14" ry="4" fill="none" stroke="${C.work}" stroke-width="2"/><ellipse cx="${cx1+6}" cy="${ground-8}" rx="12" ry="3.5" fill="none" stroke="${C.back}" stroke-width="2"/>`);
@@ -628,7 +711,11 @@ function draw(id){
     lz(a.x-50,a.x+60);key("Descend to "+landing(),a.x+5,ground-22);
     break}
   }
-  // legend
+  finishLegend(out,legend,sc,W,H);
+  return {svg:out.join(""),keys};
+}
+function finishLegend(out,legend,sc,W,H){
+  const add=s=>out.push(s);
   const ly=H-56;add(`<rect x="0" y="${ly-6}" width="${W}" height="62" fill="#fff"/>`);
   let lx=8,lr=0;legend.forEach((l,i)=>{const wdt=l[1].length*5.3+40;if(lx+wdt>W-10){lx=8;lr++}const x=lx,y=ly+4+lr*18;lx+=wdt;add(`<line x1="${x}" y1="${y}" x2="${x+22}" y2="${y}" stroke="${l[0]}" stroke-width="3" ${l[2]?`stroke-dasharray="${l[2]}"`:""}/>`);add(T(x+27,y+4,l[1],{s:10}))});
   const r2=ly+4+(lr+1)*18;
@@ -636,7 +723,73 @@ function draw(id){
   add(`<circle cx="150" cy="${r2}" r="7" fill="${C.mk}"/>`);add(T(162,r2+4,"Numbered point, see key",{s:10}));
   if(lr<1) add(T(8,r2+20,sc.name+(S.site?" - "+S.site:""),{s:10,c:C.muted}));
   add(`</svg>`);
+}
+function drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
+  const deck=190,floor=500,ox1=185,ox2=235,ax=(ox1+ox2)/2,d=+S.cseDepth||0;
+  // deck slab and space below
+  add(`<rect x="0" y="${deck}" width="${W}" height="${floor-deck+40}" fill="#cbd2d8"/>`);
+  add(`<rect x="0" y="${deck}" width="${ox1}" height="22" fill="#9aa4ab" stroke="${C.ink}"/><rect x="${ox2}" y="${deck}" width="${W-ox2}" height="22" fill="#9aa4ab" stroke="${C.ink}"/>`);
+  add(`<path d="M${ox1} ${deck+22} L${ox1} ${deck+70} L40 ${deck+70} L40 ${floor} L380 ${floor} L380 ${deck+70} L${ox2} ${deck+70} L${ox2} ${deck+22} Z" fill="#f3f4f6" stroke="${C.ink}" stroke-width="1.5"/>`);
+  add(`<rect x="40" y="${floor}" width="340" height="10" fill="#9aa4ab"/>`);
+  add(T(48,floor-10,"Confined space (cut-away view)",{c:C.muted}));
+  add(T(8,deck-8,"Deck",{c:C.muted,b:1}));
+  // gas cloud hint
+  add(`<ellipse cx="300" cy="${floor-40}" rx="60" ry="18" fill="#fde68a" fill-opacity=".5"/>`);add(T(300,floor-36,"Possible bad air",{a:"middle",s:10,c:"#92400e"}));
+  // depth
+  add(`<line x1="${W-22}" y1="${deck}" x2="${W-22}" y2="${floor}" stroke="${C.muted}" stroke-width="1.2"/><path d="M${W-22} ${deck} l-4 8 h8 Z M${W-22} ${floor} l-4 -8 h8 Z" fill="${C.muted}"/>`);
+  add(`<text x="${W-9}" y="${(deck+floor)/2}" text-anchor="middle" font-size="12" font-weight="700" fill="${C.ink}" transform="rotate(-90 ${W-9} ${(deck+floor)/2})" ${FONT}>${d?esc(d+" m deep"):"Depth"}</text>`);
+  // anchor above opening
+  let hx=ax,hy=70;
+  if(S.cseAnchor==="davit"){add(`<path d="M${ox2+50} ${deck} L${ox2+50} ${hy} L${ax} ${hy}" stroke="#9aa4ab" stroke-width="6" fill="none"/><rect x="${ox2+38}" y="${deck-8}" width="24" height="8" fill="${C.ink}"/>`);add(T(ox2+60,hy+20,"Davit arm",{s:10,b:1}))}
+  else if(S.cseAnchor==="beam"){add(`<rect x="60" y="${hy-14}" width="300" height="14" fill="#9aa4ab" stroke="${C.ink}"/>`);add(T(64,hy-20,"Overhead beam",{s:10,b:1}));add(`<ellipse cx="${ax}" cy="${hy-7}" rx="5" ry="10" fill="none" stroke="#f59e0b" stroke-width="2.4"/>`)}
+  else{add(`<path d="M${ox1-60} ${deck} L${hx} ${hy} L${ox2+60} ${deck} M${hx} ${hy} L${hx+14} ${deck}" stroke="#9aa4ab" stroke-width="4" fill="none"/><rect x="${hx-9}" y="${hy-8}" width="18" height="10" rx="3" fill="#f97316" stroke="${C.ink}"/>`);
+    add(`<path d="M${ox1-66} ${deck} q${(ox2-ox1+132)/2} 14 ${ox2-ox1+132} 0" stroke="${C.muted}" stroke-width="1.4" stroke-dasharray="3 3" fill="none"/>`);add(T(ox2+66,deck-6,"Leg chain",{s:9,c:C.muted}))}
+  add(pulley(hx-6,hy+8));add(pulley(hx+6,hy+8));
+  // winch on leg / davit
+  const wx=S.cseAnchor==="tripod"?ox1-26:S.cseAnchor==="davit"?ox2+50:ox1-40, wy=S.cseAnchor==="beam"?deck-30:deck-56;
+  add(`<rect x="${wx-14}" y="${wy-10}" width="28" height="20" rx="4" fill="#f97316" stroke="${C.ink}"/><circle cx="${wx}" cy="${wy}" r="5" fill="#fff" stroke="${C.ink}"/>`);
+  add(line([[wx,wy-10],[hx-6,hy+2]],C.res,2));
+  // attendant
+  add(person(70,deck-24,C.resc));add(TB(40,deck-74,"Attendant",{c:C.resc,b:1}));
+  key("Attendant at the opening raises the alarm and never enters",120,deck-90);
+  key(cseAncName()+" over the opening, rated for rescue, with winch",hx+30,hy-4);
+  if(id==="cseRet"){
+    const cy=floor-60;add(line([[hx-6,hy+14],[ax-4,cy-34]],C.res));add(line([[hx+6,hy+14],[ax+2,cy-34]],C.back,2,"6 3"));
+    add(person(ax,cy,C.cas,{slump:true}));casLabel(ax+48,cy-20);
+    key("Entrant clipped to the retrieval line the whole time; winched out without entry",ax+40,cy-50);
+    add(arrow(ax+40,cy+10,ax+40,deck+80,C.res));
+    add(`<rect x="${ox2+92}" y="${deck-30}" width="60" height="28" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);add(T(ox2+98,deck-12,"Fresh air",{b:1,s:10}));
+    key("Casualty brought out upright, moved to fresh air",ox2+78,deck-16);
+    legend.splice(2,2,[C.res,"Retrieval / winch line"],[C.back,"Fall arrester back-up","6 3"]);
+  }else{
+    const cy=floor-40,ry=floor-80;
+    add(line([[hx-6,hy+14],[ax-14,cy-34]],C.res));add(line([[hx+6,hy+14],[ax+20,ry-34]],C.sys2));
+    add(person(ax-16,cy,C.cas,{slump:true}));add(person(ax+24,ry,C.resc));
+    add(`<rect x="${ax+34}" y="${ry-22}" width="8" height="18" rx="3" fill="#6b7280"/>`);
+    casLabel(60,cy-10);rescLabel(ax+50,ry-40,"Rescuer (with BA)");
+    key("Rescuer lowered on their own line (purple), wearing breathing apparatus if needed",ax+60,ry-20);
+    key("Casualty connected to the casualty line (green) and winched out upright",50,cy-40);
+    add(arrow(ax-40,cy-20,ax-40,deck+80,C.res));
+    legend.splice(2,2,[C.res,"Casualty line"],[C.sys2,"Rescuer line"]);
+  }
+  finishLegend(out,legend,sc,W,H);
   return {svg:out.join(""),keys};
+}
+
+/* ---------- anchor close-up ---------- */
+function drawAnchor(){
+  const W=440,H=250,y=110,out=[`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ${FONT}><rect width="${W}" height="${H}" fill="#fff"/>`];
+  const add=s=>out.push(s);
+  add(`<rect x="0" y="${y}" width="${W}" height="${H-y}" fill="${C.structFill}"/><line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${C.ink}" stroke-width="3"/>`);
+  add(`<g transform="translate(-40,-55) scale(1.5)">`);
+  const a=yhang(60,120,y/1.5+37,C.work),b=yhang(190,250,y/1.5+37,C.back);add(a.svg);add(b.svg);
+  add(line([[a.x,a.y],[a.x+60,a.y+44]],C.work,2.4));add(line([[b.x,b.y],[b.x-20,b.y+44]],C.back,2.4));
+  add(line([[a.x,a.y],[b.x,b.y]],C.muted,1.4,"4 3"));
+  add(`</g>`);
+  add(TB(30,30,"Working rope anchors",{c:C.work,b:1}));add(TB(265,30,"Back-up rope anchors",{c:C.back,b:1}));
+  add(TB(W/2,y+120,"Linked where possible",{a:"middle",s:10,c:C.muted}));
+  add(T(8,H-8,ancT().name,{s:11,b:1,c:C.ink}));
+  add(`</svg>`);return out.join("");
 }
 
 /* ---------- checks ---------- */
@@ -653,6 +806,13 @@ function checks(){
   if(inc.length&&!inc.some(sc=>sc.g==="rig")) add("wn","No rig-for-rescue setup ticked. IRATA says to use rig-for-rescue systems where feasible.","TACS 6.5.1.1.2");
   inc.forEach(sc=>{ if(maxL<sc.lvl) add("bad",sc.name+" needs a Level "+sc.lvl+" in the team.",sc.ref); });
   if(inc.some(sc=>sc.id==="dev")&&maxL<3) add("wn","Double-anchor deviations need a Level 3 for the rescue; single-anchor only with Level 2.","TACS 6.8.4");
+  if(S.anchorType==="rail") add("wn","Handrail anchors: get a competent person to confirm each one takes at least 15 kN.","ICOP 2.11.2.6");
+  if(S.anchorType==="weight") add("wn","Deadweight anchors: check the roof and edge distance against the maker's limits.","Maker's instructions");
+  if(inc.some(sc=>sc.g==="cse")){
+    S.cseTrained?add("ok","Team marked as trained in confined space entry and rescue.","ICOP 2.11.6.7"):add("bad","Confined space rescue needs a team trained and equipped for confined spaces. Tick the box in the Team section once confirmed.","ICOP 2.11.6.7");
+    add("wn","Confined space: permit to work, gas testing before and during entry, ventilation, an attendant at the opening, and entrants clipped to a retrieval line. Follow the site's confined space procedure.","Site procedure / permit");
+    if(!inc.some(sc=>sc.id==="cseRet")) add("wn","Plan a retrieval-without-entry option first where the opening allows it.","Good practice");
+  }
   S.radio||S.signals?add("ok","Communication method set.","TACS 6.2.8.1 f"):add("wn","Set a radio channel or agreed signals.","TACS 6.2.8.1 f");
   S.medic?add("ok","First aider named.","ICOP 2.11.11.6"):add("wn","Name the first aider on site.","ICOP 2.11.11.6");
   if(S.env==="water") S.boat?add("ok","Rescue boat arranged.","ICOP 2.11.6.8"):add("bad","Working over water: arrange a rescue boat or other prompt water rescue.","ICOP 2.11.6.8");
@@ -670,8 +830,11 @@ function renderChecks(){
 const $=q=>document.querySelector(q);
 let saveT=null;
 function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}},300)}
-function changed(){refreshDefaults();renderScn(true);renderChecks();save()}
+function changed(){refreshDefaults();renderScn(true);renderAnchor();renderChecks();save()}
+function renderAnchor(){$("#ancDraw").innerHTML=drawAnchor();$("#ancNotes").innerHTML=ancNotes().map(n=>`<li>${esc(n)}</li>`).join("")}
 function bindFields(){
+  $("#anchorSel").innerHTML=ANCH.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("");
+  const cb=$("#cseBox");cb.checked=!!S.cseTrained;cb.onchange=()=>{S.cseTrained=cb.checked;renderChecks();save()};
   document.querySelectorAll("[data-k]").forEach(el=>{
     const k=el.dataset.k; el.value=S[k]==null?"":S[k];
     el.oninput=()=>{S[k]=el.value;boatVis();changed()};
@@ -701,7 +864,7 @@ function renderTeam(){
 $("#addTm").onclick=()=>{S.team.push({name:"",level:"L1",role:"Technician"});renderTeam();changed()};
 
 function renderPicker(){
-  $("#picker").innerHTML=GROUPS.map(([g,label])=>`<div class="grp"><h4>${esc(label)}</h4><div class="chips">${SCN.filter(s=>s.g===g).map(s=>`<button class="chip${S.cur===s.id?" on":""}" data-id="${s.id}">${plan(s.id).inc?'<span class="dot" title="In plan"></span>':""}${esc(s.short)} <span class="lv">L${s.lvl}+</span></button>`).join("")}</div></div>`).join("");
+  $("#picker").innerHTML=GROUPS.map(([g,label])=>`<div class="grp"><h4>${esc(label)}</h4><div class="chips">${SCN.filter(s=>s.g===g).map(s=>`<button class="chip${S.cur===s.id?" on":""}" data-id="${s.id}">${plan(s.id).inc?'<span class="dot" title="In plan"></span>':""}${esc(s.short)} <span class="lv">${s.lvl?"L"+s.lvl+"+":"CSE"}</span></button>`).join("")}</div></div>`).join("");
   document.querySelectorAll("#picker .chip").forEach(b=>b.onclick=()=>{S.cur=b.dataset.id;renderPicker();renderScn();save()});
 }
 function renderScn(onlyDrawing){
@@ -713,7 +876,7 @@ function renderScn(onlyDrawing){
   }
   $("#scn").innerHTML=`
    <h3 style="margin:6px 0 4px;font-size:17px">${esc(sc.name)}</h3>
-   <div class="meta"><span>Lowest level trained: <b>Level ${sc.lvl}</b></span><span>IRATA reference: <b>${esc(sc.ref)}</b></span></div>
+   <div class="meta"><span>${sc.lvl?"Lowest level trained: <b>Level "+sc.lvl+"</b>":"<b>Confined space training needed</b>"}${sc.g==="cse"&&sc.lvl?" + <b>confined space training</b>":""}</span><span>IRATA reference: <b>${esc(sc.ref)}</b></span></div>
    <p style="margin:0 0 8px">${esc(sc.blurb)}</p>
    <label class="inc"><input type="checkbox" id="incBox"> Include this setup in the plan</label>
    <div class="scn">
@@ -786,9 +949,9 @@ function msg(t,err){const m=$("#msg");m.textContent=t;m.style.color=err?"var(--a
 let dlNs=null;
 try{ if(window.claude&&typeof window.claude.use==="function") window.claude.use("downloads").then(ns=>{dlNs=ns}).catch(()=>{}) }catch(e){}
 function ansi(t){return String(t||"").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"...").replace(/✓/g,"OK").replace(/✕/g,"X").replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g,"")}
-function svgToPng(svg,scale){
+function svgToPng(svg,scale,w,h){w=w||440;h=h||600;
   return new Promise((res,rej)=>{const img=new Image();const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
-    img.onload=()=>{const c=document.createElement("canvas");c.width=440*scale;c.height=600*scale;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>b?b.arrayBuffer().then(res):rej(new Error("png")),"image/png")};
+    img.onload=()=>{const c=document.createElement("canvas");c.width=w*scale;c.height=h*scale;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>b?b.arrayBuffer().then(res):rej(new Error("png")),"image/png")};
     img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("svg"))};img.src=url});
 }
 async function makePdf(){
@@ -818,6 +981,11 @@ async function makePdf(){
   wrap("DRAFT until approved. Setups and steps follow the IRATA ICOP and TACS rescue requirements. Check against the site risk assessment and manufacturers' instructions. The Level 3 supervisor must approve the plan and brief the team before work starts (ICOP 2.11.6.6).",F,8.5,CW-16).forEach((l,i)=>pg.drawText(l,{x:M+8,y:y-12-i*11,size:8.5,font:F,color:rgb(.42,.3,0)}));y-=44;
   heading("Job details");
   kv([["Plan reference",S.ref],["Date",S.date],["Client",S.client],["Site / location",S.site],["Work task",S.task],["Drop height",S.height?S.height+" m":""],["Below the work",{ground:"Ground",deck:"Deck / platform",water:"Water"}[S.env]],["Designated anchors",S.anchors],["Edge / hazards",S.hazards]]);
+  heading("Anchor system");
+  kv([["Main anchor type",ancT().name],["Where",S.anchors],["Confined space anchor",SCN.some(sc=>sc.g==="cse"&&plan(sc.id).inc)?cseAncName():""]]);
+  {const png=await doc.embedPng(await svgToPng(drawAnchor(),2,440,250));const iw=240,ih=iw*250/440;need(ih+10);pg.drawImage(png,{x:M,y:y-ih,width:iw,height:ih});pg.drawRectangle({x:M,y:y-ih,width:iw,height:ih,borderColor:line,borderWidth:.8});
+   let ny=y;ancNotes().forEach(n=>{const wl=wrap("- "+n,F,8.5,CW-iw-14);wl.forEach((l,j)=>pg.drawText(l,{x:M+iw+14,y:ny-9-j*11,size:8.5,font:F,color:ink}));ny-=wl.length*11+2});
+   y=Math.min(y-ih,ny)-10}
   heading("Team and supervision");
   const tm=S.team.filter(p=>p.name||p.role);
   if(tm.length){tm.forEach(p=>{need(14);pg.drawText(ansi(p.level),{x:M,y:y-10,size:10,font:B,color:acc});pg.drawText(ansi(p.name||"-"),{x:M+50,y:y-10,size:10,font:F,color:ink});pg.drawText(ansi(p.role),{x:M+260,y:y-10,size:10,font:F,color:mut});y-=14})}else text("Not filled in.",{color:mut});
@@ -826,7 +994,7 @@ async function makePdf(){
   const inc=SCN.filter(sc=>plan(sc.id).inc);
   heading("Rescue setups in this plan");
   if(!inc.length) text("No rescue setups selected.",{color:mut});
-  inc.forEach(sc=>text("- "+sc.name+" (Level "+sc.lvl+"+, "+sc.ref+")"));
+  inc.forEach(sc=>text("- "+sc.name+" ("+(sc.lvl?"Level "+sc.lvl+"+":"confined space trained")+", "+sc.ref+")"));
   heading("Plan checks");
   checks().forEach(c=>{const lines=wrap(c.t+"  ["+c.ref+"]",F,9.5,CW-22);need(lines.length*12.5+3);pg.drawText(c.st==="ok"?"OK":c.st==="bad"?"X":"!",{x:M,y:y-9.5,size:9.5,font:B,color:c.st==="ok"?okc:c.st==="bad"?badc:acc});lines.forEach((l,j)=>pg.drawText(l,{x:M+22,y:y-9.5-j*12.5,size:9.5,font:F,color:ink}));y-=lines.length*12.5+3});
   if(S.notes){heading("Notes");text(S.notes)}
@@ -835,7 +1003,7 @@ async function makePdf(){
     const p=plan(sc.id), d=draw(sc.id);
     newPage();
     pg.drawText(ansi(sc.name),{x:M,y:y-18,size:18,font:B,color:ink});y-=24;
-    text("Lowest level trained: Level "+sc.lvl+"    IRATA reference: "+sc.ref,{size:9,color:acc,bold:true});
+    text((sc.lvl?"Lowest level trained: Level "+sc.lvl:"Confined space training needed")+(sc.g==="cse"&&sc.lvl?" + confined space training":"")+"    Reference: "+sc.ref,{size:9,color:acc,bold:true});
     text(sc.blurb,{size:10,color:mut});y-=6;
     const png=await doc.embedPng(await svgToPng(d.svg,2));
     const iw=280,ih=iw*600/440;
@@ -876,7 +1044,7 @@ $("#pdfBtn").onclick=async()=>{
   }catch(e){console.error(e);msg("PDF failed: "+e.message,1)}
 };
 
-function initAll(){bindFields();renderTeam();SCN.forEach(sc=>plan(sc.id));renderPicker();renderScn();renderChecks()}
+function initAll(){bindFields();renderAnchor();renderTeam();SCN.forEach(sc=>plan(sc.id));renderPicker();renderScn();renderChecks()}
 initAll();
 window.RRP={makePdf,draw,SCN,S:()=>S,set:o=>{S=migrate(o);initAll()}};
 })();
