@@ -246,6 +246,15 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);ou
                 <label>Number of panels<input type="number" id="pvPanels" min="1" max="40" step="1"></label>
                 <label>DC isolator<select id="pvIsoA"></select></label>
               </div>
+              <div class="row2">
+                <label>Strings in parallel<select id="pvStrings"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+                <label>Panel Isc (A)<input type="number" id="pvIsc" min="1" max="30" step="0.1"></label>
+              </div>
+              <div class="row2">
+                <label>Panel max series fuse (A)<input type="number" id="pvMaxFuse" min="5" max="60" step="1"></label>
+                <span></span>
+              </div>
+              <p class="hint">Isc (short-circuit current) and the maximum series fuse are on the panel's label or datasheet. They're used to work out string fuses, the isolator size and the cable rating (SANS/IEC 60364-7-712).</p>
               <label>DC voltage rating (isolator and surge arrester)<select id="pvV"><option value="600">600 V DC</option><option value="1000">1000 V DC</option></select></label>
               <label class="toggle"><input type="checkbox" id="pvSpd"> DC surge arrester</label>
             </div>
@@ -322,18 +331,18 @@ const INV_V=[12,24,48];
 const FEED_A=[20,25,32,40,50,63];
 const BATT_AH=[50,100,150,200,280,314];
 const BATT_A=[63,80,100,125,160,200,250];
-const PV_ISO=[16,25,32,40,50];
+const PV_ISO=[16,25,32,40,50,63,80];
 const PRESETS=[["Lights",10,true],["Plugs",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Pool pump",16,false],["Gate motor",10,true],["Outside lights",10,true],["Borehole",16,false],["TV & Wi-Fi",16,true]];
 const MAX_CIRCUITS=30;
 
 const DEFAULTS={name:"My board",colours:"red",phases:1,cables:true,specs:{curve:"C",ka:6,elType:"A",spdKa:40},mainA:63,el:{on:true,a:63,ma:30},spd:true,
   inv:{on:false,kw:5,v:48,mode:"split",feedA:32,bypass:false,ne:"contactor",ph:"L1"},
   batt:{on:true,ah:100,prot:"breaker",a:125,dcV:250,fuse:"NH"},
-  pv:{on:true,panels:8,isoA:32,spd:true,v:1000},circuits:[]};
+  pv:{on:true,panels:8,isoA:32,spd:true,v:1000,strings:1,isc:13.9,maxFuse:25},circuits:[]};
 const EXAMPLE={name:"Example house",colours:"red",phases:1,cables:true,specs:{curve:"C",ka:6,elType:"A",spdKa:40},mainA:63,el:{on:true,a:63,ma:30},spd:true,
   inv:{on:true,kw:5,v:48,mode:"split",feedA:32,bypass:true,ne:"contactor",ph:"L1"},
   batt:{on:true,ah:100,prot:"breaker",a:125,dcV:250,fuse:"NH"},
-  pv:{on:true,panels:8,isoA:32,spd:true,v:1000},
+  pv:{on:true,panels:8,isoA:32,spd:true,v:1000,strings:1,isc:13.9,maxFuse:25},
   circuits:[["Lights",10,true],["Plugs kitchen",20,true],["Plugs lounge",20,true],["Geyser",20,false],["Stove",32,false],["Aircon",20,false],["Outside lights",10,true],["Gate motor",10,true]].map(([n,a,b])=>({name:n,a,backup:b}))};
 
 let uid=1;
@@ -459,6 +468,12 @@ function checks(){
   if(s.inv.on){
     if(!s.inv.bypass) out.push("No bypass switch. If the inverter fails, the backup circuits can't be switched to the grid.");
     if(s.pv.on&&!s.pv.spd) out.push("No DC surge arrester on the solar side.");
+    if(s.pv.on){
+      const pc=pvCalc(s.pv);
+      if(pc.fuseNeeded) out.push(pc.fuse?`With ${pc.ns} strings in parallel, string fuses are required (60364-7-712, 712.430.3.103). Check that gPV fuses of ${pc.fuse} A are fitted.`
+        :`With ${pc.ns} strings in parallel, string fuses are required, but no standard fuse fits between 1.5 and 2.4 × Isc and below the panel's ${pc.mx} A maximum. Check the panel datasheet.`);
+      if(!pc.isoOk) out.push(`The PV isolator (${s.pv.isoA} A) is smaller than the solar array's minimum current rating of ${pc.arrayMin} A (1.25 × Isc × strings, table 712.2).`);
+    }
   }
   return out;
 }
@@ -504,7 +519,13 @@ function makeFixed(){
   }
   if(f.inv.on){
     if(!f.inv.bypass){f.inv.bypass=true; ch.push("Fit a bypass (changeover) switch for the backup section.")}
-    if(f.pv.on&&!f.pv.spd){f.pv.spd=true; ch.push("Fit a DC surge arrester on the solar side.")}
+    if(f.pv.on&&!f.pv.spd){f.pv.spd=true; ch.push("Fit a PV-rated DC surge arrester on the solar side (712.534).")}
+    if(f.pv.on){
+      const pc=pvCalc(f.pv);
+      if(!pc.isoOk){const n=PV_ISO.find(v=>v>=pc.arrayMin); if(n){f.pv.isoA=n; ch.push(`Replace the PV isolator with a ${n} A DC switch-disconnector (at least 1.25 × Isc × strings = ${pc.arrayMin} A).`)} else ch.push(`Fit a PV isolator rated at least ${pc.arrayMin} A.`)}
+      if(pc.fuseNeeded) ch.push(pc.fuse?`Fit gPV string fuses rated ${pc.fuse} A in the DC box (712.433.1.101.2).`:"Fit string fuses: check the panel datasheet for a suitable gPV fuse rating.");
+      ch.push("Fit the solar warning labels: a \"PV\" label at the main switch and at the board the inverter feeds (712.514.101), \"Solar DC – live parts can stay live after isolation\" on the DC box (712.514.102), \"Isolate all sources before working\" on the inverter (712.514.103), and a sign that more than one supply must be isolated (712.536.2.103).");
+    }
   }
   const unl=f.circuits.filter(c=>!String(c.name).trim()||GENERIC.test(String(c.name).trim()));
   if(unl.length) ch.push("Label every circuit and put a circuit list inside the board door (SANS 10142-1 6.6.1.19 and 6.8.2.2).");
@@ -655,6 +676,7 @@ function syncControls(){
   $("curve").value=s.specs.curve; $("ka").value=s.specs.ka; $("elType").value=s.specs.elType; $("spdKa").value=s.specs.spdKa; $("spdKaWrap").hidden=!s.spd;
   $("battDcV").value=s.batt.dcV; $("fuseType").value=s.batt.fuse; $("battVWrap").hidden=s.batt.prot!=="breaker"; $("fuseWrap").hidden=s.batt.prot!=="fuse";
   $("pvV").value=s.pv.v;
+  $("pvStrings").value=s.pv.strings; $("pvIsc").value=s.pv.isc; $("pvMaxFuse").value=s.pv.maxFuse;
   $("pvPanels").value=s.pv.panels; $("pvIsoA").value=s.pv.isoA; $("pvSpd").checked=s.pv.spd;
   setPressed("viewFound",view==="found"); setPressed("viewFixed",view==="fixed"); $("viewFixed").disabled=!boards.fixed;
   $("viewHint").textContent=view==="fixed"
@@ -719,6 +741,8 @@ $("panel").addEventListener("input",e=>{
   if(t.id==="name"){state.name=t.value;return changed()}
   if(t.id==="notes"){state.notes=t.value.split("\n").map(x=>x.trim()).filter(Boolean); return changed()}
   if(t.id==="pvPanels"){const v=Math.round(+t.value); if(v>=1&&v<=40){state.pv.panels=v; changed()} return}
+  if(t.id==="pvIsc"){const v=+t.value; if(v>=1&&v<=30){state.pv.isc=Math.round(v*10)/10; changed()} return}
+  if(t.id==="pvMaxFuse"){const v=Math.round(+t.value); if(v>=5&&v<=60){state.pv.maxFuse=v; changed()} return}
   const row=t.closest(".circ");
   if(row&&t.dataset.f==="name"){const c=state.circuits.find(c=>c.id==row.dataset.id); if(c){c.name=t.value; changed()}}
 });
@@ -726,9 +750,11 @@ $("panel").addEventListener("change",e=>{
   const t=e.target, s=state;
   const map={mainA:v=>s.mainA=+v,elA:v=>s.el.a=+v,elMa:v=>s.el.ma=+v,invKw:v=>s.inv.kw=+v,invV:v=>s.inv.v=+v,invFeedA:v=>s.inv.feedA=+v,
     invPh:v=>s.inv.ph=v,curve:v=>s.specs.curve=v,ka:v=>s.specs.ka=+v,elType:v=>s.specs.elType=v,spdKa:v=>s.specs.spdKa=+v,battDcV:v=>s.batt.dcV=+v,fuseType:v=>s.batt.fuse=v,pvV:v=>s.pv.v=+v,
-    battAh:v=>s.batt.ah=+v,battA:v=>s.batt.a=+v,pvIsoA:v=>s.pv.isoA=+v};
+    battAh:v=>s.batt.ah=+v,battA:v=>s.batt.a=+v,pvIsoA:v=>s.pv.isoA=+v,pvStrings:v=>s.pv.strings=+v};
   if(map[t.id]){map[t.id](t.value); return changed()}
   if(t.id==="pvPanels"){t.value=s.pv.panels; return}
+  if(t.id==="pvIsc"){t.value=s.pv.isc; return}
+  if(t.id==="pvMaxFuse"){t.value=s.pv.maxFuse; return}
   const checks={elOn:v=>s.el.on=v,spd:v=>s.spd=v,invOn:v=>s.inv.on=v,invBypass:v=>s.inv.bypass=v,cables:v=>s.cables=v,battOn:v=>s.batt.on=v,pvOn:v=>s.pv.on=v,pvSpd:v=>s.pv.spd=v};
   if(checks[t.id]){checks[t.id](t.checked); syncControls(); return changed()}
   const row=t.closest(".circ");
@@ -840,6 +866,19 @@ function colours(){
    Three phase:  1.5 15A, 2.5 20A, 4 27A, 6 34A, 10 46A, 16 62A, 25 80A, 35 99A, 50 118A. */
 const CAB1=[[16.5,"1.5"],[23,"2.5"],[30,"4"],[38,"6"],[52,"10"],[69,"16"],[90,"25"],[111,"35"],[133,"50"]];
 const CAB3=[[15,"1.5"],[20,"2.5"],[27,"4"],[34,"6"],[46,"10"],[62,"16"],[80,"25"],[99,"35"],[118,"50"]];
+/* Solar DC side (SANS/IEC 60364-7-712):
+   string fuses needed when (strings - 1) x Isc > panel max series fuse (712.430.3.103);
+   fuse rating: more than 1.5 x Isc, less than 2.4 x Isc, not above the panel max fuse (712.433.1.101.2);
+   array cable / isolator minimum current: 1.25 x Isc x strings (table 712.2). */
+const GPV=[10,12,15,16,20,25,30,32];
+function pvCalc(pv){
+  const ns=Math.max(1,+pv.strings||1), isc=+pv.isc||10, mx=+pv.maxFuse||25;
+  const fuseNeeded=(ns-1)*isc>mx;
+  const fuse=GPV.find(f=>f>1.5*isc&&f<2.4*isc&&f<=mx)||null;
+  const arrayMin=Math.round(1.25*isc*ns*10)/10;
+  const stringMin=Math.round((fuseNeeded&&fuse?fuse:Math.max(1.25*isc,1.25*isc*(ns-1)))*10)/10;
+  return {ns,isc,mx,fuseNeeded,fuse,arrayMin,stringMin,isoOk:(+pv.isoA||0)>=arrayMin};
+}
 function acCable(a,three){const r=(three?CAB3:CAB1).find(([amp])=>amp>=a); return r?r[1]:null}
 const acTxt=a=>{const c=acCable(a); return c?c+" mm²":"cable: ask electrician"};
 /* DC battery and PV cables: typical copper sizes for short runs (under about 3 m). Not from SANS tables. */
@@ -1218,7 +1257,9 @@ function buildSvg(){
         reg+=`<rect x="${px}" y="${pvTop+8}" width="${pw}" height="${pvH-30}" fill="#1f4f8f" stroke="#0f2f57"/>`;
         reg+=`<path d="M${px} ${pvTop+8+(pvH-30)/2} h${pw} M${px+pw/2} ${pvTop+8} v${pvH-30}" stroke="#7fa8dc" stroke-width="0.8"/>`;
       }
-      reg+=txt(pvX0+pvW/2,pvTop+pvH-8,s.pv.panels+" solar panels",{anchor:"middle",size:10,weight:700});
+      const pc=pvCalc(s.pv);
+      reg+=txt(pvX0+pvW/2,pvTop+pvH-8,s.pv.panels+" panels"+(pc.ns>1?` · ${pc.ns} strings`:"")+` · Isc ${pc.isc} A`,{anchor:"middle",size:9.5,weight:700});
+      if(pc.fuseNeeded) reg+=txt(dcBoxX+12,dcBoxBot-10,pc.fuse?`String fuses: gPV ${pc.fuse} A (required)`:"String fuses required: check datasheet",{size:9.5,weight:700,fill:"#b3261e"});
       dw+=wire(`M${Lp(pvI)} ${pvBot} V${dcDevTop}`,DCP,3.4)+wire(`M${Ln(pvI)} ${pvBot} V${dcDevTop}`,DCN,3.4);
       dw+=txt(Lp(pvI)-6,pvBot+16,"+",{anchor:"end",size:12,weight:700,fill:DCP})+txt(Ln(pvI)+6,pvBot+16,"−",{size:12,weight:700});
       if(sp){
@@ -1230,7 +1271,7 @@ function buildSvg(){
       const iy=invX+invW;
       dw+=wire(`M${Lp(pvI)} ${dcDevBot} V${pvRouteP} H${iy}`,DCP,3.4);
       dw+=wire(`M${Ln(pvI)} ${dcDevBot} V${pvRouteN} H${iy}`,DCN,3.4);
-      if(s.cables) dw+=txt(iy+10,pvRouteP-8,`PV cable ${pvCable(s.pv.isoA)} mm²`,{size:10,weight:700});
+      if(s.cables){dw+=txt(iy+10,pvRouteP-20,`PV cable ${pvCable(s.pv.isoA)} mm²`,{size:10,weight:700}); dw+=txt(iy+10,pvRouteP-8,`rated ≥ ${pvCalc(s.pv).arrayMin} A`,{size:9,fill:"#56616a"})}
       reg+=screw(iy-10,pvRouteP)+screw(iy-10,pvRouteN);
       reg+=txt(iy-20,pvRouteP+4,"PV+",{anchor:"end",size:8,weight:700,fill:"#56616a"})+txt(iy-20,pvRouteN+4,"PV−",{anchor:"end",size:8,weight:700,fill:"#56616a"});
     }
@@ -1261,8 +1302,12 @@ function buildSvg(){
     rows.push(["Bypass switch",s.inv.bypass?"Fitted":"None"]);
     rows.push(["N-E bond on backup",s.inv.ne==="contactor"?"Bond contactor in DB":"Built into inverter"]);
     if(s.batt.on) rows.push(["Battery",`${s.inv.v} V ${s.batt.ah} Ah`],["Battery protection",s.batt.prot==="fuse"?`${s.batt.a} A ${s.batt.fuse} fuse`:`${s.batt.a} A DC breaker, ${s.batt.dcV} V DC`]);
-    if(s.pv.on) rows.push(["Solar",`${s.pv.panels} panels`],["PV isolator",`${s.pv.isoA} A, ${s.pv.v} V DC`]);
-    if(s.pv.on) rows.push(["DC surge arrester",s.pv.spd?`Type 2, ${s.pv.v} V DC`:"None"]);
+    if(s.pv.on){
+      const pc=pvCalc(s.pv);
+      rows.push(["Solar",`${s.pv.panels} panels, ${pc.ns} string${pc.ns>1?"s":""}, Isc ${pc.isc} A`],["PV isolator",`${s.pv.isoA} A, ${s.pv.v} V DC (min ${pc.arrayMin} A)`],
+        ["String fuses",pc.fuseNeeded?(pc.fuse?`gPV ${pc.fuse} A, required`:"Required, see datasheet"):"Not required"],
+        ["DC surge arrester",s.pv.spd?`Type 2 PV-rated, ${s.pv.v} V DC`:"None"]);
+    }
   }
   rows.push(["Circuits",String(s.circuits.length)]);
   if(gridNoEl.length) rows.push(["Not on earth leakage",`${gridNoEl.length} circuit${gridNoEl.length>1?"s":""}`]);
