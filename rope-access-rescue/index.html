@@ -121,6 +121,7 @@ html.preview .draw,html.preview .drw img{-webkit-user-select:none;user-select:no
       <label>Site / location<input type="text" data-k="site" placeholder="e.g. Tank 3, north face"></label>
       <label style="grid-column:1/-1">Work task<input type="text" data-k="task" placeholder="e.g. Blasting and painting of tank shell"></label>
       <label>Drop height (m)<input type="number" min="1" step="0.5" data-k="height"></label>
+      <label>Work location<select data-k="loc"><option value="edge">Roof / building edge</option><option value="steel">Open steel structure (straight drop)</option></select></label>
       <label>Below the work<select data-k="env"><option value="ground">Ground</option><option value="deck">Deck / platform</option><option value="water">Water</option></select></label>
       <label>Edge / hazards<input type="text" data-k="hazards" placeholder="e.g. Sharp roof edge, hot surfaces"></label>
       <label>Confined space depth (m)<input type="number" min="0.5" step="0.5" data-k="cseDepth" placeholder="Only for confined space"></label>
@@ -486,7 +487,7 @@ function cseAncName(){return {tripod:"Tripod",davit:"Davit arm",beam:"Overhead b
 function blank(){
   return {ref:"",date:today(),client:"",site:"",task:"",height:20,env:"ground",anchors:"",hazards:"",
     team:[{name:"",level:"L3",role:"Supervisor"},{name:"",level:"L2",role:"Rescuer"},{name:"",level:"L1",role:"Technician"}],
-    anchorType:"ya",anchorRig:"y",cseAnchor:"tripod",evacMethod:"stretcher",cseDepth:"",cseTrained:false,drawing:null,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",signoff:[{role:"Prepared by",name:""},{role:"Approved by (Level 3)",name:""}],notes:"",
+    loc:"edge",anchorType:"ya",anchorRig:"y",cseAnchor:"tripod",evacMethod:"stretcher",cseDepth:"",cseTrained:false,drawing:null,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",signoff:[{role:"Prepared by",name:""},{role:"Approved by (Level 3)",name:""}],notes:"",
     cur:"lower",plans:{}};
 }
 function migrate(o){const n=Object.assign(blank(),o);if(!o.signoff){n.signoff=[{role:"Prepared by",name:o.prepBy||""},{role:"Approved by (Level 3)",name:o.apprBy||""}]}if(n.plans.ascent&&!n.plans.ascentMigrated){/* old ascent plan stays under same id */}if(!byId(n.cur))n.cur="lower";return n}
@@ -612,6 +613,7 @@ function draw(id){
   function lz(x1,x2,lbl){
     if(S.env==="water"){add(`<path d="M${x1+6} ${ground-2} L${x2-6} ${ground-2} L${x2-18} ${ground+14} L${x1+18} ${ground+14} Z" fill="#f97316" stroke="${C.ink}" stroke-width="1.4"/>`);add(T((x1+x2)/2,ground+30,"Rescue boat",{a:"middle",b:1}))}
     else{add(`<rect x="${x1}" y="${ground-4}" width="${x2-x1}" height="4" fill="#facc15"/>`);[x1-4,x2+4].forEach(cx=>add(`<path d="M${cx-6} ${ground} L${cx} ${ground-16} L${cx+6} ${ground} Z" fill="#f97316"/><rect x="${cx-3}" y="${ground-10}" width="6" height="2.5" fill="#fff"/>`));
+      if(lbl==="Barriered drop zone") add(`<line x1="${x1-4}" y1="${ground-12}" x2="${x2+4}" y2="${ground-12}" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="7 5"/>`);
       add(T((x1+x2)/2,ground+24,lbl||((S.env==="deck"?"Deck":"Ground")+" landing zone"),{a:"middle",b:1}))}
   }
   add(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ${FONT}>`);
@@ -624,7 +626,20 @@ function draw(id){
   if(sc.view==="cse") return drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H);
   if(sc.view==="ob") return drawOb(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H);
   // structure
-  if(sc.view==="side"){
+  const steel=S.loc==="steel"&&["lower","haul","descent","own","ascent"].includes(id)&&S.anchorType!=="tripod";
+  if(steel){
+    const st="#7b8790";
+    // columns, walkway, bracing of an open steel structure
+    [16,140].forEach(x=>add(`<rect x="${x-5}" y="${top-92}" width="10" height="${ground-top+92}" fill="${st}"/>`));
+    for(const yy of [top+130,top+260]) add(`<rect x="11" y="${yy}" width="134" height="7" fill="${st}"/>`);
+    add(`<path d="M21 ${top+8} L135 ${top+130} M135 ${top+8} L21 ${top+130} M21 ${top+137} L135 ${top+260} M135 ${top+137} L21 ${top+260}" stroke="${st}" stroke-width="3" fill="none"/>`);
+    add(`<rect x="0" y="${top}" width="150" height="7" fill="#4b5563"/>`);for(let x=4;x<150;x+=8)add(`<line x1="${x}" y1="${top+1}" x2="${x}" y2="${top+6}" stroke="#9ca3af"/>`);
+    add(`<line x1="0" y1="${top-26}" x2="150" y2="${top-26}" stroke="${st}" stroke-width="3"/><line x1="150" y1="${top}" x2="150" y2="${top-26}" stroke="${st}" stroke-width="3"/>`);
+    // stack / column being worked on
+    add(`<rect x="300" y="${top-92}" width="54" height="${ground-top+92}" fill="#c5ccd2" stroke="#8a949c"/><rect x="306" y="${top-92}" width="6" height="${ground-top+92}" fill="#e5e9ec"/>`);
+    add(TB(327,ground-60,"Column / stack",{a:"middle",s:10,b:1}));
+    add(TB(8,ground-10,"Open steel structure (side view)",{s:11,c:C.muted}));
+  }else if(sc.view==="side"){
     add(`<rect x="0" y="${top}" width="${wall}" height="${ground-top}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
     for(let yy=top+30;yy<ground;yy+=40) add(`<line x1="0" y1="${yy}" x2="${wall}" y2="${yy}" stroke="#d3d9dd"/>`);
     add(`<line x1="0" y1="${top}" x2="${wall}" y2="${top}" stroke="${C.ink}" stroke-width="3"/>`);
@@ -646,9 +661,14 @@ function draw(id){
   let ohY=0;
   function overhead(){ // overhead anchor beam above the roof, near the edge
     if(ohY) return ohY; ohY=top-78;
-    add(`<line x1="46" y1="${top}" x2="46" y2="${ohY-10}" stroke="${C.struct}" stroke-width="5"/>`);
-    add(`<rect x="40" y="${ohY-10}" width="${wall-36}" height="10" fill="#9aa4ab" stroke="${C.ink}" stroke-width="1"/>`);
-    add(T(42,ohY-15,"Overhead anchor beam",{s:10,b:1,c:C.muted}));
+    if(steel){
+      add(`<rect x="8" y="${ohY-10}" width="352" height="10" fill="#7b8790" stroke="${C.ink}" stroke-width="1"/><line x1="8" y1="${ohY-7}" x2="360" y2="${ohY-7}" stroke="${C.ink}" stroke-width=".6"/>`);
+      add(T(184,ohY-15,"Structural steel beam",{s:10,b:1,c:C.muted}));
+    }else{
+      add(`<line x1="46" y1="${top}" x2="46" y2="${ohY-10}" stroke="${C.struct}" stroke-width="5"/>`);
+      add(`<rect x="40" y="${ohY-10}" width="${wall-36}" height="10" fill="#9aa4ab" stroke="${C.ink}" stroke-width="1"/>`);
+      add(T(42,ohY-15,"Overhead anchor beam",{s:10,b:1,c:C.muted}));
+    }
     return ohY;
   }
   function casRopes(endY,withEnds){ // side view: anchors on an overhead beam, rigging point above the edge
@@ -693,7 +713,7 @@ function draw(id){
     casualtyOn(cx1,250);casLabel(wall-92,240);key("Casualty lowered on their own ropes; nobody goes down",wall-104,236);
     add(arrow(wall+80,230,wall+80,ground-30,C.cas));
     add(`<ellipse cx="${cx1+6}" cy="${ground-4}" rx="14" ry="4" fill="none" stroke="${C.work}" stroke-width="2"/><ellipse cx="${cx1+6}" cy="${ground-8}" rx="12" ry="3.5" fill="none" stroke="${C.back}" stroke-width="2"/>`);
-    lz(wall+18,wall+128);key("Ground team receives the casualty",wall+73,ground-20);
+    lz(wall+18,wall+128,steel&&S.env!=="water"?"Barriered drop zone":undefined);key("Ground team receives the casualty",wall+73,ground-20);
     break}
   case "haul":{
     casRopes(ground-40);const px=hi()?66:100,py=hi()?top-12:top-40;
@@ -753,7 +773,7 @@ function draw(id){
     add(arrow(rx+64,top+40,rx+64,ry-14,C.res));add(arrow(rx+64,ry+40,rx+64,ground-50,C.res));
     rescLabel(rx+30,ry-44);key("Rescuer descends on separate rescue ropes (green) and connects to the casualty",rx+18,ry-48);
     casLabel(wall-92,cy-4);key("Casualty's descender / ascenders removed; back-up kept on",wall-104,cy-8);
-    lz(wall+18,wall+128);key("Descend together to "+landing(),wall+73,ground-20);
+    lz(wall+18,wall+128,steel&&S.env!=="water"?"Barriered drop zone":undefined);key("Descend together to "+landing(),wall+73,ground-20);
     break}
   case "own":{
     casRopes(ground-40);const cy=300,ry=cy-50;
@@ -763,7 +783,7 @@ function draw(id){
     add(arrow(wall+110,top+30,wall+110,ry-20,C.res));add(arrow(wall+110,ry+40,wall+110,ground-50,C.res));
     rescLabel(cx1+60,ry-40);key("Rescuer descends the casualty's own ropes, above the casualty",cx1+48,ry-56);
     casLabel(wall-92,cy-4);key("Casualty attached to rescuer; weight moved off their device",wall-104,cy-8);
-    lz(wall+18,wall+128);key("Descend together to "+landing(),wall+73,ground-20);
+    lz(wall+18,wall+128,steel&&S.env!=="water"?"Barriered drop zone":undefined);key("Descend together to "+landing(),wall+73,ground-20);
     break}
   case "ascent":{
     casRopes(ground-40);const rx=wall+70,cy=280,ry=cy-44;
@@ -775,7 +795,7 @@ function draw(id){
     add(arrow(rx+100,ry+10,rx+100,ground-50,C.cas));
     rescLabel(rx+30,ry-44,"Rescuer: changeover");key("Rescuer climbs separate ropes (green) to just above the casualty, then changes to descent",rx+18,ry-48);
     casLabel(wall-120,cy-4,"Casualty on ascenders");key("Casualty lifted to free the chest ascender, then removed from it",wall-132,cy-8);
-    key("Descend together to "+landing(),wall+128,ground-74);lz(wall+18,wall+128);
+    key("Descend together to "+landing(),wall+128,ground-74);lz(wall+18,wall+128,steel&&S.env!=="water"?"Barriered drop zone":undefined);
     break}
   case "aid":{
     add(`<rect x="${wall}" y="210" width="190" height="14" fill="${C.struct}" stroke="${C.ink}"/>`);add(T(wall+4,204,"Beam / deck underside",{c:C.muted,s:10}));
