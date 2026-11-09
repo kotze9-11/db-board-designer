@@ -238,6 +238,8 @@ const ANCH=[
   notes:["Anchor slings: textile slings at least 22 kN, steel wire or chain slings at least 15 kN (ICOP 2.11.2.13).","Avoid lark's-footing (choking) a sling unless the sling and the steel are suitable for it (ICOP 2.11.2.14).","Stop slings sliding along smooth beams: choke them, wrap several times, or tie back to an opposing anchor (ICOP 2.11.2.15).","Protect slings from sharp steel edges."]},
  {id:"eyebolt",name:"Installed anchor points / eyebolts",equip:["Connectors suited to the anchor eyes"],
   notes:["Fixed anchors must be installed and inspected by a competent person, and loaded sideways (in shear) where possible (ICOP 2.11.2.12; Annex F).","Check the anchor marking before use: installer, next inspection date, maximum load and loading direction (ICOP 2.11.2.16)."]},
+ {id:"wire",name:"Steel wire rope slings (strops)",equip:["Steel wire rope slings (strops) of 15 kN or more, with thimbled eyes (ICOP 2.11.2.13)","Connectors or shackles for the sling eyes"],
+  notes:["Steel wire rope slings must be at least 15 kN (ICOP 2.11.2.13). Check them before use for broken wires, kinks and corrosion.","Wire slings suit sharp, rough or hot steel where textile slings could be cut or damaged.","Wire slings don't stretch, so keep slack out of the system and avoid any fall onto them.","Stop slings sliding along smooth beams: choke them, wrap them, or tie back to an opposing anchor (ICOP 2.11.2.15)."]},
  {id:"clamp",name:"Beam (girder) clamps",equip:["Beam clamps rated for the load and sized for the beam flange","Connectors for the clamp eyes"],
   notes:["Use beam clamps rated for the load and sized for the beam flange width and thickness. Follow the maker's instructions.","Fit them so they can't slide along the beam, and load them only in the direction the maker allows."]},
  {id:"rail",name:"Handrail stanchions",equip:["Anchor slings rigged low on the stanchions","Sling protectors"],
@@ -419,12 +421,13 @@ const SCN=[
   blurb:"A technician working on ropes inside a tank needs rescue. The rescuer descends separate rescue ropes inside the tank and picks the casualty off, or the team lowers the casualty on a pre-rigged system. This setup ends with the casualty on the tank floor. Then use the tank evacuation setup.",
   steps:()=>["The rescue team at the manhole checks the gas readings and keeps the ventilation running. Rescuers wear breathing apparatus unless the air is proven safe.",
    "If the casualty's ropes are rigged releasable, the team lowers the casualty straight to the tank floor (pre-rigged lowering) while a second person tends the back-up.",
-   "Otherwise the rescuer enters and rigs onto separate rescue ropes on the tank's internal anchors, next to the casualty.",
+   "Otherwise the rescuer enters and rigs onto separate rescue ropes on the tank's internal anchors (e.g. steel wire slings on an internal beam), next to the casualty.",
+   "If the casualty's ropes run through a side pull to the wall, the rescuer passes it with the casualty as for a deviation (TACS 6.8.4), so neither of them swings out of control.",
    "The rescuer descends to just above the casualty and connects the casualty's central attachment to the rescuer's descender with a short rescue lanyard. The casualty's back-up stays on.",
    "Take the casualty's weight off their own descender or ascenders and remove them. Do not cut any rope.",
    "Add extra friction for the two-person load and descend slowly with the casualty to the tank floor, keeping them upright and clear of internal structure.",
    "A second rescuer on the tank floor receives the casualty, then disconnects both people from the ropes. Continue with the tank evacuation setup."],
-  equip:()=>["Rescue rope pair"+L()+" and rescue kit for the tank's internal anchors","Descender with auto-lock and anti-panic function, back-up device, rescue lanyard","Extra karabiner for adding friction","Breathing apparatus for rescuers (plus a standby set)","Multi-gas detector, plus continuous monitoring","Ventilation fan and ducting","Intrinsically safe (Ex) radios and torches for the tank"],
+  equip:()=>["Rescue rope pair"+L()+" and rescue kit for the tank's internal anchors","Steel wire rope slings (strops) for the internal beam, with connectors or shackles","Descender with auto-lock and anti-panic function, back-up device, rescue lanyard","Extra karabiner for adding friction","Breathing apparatus for rescuers (plus a standby set)","Multi-gas detector, plus continuous monitoring","Ventilation fan and ducting","Intrinsically safe (Ex) radios and torches for the tank"],
   cont:()=>["Casualty's device won't release: lift them slightly with a hand ascender and foot loop, then remove it.","Internal anchors in doubt: rig the rescue ropes from the tripod or deck anchors through the manhole instead.","Breathing apparatus air running low: rotate rescuers with the standby team."]},
  {id:"cseEvac",g:"cse",name:"Tank: evacuation through the manhole",short:"Tank evacuation",lvl:0,tag:"CSE",need:"Confined space training needed",ref:"Site confined space procedure and permit; ICOP 2.11.6.7; ICOP Annex G",view:"cse",
   blurb:"Gets the casualty from the tank floor out through the manhole on the tripod winch, either in a stretcher or hanging upright in their harness. Choose the method below.",
@@ -565,6 +568,7 @@ function yhang(x1,x2,y,col,type){
   const beam=()=>`<rect x="${x1-12}" y="${y-14}" width="${x2-x1+24}" height="10" fill="#9aa4ab" stroke="${C.ink}" stroke-width="1"/><line x1="${x1-12}" y1="${y-11}" x2="${x2+12}" y2="${y-11}" stroke="${C.ink}" stroke-width=".6"/><line x1="${x1-12}" y1="${y-7}" x2="${x2+12}" y2="${y-7}" stroke="${C.ink}" stroke-width=".6"/>`;
   if(type==="ya"){pre=anc(x1,y)+anc(x2,y)}
   else if(type==="sling"){pre=beam()+[x1,x2].map(x=>`<ellipse cx="${x}" cy="${y-9}" rx="4" ry="8" fill="none" stroke="#f59e0b" stroke-width="2.4"/>`).join("");a1=[x1,y-2];a2=[x2,y-2]}
+  else if(type==="wire"){pre=beam()+[x1,x2].map(x=>`<ellipse cx="${x}" cy="${y-9}" rx="4" ry="8" fill="none" stroke="#4b5563" stroke-width="3"/><ellipse cx="${x}" cy="${y-9}" rx="4" ry="8" fill="none" stroke="#d1d5db" stroke-width="1" stroke-dasharray="2 2"/>`).join("");a1=[x1,y-2];a2=[x2,y-2]}
   else if(type==="clamp"){pre=beam()+[x1,x2].map(x=>`<path d="M${x-6} ${y-16} v13 h12 v-13" fill="none" stroke="${C.ink}" stroke-width="2.4"/><circle cx="${x}" cy="${y}" r="3" fill="none" stroke="${C.ink}" stroke-width="1.8"/>`).join("");a1=[x1,y+2];a2=[x2,y+2]}
   else if(type==="eyebolt"){pre=[x1,x2].map(x=>`<rect x="${x-2}" y="${y-4}" width="4" height="6" fill="${C.ink}"/><circle cx="${x}" cy="${y-9}" r="5" fill="none" stroke="${C.ink}" stroke-width="2.4"/>`).join("");a1=[x1,y-4];a2=[x2,y-4]}
   else if(type==="rail"){pre=`<line x1="${x1-14}" y1="${y-24}" x2="${x2+14}" y2="${y-24}" stroke="#9aa4ab" stroke-width="3"/>`+[x1,x2].map(x=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y-26}" stroke="#9aa4ab" stroke-width="3.5"/><ellipse cx="${x}" cy="${y-4}" rx="5" ry="3" fill="none" stroke="#f59e0b" stroke-width="2.2"/>`).join("");a1=[x1,y-2];a2=[x2,y-2]}
@@ -922,18 +926,29 @@ function drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
   key("Attendant at the opening raises the alarm and never enters",120,deck-90);
   key(cseAncName()+" over the opening, rated for rescue, with winch",hx+30,hy-4);
   if(id==="cseRope"){
-    const top2=deck+70;
-    add(`<rect x="300" y="${top2}" width="70" height="8" fill="#9aa4ab" stroke="${C.ink}"/>`);add(T(296,top2+20,"Internal anchors",{a:"end",s:9,c:C.muted}));
-    add(line([[345,top2+8],[345,floor-30]],C.work));add(line([[353,top2+8],[353,floor-30]],C.back));
-    add(line([[312,top2+8],[312,floor-30]],C.res,2.4));add(line([[320,top2+8],[320,floor-30]],C.resb,2,"6 3"));
-    const cy=330;add(dev(345,cy));add(person(363,cy+6,C.cas,{slump:true}));add(line([[345,cy],[361,cy+6]],C.ink,1.6));
-    add(dev(312,cy-40));add(person(326,cy-40,C.resc));add(line([[312,cy-40],[361,cy+6]],C.ink,1.8));
-    key("Casualty on rope access ropes rigged from the tank's internal anchors",392,cy-12);
-    key("Rescuer descends separate rescue ropes and picks off the casualty (or team lowers if pre-rigged)",290,cy-50);
-    add(arrow(285,cy-10,285,floor-24,C.cas));
-    add(person(230,floor-24,C.resc));add(TB(150,floor-60,"Second rescuer",{c:C.resc,b:1,s:10}));
-    key("Lowered to the tank floor; second rescuer receives. Then use the tank evacuation setup",250,floor-36);
+    const top2=deck+70,by=top2+10;
+    // internal I-beam under the tank roof
+    add(`<rect x="180" y="${top2}" width="196" height="10" fill="#9aa4ab" stroke="${C.ink}"/><line x1="180" y1="${top2+3}" x2="376" y2="${top2+3}" stroke="${C.ink}" stroke-width=".6"/>`);
+    const wsl=(x1,x2,jx,jy)=>{let o="";[x1,x2].forEach(x=>{o+=`<ellipse cx="${x}" cy="${top2+5}" rx="4" ry="8" fill="none" stroke="#4b5563" stroke-width="3"/><path d="M${x} ${top2+13} L${jx} ${jy}" stroke="#4b5563" stroke-width="2.6"/><path d="M${x} ${top2+13} L${jx} ${jy}" stroke="#d1d5db" stroke-width=".8" stroke-dasharray="2 2"/>`});return o+`<circle cx="${jx}" cy="${jy}" r="4" fill="#fff" stroke="${C.ink}" stroke-width="1.8"/>`};
+    // casualty ropes: wire slings to a rigging point, then a side pull to a wall bracket
+    const rp={x:340,y:top2+38},dv={x:352,y:top2+74};
+    add(wsl(322,358,rp.x,rp.y));
+    add(`<rect x="374" y="${dv.y-8}" width="6" height="16" fill="${C.ink}"/>`);add(line([[374,dv.y],[dv.x+10,dv.y]],"#f59e0b",3));add(krab(dv.x+6,dv.y));
+    add(line([[rp.x-3,rp.y+4],[dv.x,dv.y],[dv.x,floor-30]],C.work));add(line([[rp.x+3,rp.y+4],[dv.x+8,dv.y],[dv.x+8,floor-30]],C.back));
+    add(TB(376,dv.y+30,"Side pull to wall",{a:"end",s:9}));
+    // rescue ropes from their own wire slings
+    const rr={x:296,y:top2+34};add(wsl(280,312,rr.x,rr.y));
+    add(line([[rr.x,rr.y],[296,floor-30]],C.res,2.4));add(line([[rr.x,rr.y],[304,rr.y+8],[304,floor-30]],C.resb,2,"6 3"));
+    add(TB(176,top2+24,"Steel wire slings",{a:"end",s:9,b:1}));add(TB(176,top2+36,"on internal beam",{a:"end",s:9,b:1}));
+    const cy=392;add(dev(dv.x,cy));add(person(dv.x+18,cy+6,C.cas,{slump:true}));add(line([[dv.x,cy],[dv.x+16,cy+6]],C.ink,1.6));
+    add(dev(296,cy-40));add(person(276,cy-36,C.resc));add(line([[296,cy-40],[dv.x+16,cy+6]],C.ink,1.8));
+    key("Casualty on ropes rigged from steel wire slings on the tank's internal beam, with a side pull to the wall",398,cy-22);
+    key("Rescuer descends separate rescue ropes and picks off the casualty (or team lowers if pre-rigged)",252,cy-80);
+    add(arrow(240,cy-10,240,floor-24,C.cas));
+    add(person(200,floor-24,C.resc));add(TB(120,floor-60,"Second rescuer",{c:C.resc,b:1,s:10}));
+    key("Lowered to the tank floor; second rescuer receives. Then use the tank evacuation setup",232,floor-36);
     legend.splice(2,2,[C.res,"Rescue rope"],[C.resb,"Rescue back-up","6 3"]);
+    legend.push(["#4b5563","Steel wire sling"]);
   }else if(id==="cseEvac"){
     const harness=S.evacMethod==="harness",sy=deck+86;
     add(line([[hx-6,hy+14],[ax-2,sy]],C.sys2));add(line([[hx+6,hy+14],[ax+4,sy+(harness?4:0)]],C.back,2,"6 3"));
