@@ -561,7 +561,7 @@ function arrow(x1,y1,x2,y2,col){const a=Math.atan2(y2-y1,x2-x1),k=9;
 function anc(x,y){return `<rect x="${x-5}" y="${y-8}" width="10" height="8" fill="${C.ink}"/>`}
 function yhang(x1,x2,y,col,type){
   type=type||S.anchorType||"ya";const mx=(x1+x2)/2;
-  if(S.anchorRig==="single"&&type!=="tripod"){x1=mx;x2=mx}let my=y+16,pre="",a1=[x1,y],a2=[x2,y];
+  if(S.anchorRig==="single"&&type!=="tripod"){x1=mx;x2=mx}let my=y+Math.max(16,(x2-x1)/2*1.25),pre="",a1=[x1,y],a2=[x2,y];
   const beam=()=>`<rect x="${x1-12}" y="${y-14}" width="${x2-x1+24}" height="10" fill="#9aa4ab" stroke="${C.ink}" stroke-width="1"/><line x1="${x1-12}" y1="${y-11}" x2="${x2+12}" y2="${y-11}" stroke="${C.ink}" stroke-width=".6"/><line x1="${x1-12}" y1="${y-7}" x2="${x2+12}" y2="${y-7}" stroke="${C.ink}" stroke-width=".6"/>`;
   if(type==="ya"){pre=anc(x1,y)+anc(x2,y)}
   else if(type==="sling"){pre=beam()+[x1,x2].map(x=>`<ellipse cx="${x}" cy="${y-9}" rx="4" ry="8" fill="none" stroke="#f59e0b" stroke-width="2.4"/>`).join("");a1=[x1,y-2];a2=[x2,y-2]}
@@ -645,7 +645,7 @@ function draw(id){
     add(line([[a.x,a.y],[wall,top],[cx1,top+8],[cx1,endY]],C.work));
     add(line([[b.x,b.y],[wall,top+2],[cx2,top+10],[cx2,endY]],C.back));
     if(withEnds!==false){add(`<circle cx="${cx1}" cy="${endY}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${endY}" r="3" fill="${C.back}"/>`)}
-    edge(); key("Anchors ("+ancT().name.toLowerCase()+(rig()==="single"?", single anchor per rope":", Y-hangs")+") for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),96,top-(S.anchorType==="tripod"?62:38));
+    edge(); key("Anchors ("+ancT().name.toLowerCase()+(rig()==="single"?", single anchor per rope":", Y-hangs")+") for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),96,top-(S.anchorType==="tripod"?62:id==="haul"?14:38));
   }
   function rescRopesSide(x,endY){ // separate rescue ropes from roof
     const r=yhang(8,40,top,C.res);add(r.svg);
@@ -658,9 +658,9 @@ function draw(id){
   switch(id){
   case "lower":{
     casRopes(ground-6,false);
-    add(`<rect x="60" y="${top+22}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
-    add(TB(14,top+56,"Releasable lowering",{s:10,b:1}));add(TB(14,top+69,"device on anchor",{s:10,b:1}));
-    add(`<path d="M73 ${top+38} q-12 30 8 44 q20 14 -2 26" stroke="${C.work}" stroke-width="2.4" fill="none"/>`);
+    add(`<rect x="40" y="${top+66}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
+    add(TB(14,top+100,"Releasable lowering",{s:10,b:1}));add(TB(14,top+113,"device on anchor",{s:10,b:1}));
+    add(`<path d="M53 ${top+82} q-12 30 8 44 q20 14 -2 26" stroke="${C.work}" stroke-width="2.4" fill="none"/>`);
     add(person(30,top-26,C.resc));rescLabel(8,top-62,"Lowering");
     key("Person at the top unlocks the lowering device and lowers; a second person tends the back-up",80,top-66);
     casualtyOn(cx1,250);casLabel(wall-92,240);key("Casualty lowered on their own ropes; nobody goes down",wall-104,236);
@@ -680,8 +680,8 @@ function draw(id){
     key("Haul team at the top: 3:1 haul (green) with progress capture; independent back-up tended",px-84,top-34);
     casualtyOn(cx1,294);casLabel(wall-92,300);key("Casualty raised to the edge and helped over by a second team member",wall-104,296);
     add(arrow(wall+80,280,wall+80,top+30,C.res));
-    add(`<rect x="6" y="${top+30}" width="${wall-40}" height="22" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);add(T(14,top+45,"Safe area at top",{b:1}));
-    key("Safe area at the top, away from the edge",wall-22,top+41);
+    add(`<rect x="6" y="${top+74}" width="${wall-40}" height="22" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);add(T(14,top+89,"Safe area at top",{b:1}));
+    key("Safe area at the top, away from the edge",wall-22,top+85);
     break}
   case "cross":{
     const a=yhang(30,70,top,C.res);add(a.svg);edge();
@@ -971,7 +971,7 @@ function drawOb(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
     key("Anchors ("+ancT().name.toLowerCase()+") on deck; ropes over the rail with edge protection",80,deck-(S.anchorType==="tripod"?62:40));
   }
   if(id==="obLower"){
-    add(`<rect x="96" y="${deck+26}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}"/>`);add(T(8,deck+58,"Releasable lowering device",{s:10,b:1,c:"#f8fafc"}));
+    add(`<rect x="96" y="${deck+70}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}"/>`);add(T(8,deck+102,"Releasable lowering device",{s:10,b:1,c:"#f8fafc"}));
     add(person(20,deck-26,C.resc));key("Team on deck lowers; second person tends the back-up",20,deck-74);
     const cy=230;add(dev(rx1,cy));add(person(rx1+18,cy+6,C.cas,{slump:true}));add(line([[rx1,cy],[rx1+16,cy+6]],C.ink,1.6));
     casLabel(rx1+44,cy);key("Casualty lowered on their own ropes",rx1+44,cy-30);
@@ -1005,13 +1005,16 @@ function drawOb(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
 
 /* ---------- anchor close-up ---------- */
 function drawAnchor(){
-  const W=440,H=250,y=110,sc=1.5,ox=-40,oy=-55,Y=(y-oy)/sc,out=[`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ${FONT}><rect width="${W}" height="${H}" fill="#fff"/>`];
+  const W=440,H=290,y=100,sc=1.5,ox=-40,oy=-55,Y=(y-oy)/sc,out=[`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ${FONT}><rect width="${W}" height="${H}" fill="#fff"/>`];
   const add=s=>out.push(s);const sg=rig()==="single";
   add(`<rect x="0" y="${y}" width="${W}" height="${H-y}" fill="${C.structFill}"/><line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${C.ink}" stroke-width="3"/>`);
   add(`<g transform="translate(${ox},${oy}) scale(${sc})">`);
   let a,b;
   const shared=!sg&&S.anchorType!=="tripod";
-  if(shared){const sh=sharedY(130,206,Y,undefined,14);add(sh.svg);a=sh.w;b=sh.b}
+  let ang=0;
+  if(shared){const sh=sharedY(140,196,Y,undefined,9);add(sh.svg);a=sh.w;b=sh.b;
+    const ref=yhang(140,196,Y,C.work),A=[ref.a1[0]-a.x,ref.a1[1]-a.y],Bv=[ref.a2[0]-a.x,ref.a2[1]-a.y];
+    ang=Math.round(Math.acos((A[0]*Bv[0]+A[1]*Bv[1])/Math.hypot(...A)/Math.hypot(...Bv))*180/Math.PI)}
   else{a=yhang(126,160,Y,C.work);b=yhang(176,210,Y,C.back);add(a.svg);add(b.svg)}
   const bot=(H-30-oy)/sc;
   [[a,C.work],[b,C.back]].forEach(([j,col])=>{
@@ -1027,6 +1030,7 @@ function drawAnchor(){
   if(!sg&&S.anchorType!=="tripod") add(TB(W/2,18,"Both ropes Y-hung across the same two anchors",{a:"middle",s:10,b:1}));
   add(TB(bx+20,(a.y+12)*sc+oy+30,"Figure-of-eight knot on a connector",{s:10,c:C.ink}));
   if(!shared) add(TB(bx+20,(a.y)*sc+oy+4,"Linked where possible",{s:10,c:C.muted}));
+  if(ang) add(TB(W/2,H-34,"Y angle about "+ang+"° (keep 90° or less, never over 120°)",{a:"middle",s:10,b:1,c:ang>120?"#b91c1c":ang>90?"#b45309":"#15803d"}));
   add(T(8,H-8,ancT().name,{s:11,b:1,c:C.ink}));
   add(`</svg>`);return out.join("");
 }
@@ -1418,7 +1422,7 @@ async function makePdf(){
   kv([["Plan reference",S.ref],["Date",S.date],["Client",S.client],["Site / location",S.site],["Work task",S.task],["Drop height",S.height?S.height+" m":""],["Below the work",{ground:"Ground",deck:"Deck / platform",water:"Water"}[S.env]],["Designated anchors",S.anchors],["Edge / hazards",S.hazards]]);
   heading("Anchor system");
   kv([["Main anchor type",ancT().name],["Rigging",rig()==="single"?"Single anchor per rope":"Y-hang (each rope across two anchors)"],["Where",S.anchors],["Confined space anchor",SCN.some(sc=>sc.g==="cse"&&plan(sc.id).inc)?cseAncName():""]]);
-  {const png=await doc.embedPng(await svgToPng(drawAnchor(),2,440,250));const iw=240,ih=iw*250/440;need(ih+10);pg.drawImage(png,{x:M,y:y-ih,width:iw,height:ih});pg.drawRectangle({x:M,y:y-ih,width:iw,height:ih,borderColor:line,borderWidth:.8});
+  {const png=await doc.embedPng(await svgToPng(drawAnchor(),2,440,290));const iw=240,ih=iw*290/440;need(ih+10);pg.drawImage(png,{x:M,y:y-ih,width:iw,height:ih});pg.drawRectangle({x:M,y:y-ih,width:iw,height:ih,borderColor:line,borderWidth:.8});
    let ny=y;ancNotes().forEach(n=>{const wl=wrap("- "+n,F,8.5,CW-iw-14);wl.forEach((l,j)=>pg.drawText(l,{x:M+iw+14,y:ny-9-j*11,size:8.5,font:F,color:ink}));ny-=wl.length*11+2});
    y=Math.min(y-ih,ny)-10}
   heading("Team and supervision");
