@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="../app/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="cloud.js?v=3"></script>
+<script src="cloud.js?v=4"></script>
 </head>
 <body>
 <title>Rope Rescue Planner</title>
@@ -1270,7 +1270,7 @@ async function doAuth(reg){
   if(reg&&!$("#agree").checked){authMsg("Tick the box to confirm you understand plans are drafts.",1);return}
   try{authMsg(reg?"Creating your account…":"Signing in…");
     if(reg&&!window.RRP_CLOUD.signUp){authMsg("This page is out of date. Reload the page and try again.",1);return}
-    const res=reg?await window.RRP_CLOUD.signUp(em,pw):await window.RRP_CLOUD.signIn(em,pw);
+    const res=await Promise.race([reg?window.RRP_CLOUD.signUp(em,pw):window.RRP_CLOUD.signIn(em,pw),new Promise((_,rej)=>setTimeout(()=>rej({userMessage:"No answer from the sign-in service. Check your internet connection, reload the page and try again."}),25000))]);
     if(res&&res.needsConfirm){authMsg("Check your email and click the link to confirm your account, then sign in here.");return}
     $("#lgPass").value="";await refreshAuth();
     if(!signedIn){authMsg("The sign-in went through but this page couldn't keep it. Reload the page (pull down to refresh on a phone) and try again.",1);return}

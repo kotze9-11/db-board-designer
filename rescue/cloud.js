@@ -17,7 +17,8 @@
       return {needsConfirm:!(data&&data.session)};
     },
     async signOut(){try{await sb.auth.signOut()}catch(e){}},
-    onChange(cb){try{sb.auth.onAuthStateChange(()=>cb())}catch(e){}},
+    // Supabase must not be called from inside its own auth callback (it deadlocks), so run cb afterwards.
+    onChange(cb){try{sb.auth.onAuthStateChange(()=>{setTimeout(cb,0)})}catch(e){}},
     async readDrawing(b64,extra){
       const {data,error}=await sb.functions.invoke("read-board",{body:{mode:"drawing",images:[{data:b64,mediaType:"image/jpeg"}],extra}});
       if(error){
