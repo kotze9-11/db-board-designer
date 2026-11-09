@@ -637,7 +637,8 @@ function draw(id){
   if(sc.view==="cse") return drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H);
   if(sc.view==="ob") return drawOb(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H);
   // structure
-  const steel=S.loc==="steel"&&["lower","haul","descent","own","ascent"].includes(id)&&S.anchorType!=="tripod";
+  const steel=S.loc==="steel"&&["lower","haul","descent","own","ascent","cross","tension"].includes(id)&&S.anchorType!=="tripod";
+  const noStack=id==="cross"||id==="tension";
   if(steel){
     const st="#7b8790";
     // columns, walkway, bracing of an open steel structure
@@ -647,8 +648,8 @@ function draw(id){
     add(`<rect x="0" y="${top}" width="150" height="7" fill="#4b5563"/>`);for(let x=4;x<150;x+=8)add(`<line x1="${x}" y1="${top+1}" x2="${x}" y2="${top+6}" stroke="#9ca3af"/>`);
     add(`<line x1="0" y1="${top-26}" x2="150" y2="${top-26}" stroke="${st}" stroke-width="3"/><line x1="150" y1="${top}" x2="150" y2="${top-26}" stroke="${st}" stroke-width="3"/>`);
     // stack / column being worked on
-    add(`<rect x="300" y="${top-92}" width="54" height="${ground-top+92}" fill="#c5ccd2" stroke="#8a949c"/><rect x="306" y="${top-92}" width="6" height="${ground-top+92}" fill="#e5e9ec"/>`);
-    add(TB(327,ground-60,"Column / stack",{a:"middle",s:10,b:1}));
+    if(!noStack) add(`<rect x="300" y="${top-92}" width="54" height="${ground-top+92}" fill="#c5ccd2" stroke="#8a949c"/><rect x="306" y="${top-92}" width="6" height="${ground-top+92}" fill="#e5e9ec"/>`);
+    if(!noStack) add(TB(327,ground-60,"Column / stack",{a:"middle",s:10,b:1}));
     add(TB(8,ground-10,"Open steel structure (side view)",{s:11,c:C.muted}));
   }else if(sc.view==="side"){
     add(`<rect x="0" y="${top}" width="${wall}" height="${ground-top}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
@@ -742,6 +743,21 @@ function draw(id){
     key("Safe area at the top, away from the edge",wall-22,top+85);
     break}
   case "cross":{
+    if(steel){
+      const ay=overhead()+8,a=yhang(196,236,ay,C.res);add(a.svg);
+      add(`<rect x="340" y="${top+40}" width="14" height="${ground-top-40}" fill="#7b8790"/>`);add(`<rect x="330" y="${top+34}" width="34" height="8" fill="${C.ink}"/>`);add(TB(347,ground-120,"Second column",{a:"middle",s:10,b:1}));
+      const cx=222,cy=300;
+      add(line([[a.x-2,a.y],[cx-4,cy-8]],C.res));add(line([[a.x+4,a.y+2],[cx+2,cy-6]],C.resb,2.2,"7 4"));
+      add(pulley(347,top+44));add(line([[347,top+50],[cx+6,cy-8]],C.sys2));add(line([[341,top+50],[cx+10,cy-4]],C.sys2,2,"7 4"));
+      add(person(cx,cy+6,C.cas,{slump:true}));
+      add(`<rect x="160" y="400" width="130" height="100" fill="#cbd2d8" stroke="${C.struct}"/>`);add(T(225,454,"Obstruction",{a:"middle",b:1,c:C.muted}));
+      key("System A (green): straight drop from the structural beam, with its own back-up",a.x+34,a.y-4);
+      key("System B (purple) from a second anchor point, with its own back-up",372,top+30);
+      casLabel(cx-120,cy-10);key("Casualty attached to both systems and both back-ups",cx-132,cy-14);
+      add(arrow(cx+20,cy+30,cx+90,ground-40,C.cas));
+      lz(300,390,S.env!=="water"?"Barriered drop zone":undefined);key("Haul on B, let out on A, then lower together to the landing zone",345,ground-22);
+      legend.push([C.sys2,"Second haul system"]);
+      break}
     const a=yhang(30,70,top,C.res);add(a.svg);edge();
     add(`<rect x="340" y="${top+60}" width="16" height="${ground-top-60}" fill="${C.structFill}" stroke="${C.struct}" stroke-width="1.5"/>`);
     add(`<rect x="332" y="${top+54}" width="32" height="8" fill="${C.ink}"/>`);add(T(348,ground-12,"Mast",{a:"middle",c:C.muted,s:10}));
@@ -760,17 +776,23 @@ function draw(id){
     legend.push([C.sys2,"Second haul system"]);
     break}
   case "tension":{
-    const a=yhang(30,70,top,C.res);add(a.svg);edge();
-    const gx=380,gy=ground-6,ex=wall+6,ey=top+4;
-    add(line([[a.x,a.y],[wall,top],[gx,gy]],C.res,2.4));add(line([[a.x,a.y+4],[wall,top+5],[gx,gy+4]],C.res,2.4));
+    let a,ex,ey;const gx=380,gy=ground-6;
+    if(steel){a=yhang(150,190,overhead()+8,C.res);add(a.svg);ex=a.x;ey=a.y;
+      add(line([[a.x,a.y],[gx,gy]],C.res,2.4));add(line([[a.x,a.y+4],[gx,gy+4]],C.res,2.4));}
+    else{a=yhang(30,70,top,C.res);add(a.svg);edge();ex=wall+6;ey=top+4;
+      add(line([[a.x,a.y],[wall,top],[gx,gy]],C.res,2.4));add(line([[a.x,a.y+4],[wall,top+5],[gx,gy+4]],C.res,2.4));}
     add(`<rect x="${gx-8}" y="${gy-4}" width="16" height="10" fill="${C.ink}"/>`);
     const t=0.42,px=ex+(gx-ex)*t,py=ey+(gy-ey)*t;
     add(pulley(px,py+2));add(`<line x1="${px}" y1="${py+8}" x2="${px}" y2="${py+30}" stroke="${C.ink}" stroke-width="1.8"/>`);
     add(person(px,py+34,C.cas,{slump:true}));
-    add(`<rect x="88" y="${top+20}" width="22" height="14" rx="3" fill="${C.work}" stroke="${C.ink}"/>`);
-    add(line([[99,top+20],[wall,top-4],[px,py+30]],C.work,2.2));
-    key("Tensioned rope pair (green) on equalised anchors, load shared between both ropes",50,top-26);
-    key("Control rope (red) with back-up lowers the casualty from the top",100,top+50);
+    if(steel){const cA=yhang(96,124,overhead()+8,C.work);add(cA.svg);add(`<rect x="${cA.x-11}" y="${cA.y+3}" width="22" height="14" rx="3" fill="${C.work}" stroke="${C.ink}"/>`);
+      add(line([[cA.x,cA.y+17],[cA.x,cA.y+40],[px,py+30]],C.work,2.2));
+      key("Tensioned rope pair (green) from the structural beam, load shared between both ropes",a.x+30,a.y-6);
+      key("Control rope (red) with back-up lowers the casualty from the beam",cA.x-30,cA.y+30);}
+    else{add(`<rect x="88" y="${top+20}" width="22" height="14" rx="3" fill="${C.work}" stroke="${C.ink}"/>`);
+      add(line([[99,top+20],[wall,top-4],[px,py+30]],C.work,2.2));
+      key("Tensioned rope pair (green) on equalised anchors, load shared between both ropes",50,top-26);
+      key("Control rope (red) with back-up lowers the casualty from the top",100,top+50);}
     casLabel(px+24,py+18);key("Casualty on pulleys on both tensioned ropes",px+12,py-8);
     add(arrow(px+40,py+70,px+120,py+150,C.cas));
     lz(300,370,"Ground anchor area");key("Ground anchor beyond the obstruction; team receives casualty",gx-30,gy-30);
