@@ -450,6 +450,11 @@ const SCN=[
   equip:()=>(S.evacMethod==="harness"?["Tripod over the manhole with rescue winch and fall arrester (3-way device)","Rescue (evacuation) triangle in case the casualty has no harness","Tag line","Breathing apparatus for rescuers (plus a standby set)","Multi-gas detector, plus continuous monitoring","Intrinsically safe (Ex) radios and torches"]:
    ["Tripod over the manhole with rescue winch and fall arrester (3-way device)","Stretcher made for vertical lifts through manholes, with vertical lifting bridle","Head blocks / neck collar for suspected spinal injury","Tag line","Breathing apparatus for rescuers (plus a standby set)","Multi-gas detector, plus continuous monitoring","Intrinsically safe (Ex) radios and torches"]),
   cont:()=>(S.evacMethod==="harness"?["Casualty's shoulders won't pass the opening: lower back down, change the attachment or switch to the stretcher method.","Suspected neck or back injury found: stop and switch to the stretcher method."]:["Stretcher won't fit through the manhole: switch to the harness method if there's no spinal injury, or call the emergency team for another exit.","Stretcher catches on the rim: hold on the winch, lower slightly, re-guide with the tag line."]).concat(["Winch fails: use the back-up haul system on the tripod."])},
+ {id:"cseFull",g:"cse",name:"Tank: rope rescue + stretcher evacuation",short:"Tank rescue + stretcher",lvl:1,ref:"TACS 6.8.2 / 6.8.4 / 6.5.2; site confined space procedure and permit; ICOP 2.11.6.7",view:"cse",
+  blurb:"The full tank rescue in one plan: the rescuer picks the casualty off the ropes inside the tank (or the team lowers them), the casualty is packaged in a stretcher on the tank floor, then winched out through the manhole on the tripod.",
+  steps:()=>{const rope=byId("cseRope").steps().map(t=>t.replace(" Continue with the tank evacuation setup.",""));return rope.concat(withEvac("stretcher",()=>byId("cseEvac").steps()))},
+  equip:()=>[...new Set(byId("cseRope").equip().concat(withEvac("stretcher",()=>byId("cseEvac").equip())))],
+  cont:()=>[...new Set(byId("cseRope").cont().concat(withEvac("stretcher",()=>byId("cseEvac").cont())))]},
  {id:"obLower",g:"ob",name:"Overboard: lower casualty into the rescue boat",short:"Lower to boat",lvl:1,ref:"TACS 6.5.2; ICOP 2.11.6.8",view:"ob",
   blurb:"For work over the ship or platform side. The casualty's ropes are rigged on a releasable lowering system, and the team lowers the casualty straight into the rescue boat (FRC).",
   steps:()=>["At the start of the job, rig the working rope through a releasable lowering device and have the back-up rope ready to lower. The ropes must reach the boat at sea level.",
@@ -482,6 +487,7 @@ const SCN=[
   cont:()=>["Person goes out of sight: keep the last known position marked and tell the boat.","Boat can't launch: the standby vessel or helicopter rescue under the site's emergency plan."]}
 ];
 const byId=id=>SCN.find(s=>s.id===id);
+function withEvac(m,fn){const old=S.evacMethod;S.evacMethod=m;try{return fn()}finally{S.evacMethod=old}}
 function cseAncName(){return {tripod:"Tripod",davit:"Davit arm",beam:"Overhead beam anchor"}[S.cseAnchor]||"Tripod"}
 
 function blank(){
@@ -926,7 +932,7 @@ function drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
   add(T(48,floor-10,"Confined space (cut-away view)",{c:C.muted}));
   add(T(8,deck-8,"Deck",{c:C.muted,b:1}));
   // gas cloud hint
-  const gx=(id==="cseRope"||id==="cseEvac")?110:300;add(`<ellipse cx="${gx}" cy="${floor-40}" rx="60" ry="18" fill="#fde68a" fill-opacity=".5"/>`);add(T(gx,floor-36,"Possible bad air",{a:"middle",s:10,c:"#92400e"}));
+  const gx=(id==="cseRope"||id==="cseEvac"||id==="cseFull")?110:300;add(`<ellipse cx="${gx}" cy="${floor-40}" rx="60" ry="18" fill="#fde68a" fill-opacity=".5"/>`);add(T(gx,floor-36,"Possible bad air",{a:"middle",s:10,c:"#92400e"}));
   // depth
   add(`<line x1="${W-22}" y1="${deck}" x2="${W-22}" y2="${floor}" stroke="${C.muted}" stroke-width="1.2"/><path d="M${W-22} ${deck} l-4 8 h8 Z M${W-22} ${floor} l-4 -8 h8 Z" fill="${C.muted}"/>`);
   add(`<text x="${W-9}" y="${(deck+floor)/2}" text-anchor="middle" font-size="12" font-weight="700" fill="${C.ink}" transform="rotate(-90 ${W-9} ${(deck+floor)/2})" ${FONT}>${d?esc(d+" m deep"):"Depth"}</text>`);
@@ -968,6 +974,34 @@ function drawCse(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
     add(person(200,floor-24,C.resc));add(TB(120,floor-60,"Second rescuer",{c:C.resc,b:1,s:10}));
     key("Lowered to the tank floor; second rescuer receives. Then use the tank evacuation setup",232,floor-36);
     legend.splice(2,2,[C.res,"Rescue rope"],[C.resb,"Rescue back-up","6 3"]);
+    legend.push(["#4b5563","Steel wire sling"]);
+  }else if(id==="cseFull"){
+    const top2=deck+70;
+    add(`<rect x="250" y="${top2}" width="126" height="10" fill="#9aa4ab" stroke="${C.ink}"/><line x1="250" y1="${top2+3}" x2="376" y2="${top2+3}" stroke="${C.ink}" stroke-width=".6"/>`);
+    const wsl=(x1,x2,jx,jy)=>{let o="";[x1,x2].forEach(x=>{o+=`<ellipse cx="${x}" cy="${top2+5}" rx="4" ry="8" fill="none" stroke="#4b5563" stroke-width="3"/><path d="M${x} ${top2+13} L${jx} ${jy}" stroke="#4b5563" stroke-width="2.6"/><path d="M${x} ${top2+13} L${jx} ${jy}" stroke="#d1d5db" stroke-width=".8" stroke-dasharray="2 2"/>`});return o+`<circle cx="${jx}" cy="${jy}" r="4" fill="#fff" stroke="${C.ink}" stroke-width="1.8"/>`};
+    const rp={x:340,y:top2+38},dv={x:352,y:top2+74};
+    add(wsl(322,358,rp.x,rp.y));
+    add(`<rect x="374" y="${dv.y-8}" width="6" height="16" fill="${C.ink}"/>`);add(line([[374,dv.y],[dv.x+10,dv.y]],"#f59e0b",3));add(krab(dv.x+6,dv.y));
+    add(line([[rp.x-3,rp.y+4],[dv.x,dv.y],[dv.x,floor-30]],C.work));add(line([[rp.x+3,rp.y+4],[dv.x+8,dv.y],[dv.x+8,floor-30]],C.back));
+    const rr={x:296,y:top2+34};add(wsl(280,312,rr.x,rr.y));
+    add(line([[rr.x,rr.y],[296,floor-30]],C.res,2.4));add(line([[rr.x,rr.y],[304,rr.y+8],[304,floor-30]],C.resb,2,"6 3"));
+    const cy=392;add(dev(dv.x,cy));add(person(dv.x+18,cy+6,C.cas,{slump:true}));add(line([[dv.x,cy],[dv.x+16,cy+6]],C.ink,1.6));
+    add(dev(296,cy-40));add(person(276,cy-36,C.resc));add(line([[296,cy-40],[dv.x+16,cy+6]],C.ink,1.8));
+    key("Casualty on ropes from steel wire slings on the internal beam, with a side pull to the wall",398,cy-22);
+    key("Rescuer descends separate rescue ropes and picks off the casualty (or team lowers if pre-rigged)",252,cy-80);
+    add(arrow(318,floor-16,ax+56,floor-16,C.cas));
+    // stretcher on the floor, then being winched
+    add(`<rect x="${ax+60}" y="${floor-14}" width="62" height="12" rx="5" fill="#fdba74" stroke="${C.ink}" stroke-width="1.2"/>`);
+    key("Lowered to the tank floor, packaged in a stretcher made for vertical lifts, moved under the manhole",ax+92,floor-34);
+    const sy=deck+86;add(line([[hx-6,hy+14],[ax-2,sy]],C.sys2));add(line([[hx+6,hy+14],[ax+4,sy]],C.back,2,"6 3"));
+    add(`<rect x="${ax-10}" y="${sy}" width="20" height="70" rx="6" fill="#fdba74" stroke="${C.ink}" stroke-width="1.4"/><circle cx="${ax}" cy="${sy+13}" r="5" fill="#fff" stroke="${C.cas}" stroke-width="2"/>`);
+    for(let k=0;k<3;k++)add(`<line x1="${ax-10}" y1="${sy+28+k*14}" x2="${ax+10}" y2="${sy+28+k*14}" stroke="${C.ink}" stroke-width="1.2"/>`);
+    add(line([[ax,sy+70],[ax+30,floor-30]],C.muted,1.4,"4 3"));
+    add(arrow(ax-34,floor-40,ax-34,deck+40,C.sys2));
+    key("Winched out through the manhole on the tripod, fall arrester back-up, tag line guided from inside",ax-54,sy+40);
+    add(`<rect x="${ox2+92}" y="${deck-30}" width="60" height="28" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);add(T(ox2+98,deck-12,"Fresh air",{b:1,s:10}));
+    key("Out onto the deck, laid flat, into fresh air",ox2+78,deck-16);
+    legend.splice(2,2,[C.res,"Rescue rope"],[C.sys2,"Tripod winch line"]);
     legend.push(["#4b5563","Steel wire sling"]);
   }else if(id==="cseEvac"){
     const harness=S.evacMethod==="harness",sy=deck+86;
