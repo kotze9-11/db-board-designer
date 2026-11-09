@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="../app/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="cloud.js?v=4"></script>
+<script src="cloud.js?v=5"></script>
 </head>
 <body>
 <title>Rope Rescue Planner</title>
@@ -89,7 +89,7 @@ details summary{cursor:pointer;font-weight:600}
 html.preview .draw,html.preview .drw{position:relative}
 html.preview .draw::after,html.preview .drw::after{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='230' height='150'%3E%3Ctext x='18' y='92' transform='rotate(-25 115 75)' font-family='Arial' font-size='30' font-weight='700' fill='rgba(194,65,12,0.24)'%3EPREVIEW%3C/text%3E%3C/svg%3E") repeat;pointer-events:none;z-index:2}
 html.preview .draw,html.preview .drw img{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-@media print{html.preview body *{display:none!important}html.preview body::after{content:"Printing is available after you register and sign in.";display:block;font:20px Arial,sans-serif;padding:40px}}
+@media print{html.preview body *{display:none!important}html.preview body::after{content:"Printing isn't available in preview mode.";display:block;font:20px Arial,sans-serif;padding:40px}}
 .login{display:grid;gap:8px;max-width:420px;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:10px}
 </style>
 
@@ -1248,21 +1248,22 @@ async function aiRead(){
 }
 $("#drwAi").onclick=aiRead;
 /* ---------- account (website only) ---------- */
-const CLOUD=!!window.RRP_CLOUD;let signedIn=false,userEmail="",afterAuth=null;
+const CLOUD=!!window.RRP_CLOUD;let signedIn=false,fullAccess=false,userEmail="",afterAuth=null;
 function authMsg(t,err){const m=$("#authMsg");m.textContent=t||"";m.style.color=err?"var(--accent)":"var(--muted)"}
 function openAuth(why,then){$("#authWhy").textContent=why||"";afterAuth=then||null;authMsg("");$("#auth").hidden=false;$("#auth").scrollIntoView({block:"center",behavior:"smooth"});setTimeout(()=>$("#lgEmail").focus(),300)}
 function closeAuth(){$("#auth").hidden=true;afterAuth=null}
 function renderAcct(){
   if(!CLOUD){document.documentElement.classList.remove("preview");return}
-  document.documentElement.classList.toggle("preview",!signedIn);
-  const a=$("#acct");a.hidden=false;a.classList.toggle("pv",!signedIn);
-  a.innerHTML=signedIn?`<span class="who">Signed in as <b>${esc(userEmail)}</b></span><button class="mini" id="soBtn">Sign out</button>`
-    :`<span class="who"><b>Preview mode.</b> You can build and preview a plan. Register or sign in to save it as a PDF or print it.</span><button class="mini primary" id="regBtn">Register / sign in</button>`;
+  document.documentElement.classList.toggle("preview",!fullAccess);
+  const a=$("#acct");a.hidden=false;a.classList.toggle("pv",!fullAccess);
+  a.innerHTML=signedIn?`<span class="who">Signed in as <b>${esc(userEmail)}</b>${fullAccess?"":". <b>Preview access:</b> saving PDFs and printing aren't available on your account yet."}</span><button class="mini" id="soBtn">Sign out</button>`
+    :`<span class="who"><b>Preview mode.</b> You can build and preview a plan. Saving as PDF and printing need an account with full access.</span><button class="mini primary" id="regBtn">Register / sign in</button>`;
   const so=$("#soBtn");if(so)so.onclick=async()=>{await window.RRP_CLOUD.signOut();await refreshAuth()};
   const rb=$("#regBtn");if(rb)rb.onclick=()=>openAuth("Create a free account to save PDFs and print. Already have one? Sign in.");
 }
 async function refreshAuth(){if(!CLOUD)return;try{signedIn=await window.RRP_CLOUD.signedIn()}catch(e){signedIn=false}
-  userEmail="";if(signedIn){try{userEmail=window.RRP_CLOUD.email?await window.RRP_CLOUD.email():""}catch(e){}}renderAcct()}
+  userEmail="";if(signedIn){try{userEmail=window.RRP_CLOUD.email?await window.RRP_CLOUD.email():""}catch(e){}}
+  fullAccess=signedIn&&!!(window.RRP_CLOUD.hasFull&&window.RRP_CLOUD.hasFull(userEmail));renderAcct()}
 async function doAuth(reg){
   const em=$("#lgEmail").value.trim(),pw=$("#lgPass").value;
   if(!/^\S+@\S+\.\S+$/.test(em)){authMsg("Enter a valid email address.",1);return}
@@ -1274,7 +1275,7 @@ async function doAuth(reg){
     if(res&&res.needsConfirm){authMsg("Check your email and click the link to confirm your account, then sign in here.");return}
     $("#lgPass").value="";await refreshAuth();
     if(!signedIn){authMsg("The sign-in went through but this page couldn't keep it. Reload the page (pull down to refresh on a phone) and try again.",1);return}
-    const then=afterAuth;closeAuth();msg("Signed in.");if(then)then();
+    const then=afterAuth;closeAuth();msg(fullAccess?"Signed in.":"Signed in with preview access.");if(then&&(fullAccess||then===aiRead))then();
   }catch(e){authMsg((e&&e.userMessage)||"That didn't work. Check your details and try again.",1)}
 }
 if(CLOUD){
@@ -1282,9 +1283,9 @@ if(CLOUD){
   $("#lgPass").addEventListener("keydown",e=>{if(e.key==="Enter")doAuth(false)});
   if(window.RRP_CLOUD.onChange)window.RRP_CLOUD.onChange(()=>refreshAuth());
   refreshAuth();
-  document.addEventListener("keydown",e=>{if(!signedIn&&(e.ctrlKey||e.metaKey)&&(e.key==="p"||e.key==="P")){e.preventDefault();openAuth("Register or sign in to print your plan.")}});
-  document.addEventListener("contextmenu",e=>{if(!signedIn&&e.target.closest(".draw,.drw"))e.preventDefault()});
-  document.addEventListener("dragstart",e=>{if(!signedIn&&e.target.closest(".draw,.drw"))e.preventDefault()});
+  document.addEventListener("keydown",e=>{if(!fullAccess&&(e.ctrlKey||e.metaKey)&&(e.key==="p"||e.key==="P")){e.preventDefault();if(!signedIn)openAuth("Register or sign in to print your plan.");else msg("Printing isn't available on your account yet.",1)}});
+  document.addEventListener("contextmenu",e=>{if(!fullAccess&&e.target.closest(".draw,.drw"))e.preventDefault()});
+  document.addEventListener("dragstart",e=>{if(!fullAccess&&e.target.closest(".draw,.drw"))e.preventDefault()});
   document.documentElement.classList.add("preview");
 }
 function setupOptions(sel){return `<option value="">Rescue setup: none</option>`+GROUPS.map(([g,l])=>`<optgroup label="${esc(l)}">`+SCN.filter(x=>x.g===g).map(x=>`<option value="${x.id}"${sel===x.id?" selected":""}>${esc(x.short)}${plan(x.id).inc?" ✓":""}</option>`).join("")+`</optgroup>`).join("")}
@@ -1445,7 +1446,8 @@ async function makePdf(){
   return await doc.save();
 }
 $("#pdfBtn").onclick=async()=>{
-  if(CLOUD&&!signedIn){openAuth("Register or sign in to save your plan as a PDF. It's free.",()=>$("#pdfBtn").click());return}
+  if(CLOUD&&!signedIn){openAuth("Register or sign in to save your plan as a PDF.",()=>$("#pdfBtn").click());return}
+  if(CLOUD&&!fullAccess){msg("Your account has preview access for now, so saving PDFs isn't available yet.",1);return}
   if(!window.PDFLib){msg("The PDF tool didn't load. Check your connection and reload.",1);return}
   if(!SCN.some(sc=>plan(sc.id).inc)){msg("Tick at least one rescue setup to include.",1);return}
   msg("Building PDF…");

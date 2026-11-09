@@ -4,7 +4,10 @@
   const cfg=window.DBB_CONFIG;
   if(!cfg||!window.supabase||!window.supabase.createClient) return;
   const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  // Accounts that can save PDFs and print. Everyone else gets preview mode.
+  const FULL_ACCESS=["kotzeb@yahoo.com","bernadkotze@gmail.com"];
   window.RRP_CLOUD={
+    hasFull(email){return FULL_ACCESS.includes(String(email||"").trim().toLowerCase())},
     async signedIn(){try{const {data}=await sb.auth.getSession();return !!(data&&data.session)}catch(e){return false}},
     async signIn(email,password){
       const {error}=await sb.auth.signInWithPassword({email,password});
