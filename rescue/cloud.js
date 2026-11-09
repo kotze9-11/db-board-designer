@@ -8,7 +8,7 @@
     async signedIn(){try{const {data}=await sb.auth.getSession();return !!(data&&data.session)}catch(e){return false}},
     async signIn(email,password){
       const {error}=await sb.auth.signInWithPassword({email,password});
-      if(error) throw {userMessage:/invalid/i.test(error.message)?"Wrong email or password.":error.message};
+      if(error) throw {userMessage:/invalid/i.test(error.message)?"Wrong email or password. If you haven't registered on this site or DB Board Designer yet, press Create account.":/confirm/i.test(error.message)?"Your email isn't confirmed yet. Click the link in the email Supabase sent you, then sign in.":"Sign-in failed: "+error.message};
     },
     async email(){try{const {data}=await sb.auth.getSession();return (data&&data.session&&data.session.user&&data.session.user.email)||""}catch(e){return ""}},
     async signUp(email,password){

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="../app/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="cloud.js"></script>
+<script src="cloud.js?v=3"></script>
 </head>
 <body>
 <title>Rope Rescue Planner</title>
@@ -1261,16 +1261,20 @@ function renderAcct(){
   const so=$("#soBtn");if(so)so.onclick=async()=>{await window.RRP_CLOUD.signOut();await refreshAuth()};
   const rb=$("#regBtn");if(rb)rb.onclick=()=>openAuth("Create a free account to save PDFs and print. Already have one? Sign in.");
 }
-async function refreshAuth(){if(!CLOUD)return;try{signedIn=await window.RRP_CLOUD.signedIn();userEmail=signedIn?await window.RRP_CLOUD.email():""}catch(e){signedIn=false}renderAcct()}
+async function refreshAuth(){if(!CLOUD)return;try{signedIn=await window.RRP_CLOUD.signedIn()}catch(e){signedIn=false}
+  userEmail="";if(signedIn){try{userEmail=window.RRP_CLOUD.email?await window.RRP_CLOUD.email():""}catch(e){}}renderAcct()}
 async function doAuth(reg){
   const em=$("#lgEmail").value.trim(),pw=$("#lgPass").value;
   if(!/^\S+@\S+\.\S+$/.test(em)){authMsg("Enter a valid email address.",1);return}
   if(pw.length<6){authMsg("The password needs at least 6 characters.",1);return}
   if(reg&&!$("#agree").checked){authMsg("Tick the box to confirm you understand plans are drafts.",1);return}
   try{authMsg(reg?"Creating your account…":"Signing in…");
+    if(reg&&!window.RRP_CLOUD.signUp){authMsg("This page is out of date. Reload the page and try again.",1);return}
     const res=reg?await window.RRP_CLOUD.signUp(em,pw):await window.RRP_CLOUD.signIn(em,pw);
     if(res&&res.needsConfirm){authMsg("Check your email and click the link to confirm your account, then sign in here.");return}
-    $("#lgPass").value="";await refreshAuth();const then=afterAuth;closeAuth();msg(signedIn?"Signed in.":"");if(then)then();
+    $("#lgPass").value="";await refreshAuth();
+    if(!signedIn){authMsg("The sign-in went through but this page couldn't keep it. Reload the page (pull down to refresh on a phone) and try again.",1);return}
+    const then=afterAuth;closeAuth();msg("Signed in.");if(then)then();
   }catch(e){authMsg((e&&e.userMessage)||"That didn't work. Check your details and try again.",1)}
 }
 if(CLOUD){
