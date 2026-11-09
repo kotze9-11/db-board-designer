@@ -1,12 +1,12 @@
 # Setting up the DB Board Designer website
 
 The website is in the `app` folder. Once GitHub Pages is on, it lives at
-https://kotze9-11.github.io/db-board-designer/app/
+https://kotze9-11.github.io/designer/db-board/
 
 ## 1. Supabase (logins and saved boards), free
 1. Go to supabase.com, sign up, and click **New project**. Pick a name, a strong database password, and the region closest to South Africa.
 2. When it's ready, open **SQL Editor > New query**, paste everything from `supabase/setup.sql`, and click **Run**.
-3. Open **Authentication > URL Configuration**. Set **Site URL** to `https://kotze9-11.github.io/db-board-designer/app/` and add the same address under **Redirect URLs**.
+3. Open **Authentication > URL Configuration**. Set **Site URL** to `https://kotze9-11.github.io/designer/db-board/` and add the same address under **Redirect URLs**.
 4. Open **Project Settings > API**. Copy the **Project URL** and the **anon public** key into `app/config.js` (or send them to Claude to do it).
 
 ## 2. Claude API (reads the photos), pay as you go

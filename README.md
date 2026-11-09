@@ -1,20 +1,9 @@
-# DB Board Designer
+# Designer
 
-A simple tool for drawing a single-phase DB (distribution) board.
+Tools by DM Energy, published with GitHub Pages at https://kotze9-11.github.io/designer/
 
-- Choose the main switch, earth leakage and surge arrester
-- Add circuits and pick their breaker sizes
-- The drawing shows the live, neutral and earth wiring, the neutral and earth bars, and a circuit list
-- Add an inverter with a battery, solar panels, DC isolator, DC breaker or fuse and DC surge arrester
-- Put the whole board on backup, or split it into grid-only and backup sections
-- Add a bypass (changeover) switch so the backup circuits can run straight from the grid
-- Show the neutral-earth bond for backup: a bond contactor in the DB, or built into the inverter
-- Breaker ratings: trip curve, breaking capacity (kA), earth leakage type, surge arrester and DC voltage ratings
-- Cable sizes for each circuit, based on the SANS 10142-1 current ratings (to be confirmed by a registered electrician)
-- Share a board as a code, or load a board from a code
-- Single-phase and three-phase boards, and circuits that are not on the earth leakage
-- Report mode: an automatic "Problems found" list, a "Make corrected version" button, and a two-page PDF (as found + corrected)
-- Read a board from a photo (only in the Claude version, because it uses Claude to read the photo)
-- Save the drawing as a picture or as an A4 or A3 PDF
+- `db-board/`: DB Board Designer. Draws distribution board diagrams, checks them against SANS 10142-1 and reads boards from photos. Has sign-in and saved boards.
+- `rope-access-rescue/`: Rope Access Rescue Planner. Builds IRATA-based rescue plans with drawings, methods, equipment lists and a site drawing. Uses the same sign-in.
+- `supabase/`: database setup and the `read-board` server function, shared by both tools.
 
-Open `index.html` in any web browser to use it. Your board is remembered in that browser.
+See SETUP.md for the Supabase setup.
