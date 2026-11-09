@@ -132,6 +132,7 @@ html.preview .draw,html.preview .drw img{-webkit-user-select:none;user-select:no
     <p class="muted" style="margin:-4px 0 10px">Choose the main anchor type. The rescue drawings and equipment lists use it, and the rules for that anchor type are listed below the drawing.</p>
     <div class="grid">
       <label>Main anchor type<select data-k="anchorType" id="anchorSel"></select></label>
+      <label>Rigging<select data-k="anchorRig"><option value="y">Y-hang (each rope across two anchors)</option><option value="single">Single anchor per rope</option></select></label>
       <label>Confined space anchor<select data-k="cseAnchor"><option value="tripod">Tripod over the opening</option><option value="davit">Davit arm</option><option value="beam">Overhead beam above the opening</option></select></label>
       <label style="grid-column:1/-1">Anchor description (where exactly)<input type="text" data-k="anchors" placeholder="e.g. Two slings round the main deck beam above Tank 3 hatch"></label>
     </div>
@@ -231,8 +232,8 @@ const FRICTION="Add extra friction to the descender for the two-person load and 
 
 /* ---------- anchor types (ICOP 2.11.2) ---------- */
 const ANCH=[
- {id:"ya",name:"Y-hang between two structural anchors",equip:["Anchor slings or rope for the Y-hang","Connectors for each anchor"],
-  notes:["Y-hang: use anchors of 15 kN each, or link two weaker anchors (at least 10 kN each) so the pair shares the load and reaches 15 kN (ICOP 2.11.2.10).","Keep the angle at the bottom of the Y low: 90° or less is best, and never more than 120° (ICOP 2.11.2.11)."]},
+ {id:"ya",name:"Structural anchors (steel, padeyes, columns)",equip:["Connectors for each anchor"],
+  notes:["Check structural anchors (steel beams, padeyes, columns) are sound and strong enough. If there's any doubt, get a competent person to confirm."]},
  {id:"sling",name:"Slings around a steel beam or column",equip:["Anchor slings: textile 22 kN or more, wire or chain 15 kN or more (ICOP 2.11.2.13)","Sling protectors for sharp steel edges"],
   notes:["Anchor slings: textile slings at least 22 kN, steel wire or chain slings at least 15 kN (ICOP 2.11.2.13).","Avoid lark's-footing (choking) a sling unless the sling and the steel are suitable for it (ICOP 2.11.2.14).","Stop slings sliding along smooth beams: choke them, wrap several times, or tie back to an opposing anchor (ICOP 2.11.2.15).","Protect slings from sharp steel edges."]},
  {id:"eyebolt",name:"Installed anchor points / eyebolts",equip:["Connectors suited to the anchor eyes"],
@@ -248,7 +249,12 @@ const ANCH=[
 ];
 const ANCH_COMMON=["Two independent anchors: at least one for the working rope and one for the back-up rope, even on a large steel beam (ICOP 2.11.2.2-3).","Each anchor should have a static strength of at least 15 kN (ICOP 2.11.2.6). Remember that rescue loads are often two people.","Link the two anchors together where you can, e.g. with a double figure-of-eight (bunny) knot (ICOP 2.11.2.9).","Rescues may need extra anchors, e.g. for a rescue rope or haul system. Plan them now (ICOP 2.11.2.22)."];
 const ancT=()=>ANCH.find(a=>a.id===S.anchorType)||ANCH[0];
-function ancNotes(){return ANCH_COMMON.concat(ancT().notes)}
+const RIG_NOTES={
+  y:["Y-hang: use anchors of 15 kN each, or link two weaker anchors (at least 10 kN each) so the pair shares the load and reaches 15 kN (ICOP 2.11.2.10).","Keep the angle at the bottom of the Y low: 90° or less is best, and never more than 120° (ICOP 2.11.2.11)."],
+  single:["Single anchor per rope: each anchor must be strong enough on its own (at least 15 kN) and beyond doubt, e.g. a large steel member (ICOP 2.11.2.6).","The working rope and back-up rope must still go to separate anchors (ICOP 2.11.2.2-3). Never put both ropes on one anchor point."]};
+const RIG_EQUIP={y:["Slings or rope to make the Y-hangs"],single:["One anchor sling or connector per rope"]};
+const rig=()=>S.anchorRig==="single"?"single":"y";
+function ancNotes(){return ANCH_COMMON.concat(RIG_NOTES[rig()],ancT().notes)}
 
 /* ---------- scenario library (TACS 6.5, 6.8, 6.9) ---------- */
 const GROUPS=[["rig","Rig-for-rescue (team at the top)"],["rope","Rescue on ropes"],["obst","Passing obstacles with a casualty"],["climb","Climbing rescues"],["cse","Confined space rescue (not IRATA)"],["ob","Overboard / over the sea"]];
@@ -477,7 +483,7 @@ function cseAncName(){return {tripod:"Tripod",davit:"Davit arm",beam:"Overhead b
 function blank(){
   return {ref:"",date:today(),client:"",site:"",task:"",height:20,env:"ground",anchors:"",hazards:"",
     team:[{name:"",level:"L3",role:"Supervisor"},{name:"",level:"L2",role:"Rescuer"},{name:"",level:"L1",role:"Technician"}],
-    anchorType:"ya",cseAnchor:"tripod",evacMethod:"stretcher",cseDepth:"",cseTrained:false,drawing:null,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",signoff:[{role:"Prepared by",name:""},{role:"Approved by (Level 3)",name:""}],notes:"",
+    anchorType:"ya",anchorRig:"y",cseAnchor:"tripod",evacMethod:"stretcher",cseDepth:"",cseTrained:false,drawing:null,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",signoff:[{role:"Prepared by",name:""},{role:"Approved by (Level 3)",name:""}],notes:"",
     cur:"lower",plans:{}};
 }
 function migrate(o){const n=Object.assign(blank(),o);if(!o.signoff){n.signoff=[{role:"Prepared by",name:o.prepBy||""},{role:"Approved by (Level 3)",name:o.apprBy||""}]}if(n.plans.ascent&&!n.plans.ascentMigrated){/* old ascent plan stays under same id */}if(!byId(n.cur))n.cur="lower";return n}
@@ -525,7 +531,7 @@ function defSteps(id){
 function defEquip(id){
   const common=["Rescue kit at the worksite, ready to use straight away (ICOP 2.11.11.3)","Radios tested"+(S.radio?(" (channel "+S.radio+")"):""),"First aid kit and a first aider on site (ICOP 2.11.11.6)","Rope protectors / edge protection","Spare connectors and slings"];
   const waterList=S.env==="water"?["Rescue boat with crew on standby (ICOP 2.11.6.8)","Life jackets for the team and the casualty","Throw line"]:[];
-  const anc=byId(id).g==="cse"?[]:ancT().equip;
+  const anc=byId(id).g==="cse"?[]:RIG_EQUIP[rig()].concat(ancT().equip);
   const g=byId(id).g;
   const water=g==="cse"?[]:g==="ob"?["Rescue boat (FRC) crew briefed on this plan (ICOP 2.11.6.8)","Lifebuoy with light and throw line"]:waterList;
   return byId(id).equip().concat(anc,common,water).map(t=>({t,ok:false}));
@@ -554,7 +560,8 @@ function arrow(x1,y1,x2,y2,col){const a=Math.atan2(y2-y1,x2-x1),k=9;
   return `<line x1="${x1}" y1="${y1}" x2="${x2-5*Math.cos(a)}" y2="${y2-5*Math.sin(a)}" stroke="${col}" stroke-width="2.5" stroke-dasharray="6 4"/><path d="M${x2} ${y2} L${x2-k*Math.cos(a-0.45)} ${y2-k*Math.sin(a-0.45)} L${x2-k*Math.cos(a+0.45)} ${y2-k*Math.sin(a+0.45)} Z" fill="${col}"/>`}
 function anc(x,y){return `<rect x="${x-5}" y="${y-8}" width="10" height="8" fill="${C.ink}"/>`}
 function yhang(x1,x2,y,col,type){
-  type=type||S.anchorType||"ya";const mx=(x1+x2)/2;let my=y+16,pre="",a1=[x1,y],a2=[x2,y];
+  type=type||S.anchorType||"ya";const mx=(x1+x2)/2;
+  if(S.anchorRig==="single"&&type!=="tripod"){x1=mx;x2=mx}let my=y+16,pre="",a1=[x1,y],a2=[x2,y];
   const beam=()=>`<rect x="${x1-12}" y="${y-14}" width="${x2-x1+24}" height="10" fill="#9aa4ab" stroke="${C.ink}" stroke-width="1"/><line x1="${x1-12}" y1="${y-11}" x2="${x2+12}" y2="${y-11}" stroke="${C.ink}" stroke-width=".6"/><line x1="${x1-12}" y1="${y-7}" x2="${x2+12}" y2="${y-7}" stroke="${C.ink}" stroke-width=".6"/>`;
   if(type==="ya"){pre=anc(x1,y)+anc(x2,y)}
   else if(type==="sling"){pre=beam()+[x1,x2].map(x=>`<ellipse cx="${x}" cy="${y-9}" rx="4" ry="8" fill="none" stroke="#f59e0b" stroke-width="2.4"/>`).join("");a1=[x1,y-2];a2=[x2,y-2]}
@@ -628,7 +635,7 @@ function draw(id){
     add(line([[a.x,a.y],[wall,top],[cx1,top+8],[cx1,endY]],C.work));
     add(line([[b.x,b.y],[wall,top+2],[cx2,top+10],[cx2,endY]],C.back));
     if(withEnds!==false){add(`<circle cx="${cx1}" cy="${endY}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${endY}" r="3" fill="${C.back}"/>`)}
-    edge(); key("Anchors ("+ancT().name.toLowerCase()+") for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),96,top-(S.anchorType==="tripod"?62:38));
+    edge(); key("Anchors ("+ancT().name.toLowerCase()+(rig()==="single"?", single anchor per rope":", Y-hangs")+") for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),96,top-(S.anchorType==="tripod"?62:38));
   }
   function rescRopesSide(x,endY){ // separate rescue ropes from roof
     const r=yhang(8,40,top,C.res);add(r.svg);
@@ -994,7 +1001,7 @@ function drawAnchor(){
   add(line([[a.x,a.y],[a.x+60,a.y+44]],C.work,2.4));add(line([[b.x,b.y],[b.x-20,b.y+44]],C.back,2.4));
   add(line([[a.x,a.y],[b.x,b.y]],C.muted,1.4,"4 3"));
   add(`</g>`);
-  add(TB(30,30,"Working rope anchors",{c:C.work,b:1}));add(TB(265,30,"Back-up rope anchors",{c:C.back,b:1}));
+  const sg=rig()==="single";add(TB(30,30,sg?"Working rope anchor":"Working rope anchors (Y-hang)",{c:C.work,b:1}));add(TB(265,30,sg?"Back-up rope anchor":"Back-up rope anchors (Y-hang)",{c:C.back,b:1}));
   add(TB(W/2,y+120,"Linked where possible",{a:"middle",s:10,c:C.muted}));
   add(T(8,H-8,ancT().name,{s:11,b:1,c:C.ink}));
   add(`</svg>`);return out.join("");
@@ -1385,7 +1392,7 @@ async function makePdf(){
   heading("Job details");
   kv([["Plan reference",S.ref],["Date",S.date],["Client",S.client],["Site / location",S.site],["Work task",S.task],["Drop height",S.height?S.height+" m":""],["Below the work",{ground:"Ground",deck:"Deck / platform",water:"Water"}[S.env]],["Designated anchors",S.anchors],["Edge / hazards",S.hazards]]);
   heading("Anchor system");
-  kv([["Main anchor type",ancT().name],["Where",S.anchors],["Confined space anchor",SCN.some(sc=>sc.g==="cse"&&plan(sc.id).inc)?cseAncName():""]]);
+  kv([["Main anchor type",ancT().name],["Rigging",rig()==="single"?"Single anchor per rope":"Y-hang (each rope across two anchors)"],["Where",S.anchors],["Confined space anchor",SCN.some(sc=>sc.g==="cse"&&plan(sc.id).inc)?cseAncName():""]]);
   {const png=await doc.embedPng(await svgToPng(drawAnchor(),2,440,250));const iw=240,ih=iw*250/440;need(ih+10);pg.drawImage(png,{x:M,y:y-ih,width:iw,height:ih});pg.drawRectangle({x:M,y:y-ih,width:iw,height:ih,borderColor:line,borderWidth:.8});
    let ny=y;ancNotes().forEach(n=>{const wl=wrap("- "+n,F,8.5,CW-iw-14);wl.forEach((l,j)=>pg.drawText(l,{x:M+iw+14,y:ny-9-j*11,size:8.5,font:F,color:ink}));ny-=wl.length*11+2});
    y=Math.min(y-ih,ny)-10}
