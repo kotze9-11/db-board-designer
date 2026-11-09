@@ -690,23 +690,29 @@ function draw(id){
       add(line([[a.x,a.y],[wall,top],[cx1,top+8],[cx1,endY]],C.work));add(line([[b.x,b.y],[wall,top+2],[cx2,top+10],[cx2,endY]],C.back));edge();
     }else{
       const ay=overhead()+8;
-      if(rig()==="y"){const sh=sharedY(98,142,ay);add(sh.svg);a=sh.w;b=sh.b}
+      if(steel){
+        if(rig()==="y"){const sh=sharedY(cx1-20,cx2+20,ay,undefined,6);add(sh.svg);a=sh.w;b=sh.b}
+        else{a=yhang(cx1,cx1,ay,C.work);b=yhang(cx2+6,cx2+6,ay,C.back);add(a.svg);add(b.svg)}
+      }else if(rig()==="y"){const sh=sharedY(98,142,ay);add(sh.svg);a=sh.w;b=sh.b}
       else{a=yhang(96,112,ay,C.work);b=yhang(128,144,ay,C.back);add(a.svg);add(b.svg)}
-      add(line([[a.x,a.y],[cx1,a.y+16],[cx1,endY]],C.work));add(line([[b.x,b.y],[cx2,b.y+14],[cx2,endY]],C.back));
+      if(steel){add(line([[a.x,a.y],[cx1,a.y+8],[cx1,endY]],C.work));add(line([[b.x,b.y],[cx2,b.y+8],[cx2,endY]],C.back))}
+      else{add(line([[a.x,a.y],[cx1,a.y+16],[cx1,endY]],C.work));add(line([[b.x,b.y],[cx2,b.y+14],[cx2,endY]],C.back))}
     }
     if(withEnds!==false){add(`<circle cx="${cx1}" cy="${endY}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${endY}" r="3" fill="${C.back}"/>`)}
-    key("Anchors ("+ancT().name.toLowerCase()+(rig()==="single"?", single anchor per rope":", Y-hangs")+") for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),hi()?wall+18:96,hi()?ohY-4:top-62);
+    key("Anchors ("+ancT().name.toLowerCase()+(rig()==="single"?", single anchor per rope":", Y-hangs")+") for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),steel?cx1-34:hi()?wall+18:96,steel?ohY+24:hi()?ohY-4:top-62);
     return {a,b};
   }
   function rescRopesSide(x,endY){ // separate rescue ropes
     if(!hi()){const r=yhang(8,40,top,C.res);add(r.svg);
       add(line([[r.x,r.y],[wall-2,top-10],[x,top-4],[x,endY]],C.res));add(line([[r.x,r.y],[wall-2,top-14],[x+10,top-8],[x+10,endY]],C.resb,2.2,"7 4"));return}
-    const r=yhang(58,82,overhead()+8,C.res,undefined);add(r.svg);
+    const r=steel?yhang(x-12,x+22,overhead()+8,C.res):yhang(58,82,overhead()+8,C.res,undefined);add(r.svg);
     add(line([[r.x,r.y],[x,r.y+6],[x,endY]],C.res));add(line([[r.x,r.y],[x+10,r.y+10],[x+10,endY]],C.resb,2.2,"7 4"));
   }
   function casualtyOn(x,y){add(dev(x,y));add(person(x+18,y+6,C.cas,{slump:true}));add(`<line x1="${x}" y1="${y}" x2="${x+16}" y2="${y+6}" stroke="${C.ink}" stroke-width="1.6"/>`)}
   function frontPair(x,y0,y1){add(line([[x,y0],[x,y1]],C.work));add(line([[x+9,y0],[x+9,y1]],C.back))}
 
+  const shift=steel&&["lower","haul","descent","own","ascent"].includes(id)?40:0;
+  if(shift){overhead();add(`<g transform="translate(${shift},0)">`)}
   switch(id){
   case "lower":{
     const cr=casRopes(ground-6,false),w=cr.a;
@@ -936,6 +942,7 @@ function draw(id){
     lz(a.x-50,a.x+60);key("Descend to "+landing(),a.x+5,ground-22);
     break}
   }
+  if(shift) add(`</g>`);
   finishLegend(out,legend,sc,W,H);
   return {svg:out.join(""),keys};
 }
