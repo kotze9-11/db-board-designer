@@ -599,7 +599,7 @@ function person(x,y,col,o){ // y = harness point
   return s.join("");
 }
 function draw(id){
-  const sc=byId(id), W=440,H=600,top=80,ground=500,wall=150;
+  const sc=byId(id), W=440,H=600,top=sc.view==="side"?130:80,ground=500,wall=150;
   const h=+S.height||0, out=[], keys=[], legend=[[C.work,"Working rope"],[C.back,"Back-up rope"],[C.res,"Rescue / haul rope"],[C.resb,"Rescue back-up","6 3"]];
   const add=s=>out.push(s);
   function key(text,x,y){keys.push(text);const n=keys.length;add(`<circle cx="${x}" cy="${y}" r="10" fill="${C.mk}" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" ${FONT}>${n}</text>`)}
@@ -638,46 +638,69 @@ function draw(id){
 
   const edge=()=>add(`<rect x="${wall-6}" y="${top-6}" width="14" height="12" rx="2" fill="#f59e0b" stroke="${C.ink}" stroke-width="1"/>`);
   const cx1=wall+12,cx2=wall+22;
-  function casRopes(endY,withEnds){ // side view: Y-hangs on roof, over the edge, down
-    let a,b;
-    if(rig()==="y"&&S.anchorType!=="tripod"){const sh=sharedY(60,130,top);add(sh.svg);a=sh.w;b=sh.b}
-    else{a=yhang(58,88,top,C.work);b=yhang(104,134,top,C.back);add(a.svg);add(b.svg)}
-    add(line([[a.x,a.y],[wall,top],[cx1,top+8],[cx1,endY]],C.work));
-    add(line([[b.x,b.y],[wall,top+2],[cx2,top+10],[cx2,endY]],C.back));
-    if(withEnds!==false){add(`<circle cx="${cx1}" cy="${endY}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${endY}" r="3" fill="${C.back}"/>`)}
-    edge(); key("Anchors ("+ancT().name.toLowerCase()+(rig()==="single"?", single anchor per rope":", Y-hangs")+") for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),96,top-(S.anchorType==="tripod"?62:id==="haul"?14:38));
+  const hi=()=>S.anchorType!=="tripod";
+  let ohY=0;
+  function overhead(){ // overhead anchor beam above the roof, near the edge
+    if(ohY) return ohY; ohY=top-78;
+    add(`<line x1="46" y1="${top}" x2="46" y2="${ohY-10}" stroke="${C.struct}" stroke-width="5"/>`);
+    add(`<rect x="40" y="${ohY-10}" width="${wall-36}" height="10" fill="#9aa4ab" stroke="${C.ink}" stroke-width="1"/>`);
+    add(T(42,ohY-15,"Overhead anchor beam",{s:10,b:1,c:C.muted}));
+    return ohY;
   }
-  function rescRopesSide(x,endY){ // separate rescue ropes from roof
-    const r=yhang(8,40,top,C.res);add(r.svg);
-    add(line([[r.x,r.y],[wall-2,top-10],[x,top-4],[x,endY]],C.res));
-    add(line([[r.x,r.y],[wall-2,top-14],[x+10,top-8],[x+10,endY]],C.resb,2.2,"7 4"));
+  function casRopes(endY,withEnds){ // side view: anchors on an overhead beam, rigging point above the edge
+    let a,b;
+    if(!hi()){
+      a=yhang(58,88,top,C.work);b=yhang(104,134,top,C.back);add(a.svg);add(b.svg);
+      add(line([[a.x,a.y],[wall,top],[cx1,top+8],[cx1,endY]],C.work));add(line([[b.x,b.y],[wall,top+2],[cx2,top+10],[cx2,endY]],C.back));edge();
+    }else{
+      const ay=overhead()+8;
+      if(rig()==="y"){const sh=sharedY(98,142,ay);add(sh.svg);a=sh.w;b=sh.b}
+      else{a=yhang(96,112,ay,C.work);b=yhang(128,144,ay,C.back);add(a.svg);add(b.svg)}
+      add(line([[a.x,a.y],[cx1,a.y+16],[cx1,endY]],C.work));add(line([[b.x,b.y],[cx2,b.y+14],[cx2,endY]],C.back));
+    }
+    if(withEnds!==false){add(`<circle cx="${cx1}" cy="${endY}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${endY}" r="3" fill="${C.back}"/>`)}
+    key("Anchors ("+ancT().name.toLowerCase()+(rig()==="single"?", single anchor per rope":", Y-hangs")+") for working rope (red) and back-up rope (blue)"+(S.anchors?" - "+S.anchors:""),hi()?wall+18:96,hi()?ohY-4:top-62);
+    return {a,b};
+  }
+  function rescRopesSide(x,endY){ // separate rescue ropes
+    if(!hi()){const r=yhang(8,40,top,C.res);add(r.svg);
+      add(line([[r.x,r.y],[wall-2,top-10],[x,top-4],[x,endY]],C.res));add(line([[r.x,r.y],[wall-2,top-14],[x+10,top-8],[x+10,endY]],C.resb,2.2,"7 4"));return}
+    const r=yhang(58,82,overhead()+8,C.res,undefined);add(r.svg);
+    add(line([[r.x,r.y],[x,r.y+6],[x,endY]],C.res));add(line([[r.x,r.y],[x+10,r.y+10],[x+10,endY]],C.resb,2.2,"7 4"));
   }
   function casualtyOn(x,y){add(dev(x,y));add(person(x+18,y+6,C.cas,{slump:true}));add(`<line x1="${x}" y1="${y}" x2="${x+16}" y2="${y+6}" stroke="${C.ink}" stroke-width="1.6"/>`)}
   function frontPair(x,y0,y1){add(line([[x,y0],[x,y1]],C.work));add(line([[x+9,y0],[x+9,y1]],C.back))}
 
   switch(id){
   case "lower":{
-    casRopes(ground-6,false);
-    add(`<rect x="40" y="${top+66}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
-    add(TB(14,top+100,"Releasable lowering",{s:10,b:1}));add(TB(14,top+113,"device on anchor",{s:10,b:1}));
-    add(`<path d="M53 ${top+82} q-12 30 8 44 q20 14 -2 26" stroke="${C.work}" stroke-width="2.4" fill="none"/>`);
-    add(person(30,top-26,C.resc));rescLabel(8,top-62,"Lowering");
-    key("Person at the top unlocks the lowering device and lowers; a second person tends the back-up",80,top-66);
+    const cr=casRopes(ground-6,false),w=cr.a;
+    if(hi()){
+      add(`<rect x="${w.x-11}" y="${w.y+3}" width="20" height="13" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
+      add(`<path d="M${w.x-4} ${w.y+16} q-10 22 -24 ${top-w.y-20}" stroke="${C.work}" stroke-width="2.2" fill="none"/><ellipse cx="${w.x-30}" cy="${top-3}" rx="12" ry="3.5" fill="none" stroke="${C.work}" stroke-width="2"/>`);
+      add(TB(10,top+26,"Releasable lowering device",{s:10,b:1}));add(TB(10,top+39,"at the rigging point",{s:10,b:1}));
+      add(person(70,top-26,C.resc));rescLabel(4,top-70,"Lowering");
+      key("Person at the top unlocks the lowering device and lowers; a second person tends the back-up",24,top-40);
+    }else{
+      add(`<rect x="40" y="${top+66}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
+      add(TB(14,top+100,"Releasable lowering",{s:10,b:1}));add(TB(14,top+113,"device on anchor",{s:10,b:1}));
+      add(person(30,top-26,C.resc));rescLabel(8,top-62,"Lowering");
+      key("Person at the top unlocks the lowering device and lowers; a second person tends the back-up",80,top-66);
+    }
     casualtyOn(cx1,250);casLabel(wall-92,240);key("Casualty lowered on their own ropes; nobody goes down",wall-104,236);
     add(arrow(wall+80,230,wall+80,ground-30,C.cas));
     add(`<ellipse cx="${cx1+6}" cy="${ground-4}" rx="14" ry="4" fill="none" stroke="${C.work}" stroke-width="2"/><ellipse cx="${cx1+6}" cy="${ground-8}" rx="12" ry="3.5" fill="none" stroke="${C.back}" stroke-width="2"/>`);
     lz(wall+18,wall+128);key("Ground team receives the casualty",wall+73,ground-20);
     break}
   case "haul":{
-    casRopes(ground-40);const px=100,py=top-40;
-    add(`<path d="M8 ${top} L8 ${top-60}" stroke="${C.struct}" stroke-width="3"/>`);add(anc(8,top-58));
-    add(line([[14,top-62],[px-30,py]],C.res,2.4));add(line([[px-30,py],[px+10,py-6],[px-24,py+10],[px+16,py+6]],C.res,2.4));
+    casRopes(ground-40);const px=hi()?66:100,py=hi()?top-12:top-40;
+    add(`<path d="M8 ${top} L8 ${py-20}" stroke="${C.struct}" stroke-width="3"/>`);add(anc(8,py-18));
+    add(line([[14,py-22],[px-30,py]],C.res,2.4));add(line([[px-30,py],[px+10,py-6],[px-24,py+10],[px+16,py+6]],C.res,2.4));
     add(pulley(px-30,py));add(pulley(px+12,py-4));
     add(line([[px+16,py+6],[wall+4,top-14],[wall+40,top-30]],C.res,2.4));add(pulley(wall+40,top-30));
     add(line([[wall+40,top-24],[wall+40,300-18],[cx1+18,300]],C.res,2.4));
     add(line([[wall+20,top-40],[wall+40,top-36],[wall+60,top]],C.struct,2.4));add(T(wall+64,top-34,"High directional",{c:C.muted,s:10}));
-    add(TB(px-64,top-64,"3:1 haul with progress capture",{s:10,b:1}));
-    key("Haul team at the top: 3:1 haul (green) with progress capture; independent back-up tended",px-84,top-34);
+    add(TB(hi()?8:px-64,hi()?top+24:top-64,"3:1 haul with progress capture",{s:10,b:1}));
+    key("Haul team at the top: 3:1 haul (green) with progress capture; independent back-up tended",hi()?24:px-84,hi()?top-34:top-34);
     casualtyOn(cx1,294);casLabel(wall-92,300);key("Casualty raised to the edge and helped over by a second team member",wall-104,296);
     add(arrow(wall+80,280,wall+80,top+30,C.res));
     add(`<rect x="6" y="${top+74}" width="${wall-40}" height="22" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);add(T(14,top+89,"Safe area at top",{b:1}));
