@@ -250,9 +250,9 @@ const ANCH=[
 const ANCH_COMMON=["Two independent anchors: at least one for the working rope and one for the back-up rope, even on a large steel beam (ICOP 2.11.2.2-3).","Each anchor should have a static strength of at least 15 kN (ICOP 2.11.2.6). Remember that rescue loads are often two people.","Link the two anchors together where you can, e.g. with a double figure-of-eight (bunny) knot (ICOP 2.11.2.9).","Rescues may need extra anchors, e.g. for a rescue rope or haul system. Plan them now (ICOP 2.11.2.22)."];
 const ancT=()=>ANCH.find(a=>a.id===S.anchorType)||ANCH[0];
 const RIG_NOTES={
-  y:["Y-hang: use anchors of 15 kN each, or link two weaker anchors (at least 10 kN each) so the pair shares the load and reaches 15 kN (ICOP 2.11.2.10).","Keep the angle at the bottom of the Y low: 90° or less is best, and never more than 120° (ICOP 2.11.2.11)."],
+  y:["Both ropes can share the same two anchors: the working rope and the back-up rope are each Y-hung across both anchors.","Y-hang: use anchors of 15 kN each, or link two weaker anchors (at least 10 kN each) so the pair shares the load and reaches 15 kN (ICOP 2.11.2.10).","Keep the angle at the bottom of the Y low: 90° or less is best, and never more than 120° (ICOP 2.11.2.11)."],
   single:["Single anchor per rope: each anchor must be strong enough on its own (at least 15 kN) and beyond doubt, e.g. a large steel member (ICOP 2.11.2.6).","The working rope and back-up rope must still go to separate anchors (ICOP 2.11.2.2-3). Never put both ropes on one anchor point."]};
-const RIG_EQUIP={y:["Slings or rope to make the Y-hangs"],single:["One anchor sling or connector per rope"]};
+const RIG_EQUIP={y:["Two anchor slings, shared by the working and back-up Y-hangs"],single:["One anchor sling or connector per rope"]};
 const rig=()=>S.anchorRig==="single"?"single":"y";
 function ancNotes(){return ANCH_COMMON.concat(RIG_NOTES[rig()],ancT().notes)}
 
@@ -571,7 +571,15 @@ function yhang(x1,x2,y,col,type){
   else if(type==="weight"){pre=[x1,x2].map(x=>`<rect x="${x-9}" y="${y-14}" width="18" height="14" fill="#6b7280" stroke="${C.ink}"/><line x1="${x-9}" y1="${y-9}" x2="${x+9}" y2="${y-9}" stroke="#d1d5db"/><line x1="${x-9}" y1="${y-4}" x2="${x+9}" y2="${y-4}" stroke="#d1d5db"/>`).join("");a1=[x1+9,y-7];a2=[x2-9,y-7]}
   else if(type==="tripod"){const ax=mx,ay=y-38;pre=`<path d="M${mx-24} ${y} L${ax} ${ay} L${mx+24} ${y} M${ax} ${ay} L${ax+6} ${y}" stroke="#9aa4ab" stroke-width="3" fill="none"/><rect x="${ax-6}" y="${ay-5}" width="12" height="7" rx="2" fill="${C.ink}"/>`;
     return {svg:pre+`<path d="M${ax-2} ${ay+2} L${ax} ${ay+8} L${ax+2} ${ay+2}" stroke="${col}" stroke-width="2" fill="none"/>`+pulleyS(ax,ay+8),x:ax,y:ay+8}}
-  return {svg:pre+`<path d="M${a1[0]} ${a1[1]} L${mx} ${my} L${a2[0]} ${a2[1]}" stroke="${col}" stroke-width="2" fill="none"/><circle cx="${mx}" cy="${my}" r="3.5" fill="#fff" stroke="${C.ink}" stroke-width="1.6"/>`,x:mx,y:my};
+  return {svg:pre+`<path d="M${a1[0]} ${a1[1]} L${mx} ${my} L${a2[0]} ${a2[1]}" stroke="${col}" stroke-width="2" fill="none"/><circle cx="${mx}" cy="${my}" r="3.5" fill="#fff" stroke="${C.ink}" stroke-width="1.6"/>`,x:mx,y:my,a1,a2,pre};
+}
+// Two anchors shared by both ropes: working and back-up each Y-hung across the same two anchors.
+function sharedY(x1,x2,y,type,gap){
+  gap=gap||7;const w=yhang(x1,x2,y,C.work,type);
+  if(!w.a1||S.anchorRig==="single"||(type||S.anchorType)==="tripod"){const b=yhang(x1,x2,y,C.back,type);return {svg:w.svg,w,b:{x:b.x+6,y:b.y+3}}}
+  const jw={x:w.x-gap,y:w.y+2},jb={x:w.x+gap,y:w.y+2};
+  const Yp=(j,col)=>`<path d="M${w.a1[0]} ${w.a1[1]} L${j.x} ${j.y} L${w.a2[0]} ${w.a2[1]}" stroke="${col}" stroke-width="2" fill="none"/><circle cx="${j.x}" cy="${j.y}" r="3.5" fill="#fff" stroke="${C.ink}" stroke-width="1.6"/>`;
+  return {svg:w.pre+Yp(jw,C.work)+Yp(jb,C.back),w:jw,b:jb};
 }
 function pulleyS(x,y){return `<circle cx="${x}" cy="${y}" r="4.5" fill="#fff" stroke="${C.ink}" stroke-width="1.8"/>`}
 function krab(x,y){return `<circle cx="${x}" cy="${y}" r="4.5" fill="#fff" stroke="${C.ink}" stroke-width="1.8"/>`}
@@ -631,7 +639,9 @@ function draw(id){
   const edge=()=>add(`<rect x="${wall-6}" y="${top-6}" width="14" height="12" rx="2" fill="#f59e0b" stroke="${C.ink}" stroke-width="1"/>`);
   const cx1=wall+12,cx2=wall+22;
   function casRopes(endY,withEnds){ // side view: Y-hangs on roof, over the edge, down
-    const a=yhang(58,88,top,C.work),b=yhang(104,134,top,C.back);add(a.svg);add(b.svg);
+    let a,b;
+    if(rig()==="y"&&S.anchorType!=="tripod"){const sh=sharedY(60,130,top);add(sh.svg);a=sh.w;b=sh.b}
+    else{a=yhang(58,88,top,C.work);b=yhang(104,134,top,C.back);add(a.svg);add(b.svg)}
     add(line([[a.x,a.y],[wall,top],[cx1,top+8],[cx1,endY]],C.work));
     add(line([[b.x,b.y],[wall,top+2],[cx2,top+10],[cx2,endY]],C.back));
     if(withEnds!==false){add(`<circle cx="${cx1}" cy="${endY}" r="3" fill="${C.work}"/><circle cx="${cx2}" cy="${endY}" r="3" fill="${C.back}"/>`)}
@@ -952,7 +962,9 @@ function drawOb(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
   const boat=(x1,x2)=>{add(`<path d="M${x1} ${sea-6} L${x2} ${sea-6} L${x2-14} ${sea+12} L${x1+10} ${sea+12} Z" fill="#f97316" stroke="${C.ink}" stroke-width="1.4"/><rect x="${(x1+x2)/2-8}" y="${sea-22}" width="18" height="16" fill="#e5e7eb" stroke="${C.ink}"/>`);add(TB((x1+x2)/2,sea+30,"Rescue boat (FRC)",{a:"middle",b:1}))};
   const rx1=hullX+12,rx2=hullX+21;
   if(id!=="mob"){
-    const a=yhang(40,72,deck,C.work),b=yhang(88,120,deck,C.back);add(a.svg);add(b.svg);
+    let a,b;
+    if(rig()==="y"&&S.anchorType!=="tripod"){const sh=sharedY(44,116,deck);add(sh.svg);a=sh.w;b=sh.b}
+    else{a=yhang(40,72,deck,C.work);b=yhang(88,120,deck,C.back);add(a.svg);add(b.svg)}
     const end=id==="obLower"?sea-8:sea-40;
     add(line([[a.x,a.y],[hullX,deck-28],[rx1,deck-20],[rx1,end]],C.work));add(line([[b.x,b.y],[hullX,deck-26],[rx2,deck-18],[rx2,end]],C.back));
     add(`<rect x="${hullX-6}" y="${deck-34}" width="14" height="12" rx="2" fill="#f59e0b" stroke="${C.ink}"/>`);
@@ -997,20 +1009,24 @@ function drawAnchor(){
   const add=s=>out.push(s);const sg=rig()==="single";
   add(`<rect x="0" y="${y}" width="${W}" height="${H-y}" fill="${C.structFill}"/><line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${C.ink}" stroke-width="3"/>`);
   add(`<g transform="translate(${ox},${oy}) scale(${sc})">`);
-  const a=yhang(126,160,Y,C.work),b=yhang(176,210,Y,C.back);add(a.svg);add(b.svg);
+  let a,b;
+  const shared=!sg&&S.anchorType!=="tripod";
+  if(shared){const sh=sharedY(130,206,Y,undefined,14);add(sh.svg);a=sh.w;b=sh.b}
+  else{a=yhang(126,160,Y,C.work);b=yhang(176,210,Y,C.back);add(a.svg);add(b.svg)}
   const bot=(H-30-oy)/sc;
   [[a,C.work],[b,C.back]].forEach(([j,col])=>{
     add(`<rect x="${j.x-2.2}" y="${j.y+1}" width="4.4" height="9" rx="2.2" fill="none" stroke="${C.ink}" stroke-width="1.3"/>`);
     {const x=j.x,t=j.y+10;add(`<circle cx="${x}" cy="${t+4.2}" r="4.2" stroke="${col}" stroke-width="2.2" fill="none"/><circle cx="${x}" cy="${t+12.6}" r="4.2" stroke="${col}" stroke-width="2.2" fill="none"/><path d="M${x-3.5} ${t+15} q-4 5 -2 10" stroke="${col}" stroke-width="2" fill="none" stroke-linecap="round"/>`)}
     add(line([[j.x,j.y+28],[j.x,bot]],col,2.4));
   });
-  add(line([[a.x,a.y],[b.x,b.y]],C.muted,1.2,"3 3"));
+  if(!shared) add(line([[a.x,a.y],[b.x,b.y]],C.muted,1.2,"3 3"));
   add(`</g>`);
   const ax=a.x*sc+ox,bx=b.x*sc+ox;
-  add(TB(ax-14,40,sg?"Working rope anchor":"Working rope (Y-hang)",{a:"end",c:C.work,b:1}));
-  add(TB(bx+14,40,sg?"Back-up rope anchor":"Back-up rope (Y-hang)",{c:C.back,b:1}));
+  add(TB(ax-14,40,sg?"Working rope anchor":"Working rope",{a:"end",c:C.work,b:1}));
+  add(TB(bx+14,40,sg?"Back-up rope anchor":"Back-up rope",{c:C.back,b:1}));
+  if(!sg&&S.anchorType!=="tripod") add(TB(W/2,18,"Both ropes Y-hung across the same two anchors",{a:"middle",s:10,b:1}));
   add(TB(bx+20,(a.y+12)*sc+oy+30,"Figure-of-eight knot on a connector",{s:10,c:C.ink}));
-  add(TB(bx+20,(a.y)*sc+oy+4,"Linked where possible",{s:10,c:C.muted}));
+  if(!shared) add(TB(bx+20,(a.y)*sc+oy+4,"Linked where possible",{s:10,c:C.muted}));
   add(T(8,H-8,ancT().name,{s:11,b:1,c:C.ink}));
   add(`</svg>`);return out.join("");
 }
