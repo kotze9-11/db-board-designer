@@ -1001,7 +1001,7 @@ function drawAnchor(){
   const bot=(H-30-oy)/sc;
   [[a,C.work],[b,C.back]].forEach(([j,col])=>{
     add(`<rect x="${j.x-2.2}" y="${j.y+1}" width="4.4" height="9" rx="2.2" fill="none" stroke="${C.ink}" stroke-width="1.3"/>`);
-    add(`<path d="M${j.x} ${j.y+10} c-5 3 5 6 0 9 c-5 3 5 6 0 9" stroke="${col}" stroke-width="2.6" fill="none"/>`);
+    {const x=j.x,t=j.y+10;add(`<circle cx="${x}" cy="${t+4.2}" r="4.2" stroke="${col}" stroke-width="2.2" fill="none"/><circle cx="${x}" cy="${t+12.6}" r="4.2" stroke="${col}" stroke-width="2.2" fill="none"/><path d="M${x-3.5} ${t+15} q-4 5 -2 10" stroke="${col}" stroke-width="2" fill="none" stroke-linecap="round"/>`)}
     add(line([[j.x,j.y+28],[j.x,bot]],col,2.4));
   });
   add(line([[a.x,a.y],[b.x,b.y]],C.muted,1.2,"3 3"));
