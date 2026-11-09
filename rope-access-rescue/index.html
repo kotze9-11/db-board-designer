@@ -993,19 +993,28 @@ function drawOb(id,sc,out,keys,legend,add,key,casLabel,rescLabel,W,H){
 
 /* ---------- anchor close-up ---------- */
 function drawAnchor(){
-  const W=440,H=250,y=110,out=[`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ${FONT}><rect width="${W}" height="${H}" fill="#fff"/>`];
-  const add=s=>out.push(s);
+  const W=440,H=250,y=110,sc=1.5,ox=-40,oy=-55,Y=(y-oy)/sc,out=[`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" ${FONT}><rect width="${W}" height="${H}" fill="#fff"/>`];
+  const add=s=>out.push(s);const sg=rig()==="single";
   add(`<rect x="0" y="${y}" width="${W}" height="${H-y}" fill="${C.structFill}"/><line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${C.ink}" stroke-width="3"/>`);
-  add(`<g transform="translate(-40,-55) scale(1.5)">`);
-  const a=yhang(60,120,y/1.5+37,C.work),b=yhang(190,250,y/1.5+37,C.back);add(a.svg);add(b.svg);
-  add(line([[a.x,a.y],[a.x+60,a.y+44]],C.work,2.4));add(line([[b.x,b.y],[b.x-20,b.y+44]],C.back,2.4));
-  add(line([[a.x,a.y],[b.x,b.y]],C.muted,1.4,"4 3"));
+  add(`<g transform="translate(${ox},${oy}) scale(${sc})">`);
+  const a=yhang(126,160,Y,C.work),b=yhang(176,210,Y,C.back);add(a.svg);add(b.svg);
+  const bot=(H-30-oy)/sc;
+  [[a,C.work],[b,C.back]].forEach(([j,col])=>{
+    add(`<rect x="${j.x-2.2}" y="${j.y+1}" width="4.4" height="9" rx="2.2" fill="none" stroke="${C.ink}" stroke-width="1.3"/>`);
+    add(`<path d="M${j.x} ${j.y+10} c-5 3 5 6 0 9 c-5 3 5 6 0 9" stroke="${col}" stroke-width="2.6" fill="none"/>`);
+    add(line([[j.x,j.y+28],[j.x,bot]],col,2.4));
+  });
+  add(line([[a.x,a.y],[b.x,b.y]],C.muted,1.2,"3 3"));
   add(`</g>`);
-  const sg=rig()==="single";add(TB(30,30,sg?"Working rope anchor":"Working rope anchors (Y-hang)",{c:C.work,b:1}));add(TB(265,30,sg?"Back-up rope anchor":"Back-up rope anchors (Y-hang)",{c:C.back,b:1}));
-  add(TB(W/2,y+120,"Linked where possible",{a:"middle",s:10,c:C.muted}));
+  const ax=a.x*sc+ox,bx=b.x*sc+ox;
+  add(TB(ax-14,40,sg?"Working rope anchor":"Working rope (Y-hang)",{a:"end",c:C.work,b:1}));
+  add(TB(bx+14,40,sg?"Back-up rope anchor":"Back-up rope (Y-hang)",{c:C.back,b:1}));
+  add(TB(bx+20,(a.y+12)*sc+oy+30,"Figure-of-eight knot on a connector",{s:10,c:C.ink}));
+  add(TB(bx+20,(a.y)*sc+oy+4,"Linked where possible",{s:10,c:C.muted}));
   add(T(8,H-8,ancT().name,{s:11,b:1,c:C.ink}));
   add(`</svg>`);return out.join("");
 }
+
 
 /* ---------- checks ---------- */
 function checks(){
