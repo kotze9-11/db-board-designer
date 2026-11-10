@@ -135,8 +135,6 @@ html.preview .draw,html.preview .drw img{-webkit-user-select:none;user-select:no
       <label>Main anchor type<select data-k="anchorType" id="anchorSel"></select></label>
       <label>Rigging<select data-k="anchorRig"><option value="y">Y-hang (each rope across two anchors)</option><option value="single">Single anchor per rope</option></select></label>
       <label>Confined space anchor<select data-k="cseAnchor"><option value="tripod">Tripod over the opening</option><option value="davit">Davit arm</option><option value="beam">Overhead beam above the opening</option></select></label>
-      <label id="rigPosLbl" style="grid-column:1/-1">Rigging position along the steel beam (open steel structure drawings)
-        <span style="display:flex;align-items:center;gap:10px;color:var(--fg)"><span class="muted">Near the frame</span><input type="range" min="0" max="80" step="5" data-k="rigPos" style="flex:1;accent-color:var(--accent)"><span class="muted">Out over the drop</span></span></label>
       <label style="grid-column:1/-1">Anchor description (where exactly)<input type="text" data-k="anchors" placeholder="e.g. Two slings round the main deck beam above Tank 3 hatch"></label>
     </div>
     <div class="scn" style="margin-top:12px">
@@ -1237,7 +1235,7 @@ function bindFields(){
   });
   boatVis();
 }
-function boatVis(){$("#boatLbl").style.display=S.env==="water"?"":"none";const rl=$("#rigPosLbl");if(rl)rl.style.display=S.loc==="steel"?"":"none"}
+function boatVis(){$("#boatLbl").style.display=S.env==="water"?"":"none"}
 function refreshDefaults(){
   SCN.forEach(sc=>{const p=S.plans[sc.id]; if(!p) return;
     if(!p.edited){p.steps=defSteps(sc.id);const old={};p.equip.forEach(e=>old[e.t]=e.ok);p.equip=defEquip(sc.id).map(e=>({t:e.t,ok:!!old[e.t]}))}
@@ -1272,10 +1270,18 @@ function renderPicker(){
   $("#picker").innerHTML=GROUPS.map(([g,label])=>`<div class="grp"><h4>${esc(label)}</h4><div class="chips">${SCN.filter(s=>s.g===g).map(s=>`<button class="chip${S.cur===s.id?" on":""}" data-id="${s.id}">${plan(s.id).inc?'<span class="dot" title="In plan"></span>':""}${esc(s.short)} <span class="lv">${s.lvl?"L"+s.lvl+"+":(s.tag||"")}</span></button>`).join("")}</div></div>`).join("");
   document.querySelectorAll("#picker .chip").forEach(b=>b.onclick=()=>{S.cur=b.dataset.id;renderPicker();renderScn();save()});
 }
+const SHIFT_IDS=["lower","haul","descent","own","ascent"];
+function renderRigPos(){
+  const box=$("#rigPosBox");if(!box)return;
+  if(!(S.loc==="steel"&&SHIFT_IDS.includes(S.cur)&&S.anchorType!=="tripod")){box.innerHTML="";return}
+  if(!$("#rigPosIn")){box.innerHTML=`<label style="font-size:13px">Rigging position along the steel beam<span style="display:flex;align-items:center;gap:10px;color:var(--fg)"><span class="muted">Near the frame</span><input type="range" id="rigPosIn" min="0" max="80" step="5" style="flex:1;accent-color:var(--accent)"><span class="muted">Out over the drop</span></span></label>`;
+    const el=$("#rigPosIn");el.oninput=()=>{S.rigPos=+el.value;const d=draw(S.cur);$("#scnDraw").innerHTML=d.svg;$("#scnKeys").innerHTML=d.keys.map(k=>`<li>${esc(k)}</li>`).join("");save()}}
+  $("#rigPosIn").value=S.rigPos==null?40:S.rigPos;
+}
 function renderScn(onlyDrawing){
   const id=S.cur, p=plan(id), sc=byId(id), d=draw(id);
   if(onlyDrawing&&$("#scnDraw")){
-    $("#scnDraw").innerHTML=d.svg; $("#scnKeys").innerHTML=d.keys.map(k=>`<li>${esc(k)}</li>`).join("");
+    $("#scnDraw").innerHTML=d.svg; $("#scnKeys").innerHTML=d.keys.map(k=>`<li>${esc(k)}</li>`).join("");renderRigPos();
     if(!p.edited){fillSteps(p);fillEquip(p)} if(!p.contEdited) fillCont(p);
     return;
   }
@@ -1289,6 +1295,7 @@ function renderScn(onlyDrawing){
    <label class="inc"><input type="checkbox" id="incBox"> Include this setup in the plan</label>
    <div class="scn">
      <div>
+       <div id="rigPosBox" style="margin-bottom:8px"></div>
        <div class="draw" id="scnDraw">${d.svg}</div>
        <h3>Drawing key</h3>
        <ol id="scnKeys" style="margin:0;padding-left:20px;font-size:14px">${d.keys.map(k=>`<li>${esc(k)}</li>`).join("")}</ol>
@@ -1306,6 +1313,7 @@ function renderScn(onlyDrawing){
        <button class="mini" id="addEq" style="margin-top:8px">+ Add item</button>
      </div>
    </div>`;
+  renderRigPos();
   const trs=$("#tankRopeSel"),tes=$("#tankEvacSel");
   if(trs){trs.value=tankRopeSc().id;tes.value=S.tankEvac||"stretcher";
     trs.onchange=()=>{S.tankRope=trs.value;refreshDefaults();renderScn();renderPicker();renderChecks();save()};
