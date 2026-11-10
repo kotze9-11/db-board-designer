@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#c2410c">
 <link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <style>
 :root{--bg:#eef1f3;--fg:#1c2329;--muted:#5d6973;--panel:#fff;--line:#d2d9de;--accent:#c2410c;--accent-fg:#fff;--mine:#c2410c;--mine-fg:#fff;--theirs:#fff;--theirs-fg:#1c2329;--ok:#16a34a;color-scheme:light}
@@ -103,7 +104,7 @@ form.send button{height:44px}
     <button class="icon" id="voiceBtn" title="Voice call">📞</button>
     <button class="icon" id="videoBtn" title="Video call">📹</button>
     <button class="lock" id="lockBtn" title="Your check code. It should match on both devices."></button>
-    <button id="notifyBtn" hidden>Notifications</button>
+    <button id="notifyBtn" hidden>🔔</button>
     <button id="outBtn">Sign out</button>
   </header>
   <div class="list" id="list"></div>
@@ -297,7 +298,7 @@ $("#form").onsubmit=async e=>{
   const r=await sb.from("chat_messages").insert({body}).select("id,sender_email,body,created_at").single();
   msgs=msgs.filter(x=>x!==temp);
   if(r.error){render(true);box.value=text;grow();sysNote("Message not sent. Check your internet connection and try again.");return}
-  r.data.text=text;onNew(r.data);
+  r.data.text=text;onNew(r.data);pushOther("msg");
 };
 
 /* ---------- alerts ---------- */
@@ -310,7 +311,9 @@ const beep=()=>tone(880,0.35);
 function unlockSound(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();
   const b=actx.createBuffer(1,1,22050),src=actx.createBufferSource();src.buffer=b;src.connect(actx.destination);src.start(0)}catch(e){}}
 ["pointerdown","touchstart","keydown"].forEach(ev=>document.addEventListener(ev,unlockSound,{passive:true}));
-function notify(title,body){try{if("Notification" in window&&Notification.permission==="granted"){const n=new Notification(title,{body,tag:"chat"});n.onclick=()=>{window.focus();n.close()}}}catch(e){}}
+function notify(title,body){try{if(!("Notification" in window)||Notification.permission!=="granted")return;
+  if(swReg){swReg.showNotification(title,{body,tag:"chat",renotify:true,icon:"icon-192.png"});return}
+  const n=new Notification(title,{body,tag:"chat"});n.onclick=()=>{window.focus();n.close()}}catch(e){}}
 function alertNew(m){
   if(!document.hidden&&document.hasFocus())return;
   unread++;document.title="("+unread+") Chat";beep();notify(nameOf(m.sender_email),m.text==null?"New message":m.text.slice(0,140));
@@ -318,11 +321,51 @@ function alertNew(m){
 function clearUnread(){unread=0;document.title="Chat"}
 window.addEventListener("focus",clearUnread);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){clearUnread();if(started)catchUp()}});
-function setupNotify(){
-  const b=$("#notifyBtn");
-  if(!("Notification" in window)||Notification.permission!=="default"){b.hidden=true;return}
-  b.hidden=false;b.onclick=async()=>{try{await Notification.requestPermission()}catch(e){}b.hidden=true;beep()};
+/* ---------- notifications to the other person's devices (Web Push) ---------- */
+let swReg=null,lastPush=0,offArm=0;
+const urlB64=s=>{const p="=".repeat((4-s.length%4)%4);return Uint8Array.from(atob((s+p).replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0))};
+const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const installed=()=>navigator.standalone===true||matchMedia("(display-mode: standalone)").matches;
+async function setupNotify(){
+  const b=$("#notifyBtn");b.hidden=true;
+  if("serviceWorker" in navigator){try{swReg=await navigator.serviceWorker.register("sw.js");await navigator.serviceWorker.ready}catch(e){swReg=null}}
+  const canPush=!!(swReg&&"PushManager" in window&&"Notification" in window);
+  if(!canPush){
+    if(isIOS&&!installed()){b.hidden=false;b.textContent="🔔";b.title="How to get notifications on iPhone";
+      b.onclick=()=>sysNote("For notifications on iPhone: tap Share, then Add to Home Screen. Open the chat from the new icon, then tap 🔔 there.")}
+    return}
+  b.hidden=false;
+  if(Notification.permission==="denied"){b.textContent="🔕";b.title="Notifications are blocked";b.onclick=()=>sysNote("Notifications are blocked for this chat. Allow them in your browser or phone settings, then open the chat again.");return}
+  const sub=await swReg.pushManager.getSubscription().catch(()=>null);
+  if(sub&&Notification.permission==="granted"){
+    b.textContent="🔔 On";b.title="Notifications are on for this device";
+    sb.functions.invoke("chat-push",{body:{action:"subscribe",sub:sub.toJSON()}}).catch(()=>{});
+    b.onclick=async()=>{
+      if(Date.now()-offArm>4000){offArm=Date.now();sysNote("Notifications are on for this device. Tap 🔔 again to turn them off.");return}
+      try{await sb.functions.invoke("chat-push",{body:{action:"unsubscribe",endpoint:sub.endpoint}});await sub.unsubscribe()}catch(e){}
+      sysNote("Notifications turned off on this device.");setupNotify()};
+    return}
+  b.textContent="🔔 Turn on";b.title="Get a notification when a message or call comes in";b.onclick=turnOnPush;
 }
+async function turnOnPush(){
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){sysNote("Notifications weren't allowed.");setupNotify();return}
+    const k=await sb.functions.invoke("chat-push",{body:{action:"key"}});
+    if(k.error||!k.data||!k.data.publicKey)throw new Error("key");
+    const sub=await swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64(k.data.publicKey)});
+    const r=await sb.functions.invoke("chat-push",{body:{action:"subscribe",sub:sub.toJSON()}});
+    if(r.error)throw new Error("save");
+    sysNote("Notifications are on for this device. You'll get one when "+nameOf(other)+" sends a message or calls.");beep();
+  }catch(e){sysNote(e.message==="key"||e.message==="save"?"Couldn't turn on notifications. The notification server in Supabase isn't set up yet.":"Couldn't turn on notifications on this device.")}
+  setupNotify();
+}
+function pushOther(kind){
+  if(kind!=="call"&&Date.now()-lastPush<15000)return; // one message notification per 15 seconds is enough
+  lastPush=Date.now();sb.functions.invoke("chat-push",{body:{action:"notify",kind}}).catch(()=>{});
+}
+function clearShown(){if(swReg&&swReg.getNotifications)swReg.getNotifications().then(ns=>ns.forEach(n=>n.close())).catch(()=>{})}
+window.addEventListener("focus",clearShown);document.addEventListener("visibilitychange",()=>{if(!document.hidden)clearShown()});
 
 /* ---------- calls (WebRTC, call setup locked with the chat password) ---------- */
 const ICE={iceServers:[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},{urls:"stun:stun.cloudflare.com:3478"}]};
@@ -364,7 +407,7 @@ async function startCall(video){
   withVideo=video;localStream=await getMedia(video);if(!localStream)return;
   callId=Math.random().toString(36).slice(2);callState="calling";showCallUI();
   callInfo("Calling "+nameOf(other)+"…",peerOnline?"":"They don't have the chat open right now. It will ring if they open it.");
-  await sig("ring",{video});
+  await sig("ring",{video});pushOther("call");
   ringLoop=setInterval(()=>{if(callState==="calling")sig("ring",{video})},4000);
   ringTimer=setTimeout(()=>{if(callState==="calling"){sig("cancel");callInfo("No answer");setTimeout(()=>endCall(true),2000)}},45000);
 }
