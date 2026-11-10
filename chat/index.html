@@ -6,9 +6,10 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Chat</title>
 <style>
-:root{--bg:#eef1f3;--fg:#1c2329;--muted:#5d6973;--panel:#fff;--line:#d2d9de;--accent:#c2410c;--accent-fg:#fff;--mine:#c2410c;--mine-fg:#fff;--theirs:#fff;--theirs-fg:#1c2329;color-scheme:light}
+:root{--bg:#eef1f3;--fg:#1c2329;--muted:#5d6973;--panel:#fff;--line:#d2d9de;--accent:#c2410c;--accent-fg:#fff;--mine:#c2410c;--mine-fg:#fff;--theirs:#fff;--theirs-fg:#1c2329;--ok:#16a34a;color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#13181c;--fg:#e3e8ec;--muted:#98a4ad;--panel:#1c2329;--line:#323e47;--accent:#fb8a4c;--accent-fg:#1a0d05;--mine:#c2410c;--mine-fg:#fff;--theirs:#263039;--theirs-fg:#e3e8ec;color-scheme:dark}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 button{font:inherit;font-size:14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:8px 12px;cursor:pointer}
@@ -19,35 +20,50 @@ input{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--l
 input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .muted{color:var(--muted);font-size:14px}
 .msg{font-size:14px;min-height:1.2em;margin:0}
-/* sign in */
 .gate{min-height:100%;display:grid;place-items:center;padding:16px}
-.card{width:min(400px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:12px}
+.card{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:12px}
 .card h1{margin:0;font-size:24px}
 .row{display:flex;flex-wrap:wrap;gap:8px}
-/* chat */
 .app{height:100%;display:grid;grid-template-rows:auto 1fr auto;max-width:860px;margin:0 auto;background:var(--panel);border-left:1px solid var(--line);border-right:1px solid var(--line)}
-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
-header .t{flex:1;min-width:0}
+header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header .t{flex:1;min-width:120px}
 header .t strong{display:block;font-size:17px}
 header .t span{font-size:13px;color:var(--muted)}
+header button{padding:7px 10px}
+.icon{font-size:18px;line-height:1;padding:6px 10px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#9ca3af;margin-right:5px;vertical-align:middle}
-.dot.on{background:#16a34a}
+.dot.on{background:var(--ok)}
+.lock{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px;background:var(--bg)}
 .list{overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:4px;background:var(--bg)}
-.day{align-self:center;font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:2px 10px;margin:10px 0 6px}
+.day{align-self:center;font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:2px 10px;margin:10px 0 6px;text-align:center}
 .b{max-width:min(78%,560px);padding:8px 12px 6px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;position:relative;box-shadow:0 1px 1px rgba(0,0,0,.06)}
 .b.me{align-self:flex-end;background:var(--mine);color:var(--mine-fg);border-bottom-right-radius:4px}
 .b.them{align-self:flex-start;background:var(--theirs);color:var(--theirs-fg);border:1px solid var(--line);border-bottom-left-radius:4px}
 .b .tm{display:block;text-align:right;font-size:11px;opacity:.75;margin-top:2px}
 .b .who{display:block;font-size:12px;font-weight:700;opacity:.85;margin-bottom:1px}
 .b.pending{opacity:.6}
+.b.bad{font-style:italic;opacity:.75}
 .b .del{display:none;position:absolute;top:-8px;left:-8px;width:22px;height:22px;padding:0;border-radius:50%;font-size:12px;line-height:20px}
 .b.me:hover .del{display:block}
 .empty{margin:auto;text-align:center;color:var(--muted)}
 form.send{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);align-items:flex-end;padding-bottom:max(10px,env(safe-area-inset-bottom))}
 textarea{flex:1;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;resize:none;max-height:160px;min-height:44px}
 form.send button{height:44px}
-.banner{font-size:13px;padding:6px 14px;background:#fff7d6;color:#6b4e00;border-bottom:1px solid var(--line)}
-@media (prefers-color-scheme:dark){.banner{background:#3a3110;color:#f3dc8a}}
+/* calls */
+.call{position:fixed;inset:0;z-index:20;background:#0b0f12;color:#fff;display:grid;grid-template-rows:1fr auto}
+.call video.remote{width:100%;height:100%;object-fit:contain;background:#000}
+.call video.local{position:absolute;right:14px;bottom:96px;width:min(30vw,200px);max-height:34vh;border-radius:12px;border:2px solid rgba(255,255,255,.6);background:#222;object-fit:cover;transform:scaleX(-1)}
+.call .info{position:absolute;left:0;right:0;top:18px;text-align:center;font-size:18px;text-shadow:0 1px 3px #000}
+.call .info small{display:block;font-size:13px;opacity:.85}
+.call .ctl{display:flex;justify-content:center;gap:14px;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));background:rgba(0,0,0,.6)}
+.call .ctl button{width:56px;height:56px;border-radius:50%;font-size:22px;padding:0;background:#2b343c;color:#fff;border:0}
+.call .ctl button.off{background:#6b7280}
+.call .ctl button.end{background:#dc2626}
+.ring{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:25;width:min(380px,calc(100% - 32px));background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:16px;display:grid;gap:10px;text-align:center}
+.ring strong{font-size:18px}
+.ring .row{justify-content:center}
+.ring button.accept{background:#16a34a;border-color:#16a34a;color:#fff;font-weight:600}
+.ring button.decline{background:#dc2626;border-color:#dc2626;color:#fff;font-weight:600}
 </style>
 </head>
 <body>
@@ -63,17 +79,48 @@ form.send button{height:44px}
   </div>
 </div>
 
+<div class="gate" id="keyGate" hidden>
+  <div class="card">
+    <h1>🔒 Chat password</h1>
+    <p class="muted" style="margin:0">Type the chat password you and your partner agreed on. Use the <b>same one on every device</b>. Messages and calls are locked with it, so nobody else can read them, not even the server.</p>
+    <p class="muted" style="margin:0">If you forget it, old messages can't be opened again. Keep it somewhere safe.</p>
+    <input type="password" id="kp" placeholder="Chat password (at least 8 characters)" autocomplete="off">
+    <div class="row"><button class="primary" id="kGo">Unlock chat</button><button id="kOut">Sign out</button></div>
+    <p class="msg" id="keyMsg"></p>
+  </div>
+</div>
+
 <div class="app" id="app" hidden>
   <header>
-    <div class="t"><strong id="title">Chat</strong><span id="status"><span class="dot" id="dot"></span>Connecting…</span></div>
-    <button id="notifyBtn" hidden>Turn on notifications</button>
+    <div class="t"><strong id="title">Chat</strong><span id="status"><span class="dot" id="dot"></span><span id="stText">Connecting…</span></span></div>
+    <button class="icon" id="voiceBtn" title="Voice call">📞</button>
+    <button class="icon" id="videoBtn" title="Video call">📹</button>
+    <button class="lock" id="lockBtn" title="Your check code. It should match on both devices."></button>
+    <button id="notifyBtn" hidden>Notifications</button>
     <button id="outBtn">Sign out</button>
   </header>
   <div class="list" id="list"></div>
   <form class="send" id="form">
-    <textarea id="box" rows="1" placeholder="Type a message" maxlength="4000"></textarea>
+    <textarea id="box" rows="1" placeholder="Type a message" maxlength="2000"></textarea>
     <button class="primary" id="sendBtn" type="submit">Send</button>
   </form>
+</div>
+
+<div class="ring" id="ring" hidden>
+  <strong id="ringWho"></strong>
+  <span class="muted" id="ringWhat"></span>
+  <div class="row"><button class="accept" id="acceptBtn">Answer</button><button class="decline" id="declineBtn">Decline</button></div>
+</div>
+
+<div class="call" id="call" hidden>
+  <video class="remote" id="remoteV" autoplay playsinline></video>
+  <video class="local" id="localV" autoplay playsinline muted></video>
+  <div class="info" id="callInfo"></div>
+  <div class="ctl">
+    <button id="micBtn" title="Mute / unmute">🎤</button>
+    <button id="camBtn" title="Camera on / off">📷</button>
+    <button class="end" id="endBtn" title="Hang up">✕</button>
+  </div>
 </div>
 
 <script src="../db-board/config.js"></script>
@@ -83,15 +130,56 @@ form.send button{height:44px}
 const $=q=>document.querySelector(q);
 const cfg=window.DBB_CONFIG;
 if(!cfg||!window.supabase){$("#gateMsg").textContent="The chat couldn't load. Check your internet connection and reload the page.";return}
+if(!window.crypto||!crypto.subtle){$("#gateMsg").textContent="This browser can't do the encryption the chat needs. Use an up-to-date Chrome, Edge, Safari or Firefox.";return}
 const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"chat-auth"}});
-let me="",names={},msgs=[],channel=null,unread=0,started=false;
+let me="",other="",names={},msgs=[],channel=null,callCh=null,unread=0,started=false,KEY=null,FP="";
+
+const te=new TextEncoder(),td=new TextDecoder();
+const b64=u=>{let s="";for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 
 function gateMsg(t,err){const m=$("#gateMsg");m.textContent=t||"";m.style.color=err?"var(--accent)":"var(--muted)"}
-function nameOf(e){return names[e]||e.split("@")[0]}
+function keyMsg(t,err){const m=$("#keyMsg");m.textContent=t||"";m.style.color=err?"var(--accent)":"var(--muted)"}
+function nameOf(e){return names[e]||(e||"").split("@")[0]}
 function fmtTime(d){return d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
 function fmtDay(d){const t=new Date();const y=new Date(Date.now()-864e5);
   if(d.toDateString()===t.toDateString())return "Today";if(d.toDateString()===y.toDateString())return "Yesterday";
   return d.toLocaleDateString([],{weekday:"long",day:"numeric",month:"long",year:d.getFullYear()===t.getFullYear()?undefined:"numeric"})}
+function show(id){["#gate","#keyGate","#app"].forEach(x=>$(x).hidden=x!==id)}
+
+/* ---------- encryption (AES-GCM, key from the shared chat password) ---------- */
+async function deriveKey(pass){
+  const base=await crypto.subtle.importKey("raw",te.encode(pass),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt:te.encode("kotze-private-chat-v1"),iterations:250000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},true,["encrypt","decrypt"]);
+}
+async function fingerprint(key){const raw=new Uint8Array(await crypto.subtle.exportKey("raw",key));const h=new Uint8Array(await crypto.subtle.digest("SHA-256",raw));
+  const hex=[...h.slice(0,4)].map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();return hex.slice(0,4)+"-"+hex.slice(4)}
+async function encText(t){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},KEY,te.encode(t)));
+  const all=new Uint8Array(12+ct.length);all.set(iv);all.set(ct,12);return "enc1:"+b64(all)}
+async function decText(s){if(typeof s!=="string")return null;if(!s.startsWith("enc1:"))return {text:s,plain:true};
+  try{const all=unb64(s.slice(5));const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:all.slice(0,12)},KEY,all.slice(12));return {text:td.decode(pt)}}catch(e){return {text:null}}}
+async function loadStoredKey(){const raw=store.get("chat-key-v1:"+me);if(!raw)return false;
+  try{KEY=await crypto.subtle.importKey("raw",unb64(raw),{name:"AES-GCM"},true,["encrypt","decrypt"]);FP=await fingerprint(KEY);return true}catch(e){return false}}
+async function unlock(){
+  const pass=$("#kp").value;if(pass.length<8){keyMsg("The chat password needs at least 8 characters.",1);return}
+  keyMsg("Unlocking…");$("#kGo").disabled=true;
+  try{
+    const k=await deriveKey(pass);
+    // check it against an existing locked message, if there is one
+    const r=await sb.from("chat_messages").select("body").like("body","enc1:%").order("id",{ascending:false}).limit(1);
+    const old=KEY;KEY=k;
+    if(!r.error&&r.data&&r.data.length){const d=await decText(r.data[0].body);if(!d||d.text==null){KEY=old;keyMsg("That chat password doesn't match your earlier messages. Check it with your partner.",1);return}}
+    store.set("chat-key-v1:"+me,b64(new Uint8Array(await crypto.subtle.exportKey("raw",k))));FP=await fingerprint(k);$("#kp").value="";keyMsg("");
+    enterChat();
+  }catch(e){keyMsg("Couldn't unlock. Try again.",1)}finally{$("#kGo").disabled=false}
+}
+$("#kGo").onclick=unlock;$("#kp").addEventListener("keydown",e=>{if(e.key==="Enter")unlock()});
+let lockArm=0;
+$("#lockBtn").onclick=()=>{
+  if(Date.now()-lockArm>4000){lockArm=Date.now();sysNote("Your check code is "+FP+". It should be the same on your partner's screen. To forget the chat password on this device, press the code again.");return}
+  store.del("chat-key-v1:"+me);KEY=null;leaveRealtime();started=false;msgs=[];$("#list").innerHTML="";show("#keyGate");keyMsg("Chat password removed from this device.");
+};
 
 /* ---------- sign in ---------- */
 async function auth(reg){
@@ -110,29 +198,34 @@ async function auth(reg){
 }
 $("#signIn").onclick=()=>auth(false);$("#signUp").onclick=()=>auth(true);
 $("#pw").addEventListener("keydown",e=>{if(e.key==="Enter")auth(false)});
-$("#outBtn").onclick=async()=>{try{if(channel)await sb.removeChannel(channel)}catch(e){}channel=null;started=false;await sb.auth.signOut();msgs=[];$("#list").innerHTML="";$("#app").hidden=true;$("#gate").hidden=false;gateMsg("Signed out.")};
+async function signOut(){endCall(true);leaveRealtime();started=false;KEY=null;await sb.auth.signOut();msgs=[];$("#list").innerHTML="";show("#gate");gateMsg("Signed out.")}
+$("#outBtn").onclick=signOut;$("#kOut").onclick=signOut;
+function leaveRealtime(){try{if(channel)sb.removeChannel(channel)}catch(e){}try{if(callCh)sb.removeChannel(callCh)}catch(e){}channel=null;callCh=null}
 
 /* ---------- chat ---------- */
 async function start(){
   if(started)return;
   const {data}=await sb.auth.getSession();const s=data&&data.session;
-  if(!s){$("#gate").hidden=false;$("#app").hidden=true;return}
+  if(!s){show("#gate");return}
   me=(s.user.email||"").toLowerCase();
   const mem=await sb.from("chat_members").select("email,display_name");
   if(mem.error||!mem.data||!mem.data.length){
     gateMsg(mem.error&&/relation|does not exist/i.test(mem.error.message)?"The chat isn't set up yet in Supabase.":"This chat is private, and your account isn't allowed in. Sign out and use the right email.",1);
-    $("#gate").hidden=false;$("#app").hidden=true;await sb.auth.signOut();return}
-  started=true;names={};mem.data.forEach(m=>names[m.email.toLowerCase()]=m.display_name);
-  const other=mem.data.map(m=>m.email.toLowerCase()).find(e=>e!==me);
+    show("#gate");await sb.auth.signOut();return}
+  names={};mem.data.forEach(m=>names[m.email.toLowerCase()]=m.display_name);
+  other=mem.data.map(m=>m.email.toLowerCase()).find(e=>e!==me)||"";
   $("#title").textContent=other?nameOf(other):"Chat";
-  $("#gate").hidden=true;$("#app").hidden=false;
-  document.title="Chat";
-  await loadHistory();subscribe();setupNotify();$("#box").focus();
+  if(await loadStoredKey())enterChat();else{show("#keyGate");$("#kp").focus()}
 }
+async function enterChat(){
+  started=true;show("#app");$("#lockBtn").textContent="🔒 "+FP;document.title="Chat";
+  await loadHistory();subscribe();joinCalls();setupNotify();$("#box").focus();
+}
+async function withText(m){if(m.text===undefined){const d=await decText(m.body);m.text=d?d.text:null;m.plain=!!(d&&d.plain)}return m}
 async function loadHistory(){
   const r=await sb.from("chat_messages").select("id,sender_email,body,created_at").order("created_at",{ascending:false}).limit(300);
   if(r.error){setStatus(false,"Couldn't load messages");return}
-  msgs=r.data.reverse();render(true);
+  msgs=await Promise.all(r.data.reverse().map(withText));render(true);
 }
 function subscribe(){
   if(channel)sb.removeChannel(channel);
@@ -141,15 +234,18 @@ function subscribe(){
     .on("postgres_changes",{event:"DELETE",schema:"public",table:"chat_messages"},p=>{msgs=msgs.filter(m=>m.id!==p.old.id);render(false)})
     .subscribe(st=>{if(st==="SUBSCRIBED"){setStatus(true);catchUp()}else if(st==="CHANNEL_ERROR"||st==="TIMED_OUT"||st==="CLOSED")setStatus(false)});
 }
-async function catchUp(){ // fetch anything missed while disconnected
+async function catchUp(){
   const last=msgs.filter(m=>m.id>0).slice(-1)[0];if(!last)return;
   const r=await sb.from("chat_messages").select("id,sender_email,body,created_at").gt("id",last.id).order("id");
-  if(!r.error&&r.data.length){r.data.forEach(onNew)}
+  if(!r.error&&r.data.length){for(const m of r.data)await onNew(m)}
 }
-function setStatus(on,txt){$("#dot").classList.toggle("on",on);$("#status").lastChild.textContent=txt||(on?"Connected":"Reconnecting…")}
-function onNew(m){
+let online=false,connected=false;
+function setStatus(on,txt){connected=on;$("#dot").classList.toggle("on",on);$("#stText").textContent=txt||(on?(online?nameOf(other)+" is online":"Connected"):"Reconnecting…")}
+async function onNew(m){
   if(msgs.some(x=>x.id===m.id))return;
-  const pend=msgs.findIndex(x=>x.pending&&x.body===m.body&&m.sender_email===me);
+  await withText(m);
+  if(msgs.some(x=>x.id===m.id))return;
+  const pend=msgs.findIndex(x=>x.pending&&x.body===m.body);
   if(pend>=0)msgs.splice(pend,1);
   msgs.push(m);msgs.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
   const near=isNearBottom();render(near||m.sender_email===me);
@@ -158,51 +254,53 @@ function onNew(m){
 function isNearBottom(){const l=$("#list");return l.scrollHeight-l.scrollTop-l.clientHeight<120}
 function render(scroll){
   const l=$("#list");l.innerHTML="";
-  if(!msgs.length){const e=document.createElement("div");e.className="empty";e.textContent="No messages yet. Say hello!";l.appendChild(e);return}
+  if(!msgs.length){const e=document.createElement("div");e.className="empty";e.textContent="No messages yet. Say hello! Messages are locked with your chat password.";l.appendChild(e);return}
   let lastDay="";
   msgs.forEach(m=>{
     const d=new Date(m.created_at),day=d.toDateString();
     if(day!==lastDay){lastDay=day;const dv=document.createElement("div");dv.className="day";dv.textContent=fmtDay(d);l.appendChild(dv)}
-    const mine=m.sender_email===me,b=document.createElement("div");b.className="b "+(mine?"me":"them")+(m.pending?" pending":"");
+    const mine=m.sender_email===me,b=document.createElement("div");b.className="b "+(mine?"me":"them")+(m.pending?" pending":"")+(m.text==null?" bad":"");
     if(!mine){const w=document.createElement("span");w.className="who";w.textContent=nameOf(m.sender_email);b.appendChild(w)}
-    b.appendChild(document.createTextNode(m.body));
-    const t=document.createElement("span");t.className="tm";t.textContent=m.pending?"Sending…":fmtTime(d);b.appendChild(t);
-    if(mine&&!m.pending){const x=document.createElement("button");x.className="del";x.title="Delete this message";x.textContent="✕";x.type="button";
-      x.onclick=()=>delMsg(m,x);b.appendChild(x)}
+    b.appendChild(document.createTextNode(m.text==null?"🔒 Can't open this message. It was locked with a different chat password.":m.text));
+    const t=document.createElement("span");t.className="tm";t.textContent=m.pending?"Sending…":(m.plain?"not locked · ":"")+fmtTime(d);b.appendChild(t);
+    if(mine&&!m.pending){const x=document.createElement("button");x.className="del";x.title="Delete this message";x.textContent="✕";x.type="button";x.onclick=()=>delMsg(m,x);b.appendChild(x)}
     l.appendChild(b);
   });
   if(scroll)l.scrollTop=l.scrollHeight;
 }
+function sysNote(t){const l=$("#list"),d=document.createElement("div");d.className="day";d.style.color="var(--accent)";d.textContent=t;l.appendChild(d);l.scrollTop=l.scrollHeight}
 let delArm=0;
 async function delMsg(m,btn){
-  if(Date.now()-delArm>3000){delArm=Date.now();btn.textContent="?";btn.title="Press again to delete";setTimeout(()=>{if(btn.isConnected){btn.textContent="✕"}},3000);return}
+  if(Date.now()-delArm>3000){delArm=Date.now();btn.textContent="?";btn.title="Press again to delete";setTimeout(()=>{if(btn.isConnected)btn.textContent="✕"},3000);return}
   const r=await sb.from("chat_messages").delete().eq("id",m.id);
   if(!r.error){msgs=msgs.filter(x=>x.id!==m.id);render(false)}
 }
-/* sending */
 const box=$("#box");
 function grow(){box.style.height="auto";box.style.height=Math.min(160,box.scrollHeight)+"px"}
 box.addEventListener("input",grow);
 box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();$("#form").requestSubmit()}});
 $("#form").onsubmit=async e=>{
-  e.preventDefault();const body=box.value.trim();if(!body)return;
-  const temp={id:-Date.now(),sender_email:me,body,created_at:new Date().toISOString(),pending:true};
+  e.preventDefault();const text=box.value.trim();if(!text||!KEY)return;
+  if(te.encode(text).length>2900){sysNote("That message is too long. Split it into two.");return}
+  const body=await encText(text);
+  const temp={id:-Date.now(),sender_email:me,body,text,created_at:new Date().toISOString(),pending:true};
   msgs.push(temp);box.value="";grow();render(true);
   const r=await sb.from("chat_messages").insert({body}).select("id,sender_email,body,created_at").single();
   msgs=msgs.filter(x=>x!==temp);
-  if(r.error){render(true);box.value=body;grow();alert1("Message not sent. Check your internet connection and try again.");return}
-  onNew(r.data);
+  if(r.error){render(true);box.value=text;grow();sysNote("Message not sent. Check your internet connection and try again.");return}
+  r.data.text=text;onNew(r.data);
 };
-function alert1(t){const l=$("#list"),d=document.createElement("div");d.className="day";d.style.color="var(--accent)";d.textContent=t;l.appendChild(d);l.scrollTop=l.scrollHeight}
-/* notifications */
+
+/* ---------- alerts ---------- */
 let actx=null;
-function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();
-  o.type="sine";o.frequency.value=880;g.gain.setValueAtTime(0.0001,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.2,actx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+0.35);
-  o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+0.4)}catch(e){}}
+function tone(f,dur,vol){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();
+  o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(0.0001,actx.currentTime);g.gain.exponentialRampToValueAtTime(vol||0.2,actx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+dur);
+  o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+dur+0.05)}catch(e){}}
+const beep=()=>tone(880,0.35);
+function notify(title,body){try{if("Notification" in window&&Notification.permission==="granted"){const n=new Notification(title,{body,tag:"chat"});n.onclick=()=>{window.focus();n.close()}}}catch(e){}}
 function alertNew(m){
   if(!document.hidden&&document.hasFocus())return;
-  unread++;document.title="("+unread+") Chat";beep();
-  try{if("Notification" in window&&Notification.permission==="granted"){const n=new Notification(nameOf(m.sender_email),{body:m.body.slice(0,140),tag:"chat"});n.onclick=()=>{window.focus();n.close()}}}catch(e){}
+  unread++;document.title="("+unread+") Chat";beep();notify(nameOf(m.sender_email),m.text==null?"New message":m.text.slice(0,140));
 }
 function clearUnread(){unread=0;document.title="Chat"}
 window.addEventListener("focus",clearUnread);
@@ -212,8 +310,98 @@ function setupNotify(){
   if(!("Notification" in window)||Notification.permission!=="default"){b.hidden=true;return}
   b.hidden=false;b.onclick=async()=>{try{await Notification.requestPermission()}catch(e){}b.hidden=true;beep()};
 }
-/* first load */
+
+/* ---------- calls (WebRTC, call setup locked with the chat password) ---------- */
+const ICE={iceServers:[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},{urls:"stun:stun.cloudflare.com:3478"}]};
+let pc=null,localStream=null,callId="",callState="idle",withVideo=true,pendingIce=[],ringTimer=null,ringLoop=null,peerOnline=false;
+function joinCalls(){
+  if(callCh)sb.removeChannel(callCh);
+  callCh=sb.channel("calls-"+FP,{config:{broadcast:{self:false},presence:{key:me}}});
+  callCh.on("broadcast",{event:"sig"},async ({payload})=>{
+    const d=await decText(payload&&payload.c);if(!d||d.text==null)return;
+    let msg;try{msg=JSON.parse(d.text)}catch(e){return}
+    if(msg.from===me)return;handleSig(msg);
+  }).on("presence",{event:"sync"},()=>{
+    const st=callCh.presenceState();peerOnline=Object.keys(st).some(k=>k!==me);online=peerOnline;if(connected)setStatus(true);
+  }).subscribe(async st=>{if(st==="SUBSCRIBED"){try{await callCh.track({at:Date.now()})}catch(e){}}});
+}
+async function sig(type,data){if(!callCh)return;const c=await encText(JSON.stringify({type,from:me,callId,data}));callCh.send({type:"broadcast",event:"sig",payload:{c}})}
+function callInfo(t,sub){$("#callInfo").innerHTML="";const a=document.createElement("div");a.textContent=t;$("#callInfo").appendChild(a);if(sub){const s=document.createElement("small");s.textContent=sub;$("#callInfo").appendChild(s)}}
+async function getMedia(video){
+  try{return await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:video?{width:{ideal:1280},height:{ideal:720},facingMode:"user"}:false})}
+  catch(e){sysNote(video?"Couldn't use the camera or microphone. Allow them in the browser and try again.":"Couldn't use the microphone. Allow it in the browser and try again.");return null}
+}
+function showCallUI(){$("#call").hidden=false;$("#localV").srcObject=localStream;$("#localV").style.display=withVideo?"":"none";$("#camBtn").style.display=withVideo?"":"none";$("#micBtn").classList.remove("off");$("#camBtn").classList.remove("off")}
+function makePC(){
+  pc=new RTCPeerConnection(ICE);pendingIce=[];
+  localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  pc.onicecandidate=e=>{if(e.candidate)sig("ice",e.candidate.toJSON())};
+  pc.ontrack=e=>{const v=$("#remoteV");if(v.srcObject!==e.streams[0])v.srcObject=e.streams[0]};
+  pc.onconnectionstatechange=()=>{
+    const s=pc&&pc.connectionState;
+    if(s==="connected"){callState="incall";callInfo(nameOf(other),withVideo?"":"Voice call");setTimeout(()=>{if(callState==="incall")$("#callInfo").innerHTML=withVideo?"":$("#callInfo").innerHTML},3000)}
+    else if(s==="failed"){callInfo("Call couldn't connect","A network in between may be blocking calls. Try another network, e.g. mobile data.");setTimeout(()=>endCall(),4000)}
+    else if(s==="disconnected"){callInfo("Connection lost…","Trying to reconnect")}
+  };
+}
+async function addIce(c){try{if(pc&&pc.remoteDescription)await pc.addIceCandidate(c);else pendingIce.push(c)}catch(e){}}
+async function flushIce(){const q=pendingIce;pendingIce=[];for(const c of q){try{await pc.addIceCandidate(c)}catch(e){}}}
+async function startCall(video){
+  if(callState!=="idle"||!KEY)return;
+  withVideo=video;localStream=await getMedia(video);if(!localStream)return;
+  callId=Math.random().toString(36).slice(2);callState="calling";showCallUI();
+  callInfo("Calling "+nameOf(other)+"…",peerOnline?"":"They don't have the chat open right now. It will ring if they open it.");
+  await sig("ring",{video});
+  ringLoop=setInterval(()=>{if(callState==="calling")sig("ring",{video})},4000);
+  ringTimer=setTimeout(()=>{if(callState==="calling"){sig("cancel");callInfo("No answer");setTimeout(()=>endCall(true),2000)}},45000);
+}
+$("#videoBtn").onclick=()=>startCall(true);$("#voiceBtn").onclick=()=>startCall(false);
+async function handleSig(m){
+  if(m.type==="ring"){
+    if(callState==="idle"){callId=m.callId;withVideo=!!(m.data&&m.data.video);callState="ringing";
+      $("#ringWho").textContent=nameOf(m.from)+" is calling";$("#ringWhat").textContent=withVideo?"Video call":"Voice call";$("#ring").hidden=false;
+      clearInterval(ringLoop);ringLoop=setInterval(()=>{tone(660,0.25,0.25);setTimeout(()=>tone(880,0.3,0.25),300)},1600);tone(660,0.25,0.25);
+      notify(nameOf(m.from)+" is calling",withVideo?"Video call":"Voice call");
+      clearTimeout(ringTimer);ringTimer=setTimeout(()=>{if(callState==="ringing"){stopRinging();callState="idle";sysNote("Missed call from "+nameOf(m.from))}},10000);
+    }else if(callState==="ringing"&&m.callId===callId){clearTimeout(ringTimer);ringTimer=setTimeout(()=>{if(callState==="ringing"){stopRinging();callState="idle";sysNote("Missed call from "+nameOf(m.from))}},10000)}
+    else if(m.callId!==callId){const keep=callId;callId=m.callId;sig("busy");callId=keep}
+    return;
+  }
+  if(m.callId!==callId)return;
+  if(m.type==="accept"&&callState==="calling"){
+    clearInterval(ringLoop);clearTimeout(ringTimer);callState="connecting";callInfo("Connecting…");
+    makePC();const off=await pc.createOffer();await pc.setLocalDescription(off);sig("offer",off);
+  }else if(m.type==="offer"&&pc){
+    await pc.setRemoteDescription(m.data);await flushIce();const ans=await pc.createAnswer();await pc.setLocalDescription(ans);sig("answer",ans);
+  }else if(m.type==="answer"&&pc){
+    await pc.setRemoteDescription(m.data);await flushIce();
+  }else if(m.type==="ice"){addIce(m.data)}
+  else if(m.type==="decline"&&callState==="calling"){callInfo(nameOf(other)+" can't answer right now");setTimeout(()=>endCall(true),2000)}
+  else if(m.type==="busy"&&callState==="calling"){callInfo(nameOf(other)+" is busy");setTimeout(()=>endCall(true),2000)}
+  else if(m.type==="cancel"&&callState==="ringing"){stopRinging();callState="idle";sysNote("Missed call from "+nameOf(m.from))}
+  else if(m.type==="hangup"){if(callState!=="idle"){sysNote("Call ended");endCall(true)}}
+}
+function stopRinging(){$("#ring").hidden=true;clearInterval(ringLoop);clearTimeout(ringTimer)}
+$("#acceptBtn").onclick=async()=>{
+  stopRinging();localStream=await getMedia(withVideo);
+  if(!localStream){sig("decline");callState="idle";return}
+  callState="connecting";showCallUI();callInfo("Connecting…");makePC();sig("accept");
+};
+$("#declineBtn").onclick=()=>{stopRinging();sig("decline");callState="idle"};
+function endCall(silent){
+  if(callState!=="idle"&&!silent)sig("hangup");
+  clearInterval(ringLoop);clearTimeout(ringTimer);$("#ring").hidden=true;
+  try{if(pc)pc.close()}catch(e){}pc=null;
+  if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}
+  $("#remoteV").srcObject=null;$("#localV").srcObject=null;$("#call").hidden=true;callState="idle";
+}
+$("#endBtn").onclick=()=>endCall(false);
+$("#micBtn").onclick=()=>{if(!localStream)return;const t=localStream.getAudioTracks()[0];if(!t)return;t.enabled=!t.enabled;$("#micBtn").classList.toggle("off",!t.enabled)};
+$("#camBtn").onclick=()=>{if(!localStream)return;const t=localStream.getVideoTracks()[0];if(!t)return;t.enabled=!t.enabled;$("#camBtn").classList.toggle("off",!t.enabled);$("#localV").style.visibility=t.enabled?"visible":"hidden"};
+window.addEventListener("beforeunload",()=>{if(callState!=="idle")sig("hangup")});
+
 start();
+window.__chat={handleSig,get state(){return callState}};
 })();
 </script>
 </body>
