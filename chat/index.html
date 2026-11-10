@@ -50,6 +50,8 @@ header button{padding:7px 10px}
 .b .tm{display:block;text-align:right;font-size:11px;opacity:.75;margin-top:2px}
 .b .who{display:block;font-size:12px;font-weight:700;opacity:.85;margin-bottom:1px}
 .b.pending{opacity:.6}
+.b a{color:inherit;text-decoration:underline;text-underline-offset:2px;word-break:break-all}
+.b.them a{color:var(--accent)}
 .b.bad{font-style:italic;opacity:.75}
 .b .del{display:none;position:absolute;top:-8px;left:-8px;width:22px;height:22px;padding:0;border-radius:50%;font-size:12px;line-height:20px}
 .b.me:hover .del,.b.me.show .del{display:block}
@@ -270,13 +272,28 @@ function render(scroll){
     if(day!==lastDay){lastDay=day;const dv=document.createElement("div");dv.className="day";dv.textContent=fmtDay(d);l.appendChild(dv)}
     const mine=m.sender_email===me,b=document.createElement("div");b.className="b "+(mine?"me":"them")+(m.pending?" pending":"")+(m.text==null?" bad":"");
     if(!mine){const w=document.createElement("span");w.className="who";w.textContent=nameOf(m.sender_email);b.appendChild(w)}
-    b.appendChild(document.createTextNode(m.text==null?"🔒 Can't open this message. It was locked with a different chat password.":m.text));
+    if(m.text==null)b.appendChild(document.createTextNode("🔒 Can't open this message. It was locked with a different chat password."));else linkify(b,m.text);
     const t=document.createElement("span");t.className="tm";t.textContent=m.pending?"Sending…":(m.plain?"not locked · ":"")+fmtTime(d);b.appendChild(t);
     if(mine&&!m.pending){const x=document.createElement("button");x.className="del";x.title="Delete this message";x.textContent="✕";x.type="button";x.onclick=e=>{e.stopPropagation();delMsg(m,x)};b.appendChild(x);
       b.onclick=()=>{document.querySelectorAll(".b.show").forEach(o=>{if(o!==b)o.classList.remove("show")});b.classList.toggle("show")}}
     l.appendChild(b);
   });
   if(scroll)l.scrollTop=l.scrollHeight;
+}
+// Turn web addresses in a message into links that open in a new tab (only http/https).
+const URL_RE=/\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
+function linkify(el,text){
+  let last=0,m;URL_RE.lastIndex=0;
+  while((m=URL_RE.exec(text))){
+    let url=m[1].replace(/[),.!?;:'"\]]+$/,"");
+    if(m.index>last)el.appendChild(document.createTextNode(text.slice(last,m.index)));
+    const href=/^www\./i.test(url)?"https://"+url:url;
+    let ok=false;try{ok=["http:","https:"].includes(new URL(href).protocol)}catch(e){}
+    if(ok){const a=document.createElement("a");a.href=href;a.target="_blank";a.rel="noopener noreferrer";a.textContent=url;a.onclick=e=>e.stopPropagation();el.appendChild(a)}
+    else el.appendChild(document.createTextNode(url));
+    last=m.index+url.length;URL_RE.lastIndex=last;
+  }
+  if(last<text.length)el.appendChild(document.createTextNode(text.slice(last)));
 }
 function sysNote(t){const l=$("#list"),d=document.createElement("div");d.className="day";d.style.color="var(--accent)";d.textContent=t;l.appendChild(d);l.scrollTop=l.scrollHeight}
 let delArm=0;
