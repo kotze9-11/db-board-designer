@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Chat</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chat">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#c2410c">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <style>
 :root{--bg:#eef1f3;--fg:#1c2329;--muted:#5d6973;--panel:#fff;--line:#d2d9de;--accent:#c2410c;--accent-fg:#fff;--mine:#c2410c;--mine-fg:#fff;--theirs:#fff;--theirs-fg:#1c2329;--ok:#16a34a;color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#13181c;--fg:#e3e8ec;--muted:#98a4ad;--panel:#1c2329;--line:#323e47;--accent:#fb8a4c;--accent-fg:#1a0d05;--mine:#c2410c;--mine-fg:#fff;--theirs:#263039;--theirs-fg:#e3e8ec;color-scheme:dark}}
@@ -297,6 +304,10 @@ function tone(f,dur,vol){try{actx=actx||new (window.AudioContext||window.webkitA
   o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(0.0001,actx.currentTime);g.gain.exponentialRampToValueAtTime(vol||0.2,actx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+dur);
   o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+dur+0.05)}catch(e){}}
 const beep=()=>tone(880,0.35);
+// iPhones only allow sound after a tap: unlock it on the first touch anywhere
+function unlockSound(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();
+  const b=actx.createBuffer(1,1,22050),src=actx.createBufferSource();src.buffer=b;src.connect(actx.destination);src.start(0)}catch(e){}}
+["pointerdown","touchstart","keydown"].forEach(ev=>document.addEventListener(ev,unlockSound,{passive:true}));
 function notify(title,body){try{if("Notification" in window&&Notification.permission==="granted"){const n=new Notification(title,{body,tag:"chat"});n.onclick=()=>{window.focus();n.close()}}}catch(e){}}
 function alertNew(m){
   if(!document.hidden&&document.hasFocus())return;
