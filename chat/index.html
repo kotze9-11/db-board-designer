@@ -51,7 +51,7 @@ header button{padding:7px 10px}
 .b.pending{opacity:.6}
 .b.bad{font-style:italic;opacity:.75}
 .b .del{display:none;position:absolute;top:-8px;left:-8px;width:22px;height:22px;padding:0;border-radius:50%;font-size:12px;line-height:20px}
-.b.me:hover .del{display:block}
+.b.me:hover .del,.b.me.show .del{display:block}
 .empty{margin:auto;text-align:center;color:var(--muted)}
 form.send{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);align-items:flex-end;padding-bottom:max(10px,env(safe-area-inset-bottom))}
 textarea{flex:1;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;resize:none;max-height:160px;min-height:44px}
@@ -174,9 +174,10 @@ async function unlock(){
   try{
     const k=await deriveKey(pass);
     // check it against an existing locked message, if there is one
-    const r=await sb.from("chat_messages").select("body").like("body","enc1:%").order("id",{ascending:false}).limit(1);
+    const r=await sb.from("chat_messages").select("body").like("body","enc1:%").order("id",{ascending:false}).limit(20);
     const old=KEY;KEY=k;
-    if(!r.error&&r.data&&r.data.length){const d=await decText(r.data[0].body);if(!d||d.text==null){KEY=old;keyMsg("That chat password doesn't match your earlier messages. Check it with your partner.",1);return}}
+    if(!r.error&&r.data&&r.data.length){let ok=false;for(const row of r.data){const d=await decText(row.body);if(d&&d.text!=null){ok=true;break}}
+      if(!ok){KEY=old;keyMsg("That chat password doesn't match your earlier messages. Check it with your partner.",1);return}}
     store.set("chat-key-v1:"+me,b64(new Uint8Array(await crypto.subtle.exportKey("raw",k))));FP=await fingerprint(k);$("#kp").value="";keyMsg("");
     enterChat();
   }catch(e){keyMsg("Couldn't unlock. Try again.",1)}finally{$("#kGo").disabled=false}
@@ -270,7 +271,8 @@ function render(scroll){
     if(!mine){const w=document.createElement("span");w.className="who";w.textContent=nameOf(m.sender_email);b.appendChild(w)}
     b.appendChild(document.createTextNode(m.text==null?"🔒 Can't open this message. It was locked with a different chat password.":m.text));
     const t=document.createElement("span");t.className="tm";t.textContent=m.pending?"Sending…":(m.plain?"not locked · ":"")+fmtTime(d);b.appendChild(t);
-    if(mine&&!m.pending){const x=document.createElement("button");x.className="del";x.title="Delete this message";x.textContent="✕";x.type="button";x.onclick=()=>delMsg(m,x);b.appendChild(x)}
+    if(mine&&!m.pending){const x=document.createElement("button");x.className="del";x.title="Delete this message";x.textContent="✕";x.type="button";x.onclick=e=>{e.stopPropagation();delMsg(m,x)};b.appendChild(x);
+      b.onclick=()=>{document.querySelectorAll(".b.show").forEach(o=>{if(o!==b)o.classList.remove("show")});b.classList.toggle("show")}}
     l.appendChild(b);
   });
   if(scroll)l.scrollTop=l.scrollHeight;
