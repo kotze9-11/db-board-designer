@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Chat</title>
+<style>
+:root{--bg:#eef1f3;--fg:#1c2329;--muted:#5d6973;--panel:#fff;--line:#d2d9de;--accent:#c2410c;--accent-fg:#fff;--mine:#c2410c;--mine-fg:#fff;--theirs:#fff;--theirs-fg:#1c2329;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#13181c;--fg:#e3e8ec;--muted:#98a4ad;--panel:#1c2329;--line:#323e47;--accent:#fb8a4c;--accent-fg:#1a0d05;--mine:#c2410c;--mine-fg:#fff;--theirs:#263039;--theirs-fg:#e3e8ec;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;font-size:14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:8px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+button:disabled{opacity:.6;cursor:default}
+input{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.muted{color:var(--muted);font-size:14px}
+.msg{font-size:14px;min-height:1.2em;margin:0}
+/* sign in */
+.gate{min-height:100%;display:grid;place-items:center;padding:16px}
+.card{width:min(400px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:12px}
+.card h1{margin:0;font-size:24px}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+/* chat */
+.app{height:100%;display:grid;grid-template-rows:auto 1fr auto;max-width:860px;margin:0 auto;background:var(--panel);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+header .t{flex:1;min-width:0}
+header .t strong{display:block;font-size:17px}
+header .t span{font-size:13px;color:var(--muted)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#9ca3af;margin-right:5px;vertical-align:middle}
+.dot.on{background:#16a34a}
+.list{overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:4px;background:var(--bg)}
+.day{align-self:center;font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:2px 10px;margin:10px 0 6px}
+.b{max-width:min(78%,560px);padding:8px 12px 6px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;position:relative;box-shadow:0 1px 1px rgba(0,0,0,.06)}
+.b.me{align-self:flex-end;background:var(--mine);color:var(--mine-fg);border-bottom-right-radius:4px}
+.b.them{align-self:flex-start;background:var(--theirs);color:var(--theirs-fg);border:1px solid var(--line);border-bottom-left-radius:4px}
+.b .tm{display:block;text-align:right;font-size:11px;opacity:.75;margin-top:2px}
+.b .who{display:block;font-size:12px;font-weight:700;opacity:.85;margin-bottom:1px}
+.b.pending{opacity:.6}
+.b .del{display:none;position:absolute;top:-8px;left:-8px;width:22px;height:22px;padding:0;border-radius:50%;font-size:12px;line-height:20px}
+.b.me:hover .del{display:block}
+.empty{margin:auto;text-align:center;color:var(--muted)}
+form.send{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);align-items:flex-end;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+textarea{flex:1;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;resize:none;max-height:160px;min-height:44px}
+form.send button{height:44px}
+.banner{font-size:13px;padding:6px 14px;background:#fff7d6;color:#6b4e00;border-bottom:1px solid var(--line)}
+@media (prefers-color-scheme:dark){.banner{background:#3a3110;color:#f3dc8a}}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="card">
+    <h1>Chat</h1>
+    <p class="muted" style="margin:0">Private chat. Sign in with your email and password.</p>
+    <input type="email" id="em" placeholder="Email" autocomplete="username">
+    <input type="password" id="pw" placeholder="Password (at least 6 characters)" autocomplete="current-password">
+    <div class="row"><button class="primary" id="signIn">Sign in</button><button id="signUp">First time? Create account</button></div>
+    <p class="msg" id="gateMsg"></p>
+  </div>
+</div>
+
+<div class="app" id="app" hidden>
+  <header>
+    <div class="t"><strong id="title">Chat</strong><span id="status"><span class="dot" id="dot"></span>Connecting…</span></div>
+    <button id="notifyBtn" hidden>Turn on notifications</button>
+    <button id="outBtn">Sign out</button>
+  </header>
+  <div class="list" id="list"></div>
+  <form class="send" id="form">
+    <textarea id="box" rows="1" placeholder="Type a message" maxlength="4000"></textarea>
+    <button class="primary" id="sendBtn" type="submit">Send</button>
+  </form>
+</div>
+
+<script src="../db-board/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+const $=q=>document.querySelector(q);
+const cfg=window.DBB_CONFIG;
+if(!cfg||!window.supabase){$("#gateMsg").textContent="The chat couldn't load. Check your internet connection and reload the page.";return}
+const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"chat-auth"}});
+let me="",names={},msgs=[],channel=null,unread=0,started=false;
+
+function gateMsg(t,err){const m=$("#gateMsg");m.textContent=t||"";m.style.color=err?"var(--accent)":"var(--muted)"}
+function nameOf(e){return names[e]||e.split("@")[0]}
+function fmtTime(d){return d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+function fmtDay(d){const t=new Date();const y=new Date(Date.now()-864e5);
+  if(d.toDateString()===t.toDateString())return "Today";if(d.toDateString()===y.toDateString())return "Yesterday";
+  return d.toLocaleDateString([],{weekday:"long",day:"numeric",month:"long",year:d.getFullYear()===t.getFullYear()?undefined:"numeric"})}
+
+/* ---------- sign in ---------- */
+async function auth(reg){
+  const em=$("#em").value.trim().toLowerCase(),pw=$("#pw").value;
+  if(!/^\S+@\S+\.\S+$/.test(em)){gateMsg("Enter your email address.",1);return}
+  if(pw.length<6){gateMsg("The password needs at least 6 characters.",1);return}
+  gateMsg(reg?"Creating your account…":"Signing in…");
+  try{
+    const res=await Promise.race([reg?sb.auth.signUp({email:em,password:pw}):sb.auth.signInWithPassword({email:em,password:pw}),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),25000))]);
+    if(res.error){const m=res.error.message||"";
+      gateMsg(/invalid/i.test(m)?"Wrong email or password. First time here? Press Create account.":/registered|exists/i.test(m)?"That email already has an account. Press Sign in.":/confirm/i.test(m)?"Check your email and click the confirmation link, then sign in.":m,1);return}
+    if(reg&&!res.data.session){gateMsg("Check your email and click the confirmation link, then sign in.");return}
+    $("#pw").value="";start();
+  }catch(e){gateMsg(e.message==="timeout"?"No answer from the server. Check your internet connection and try again.":"That didn't work. Try again.",1)}
+}
+$("#signIn").onclick=()=>auth(false);$("#signUp").onclick=()=>auth(true);
+$("#pw").addEventListener("keydown",e=>{if(e.key==="Enter")auth(false)});
+$("#outBtn").onclick=async()=>{try{if(channel)await sb.removeChannel(channel)}catch(e){}channel=null;started=false;await sb.auth.signOut();msgs=[];$("#list").innerHTML="";$("#app").hidden=true;$("#gate").hidden=false;gateMsg("Signed out.")};
+
+/* ---------- chat ---------- */
+async function start(){
+  if(started)return;
+  const {data}=await sb.auth.getSession();const s=data&&data.session;
+  if(!s){$("#gate").hidden=false;$("#app").hidden=true;return}
+  me=(s.user.email||"").toLowerCase();
+  const mem=await sb.from("chat_members").select("email,display_name");
+  if(mem.error||!mem.data||!mem.data.length){
+    gateMsg(mem.error&&/relation|does not exist/i.test(mem.error.message)?"The chat isn't set up yet in Supabase.":"This chat is private, and your account isn't allowed in. Sign out and use the right email.",1);
+    $("#gate").hidden=false;$("#app").hidden=true;await sb.auth.signOut();return}
+  started=true;names={};mem.data.forEach(m=>names[m.email.toLowerCase()]=m.display_name);
+  const other=mem.data.map(m=>m.email.toLowerCase()).find(e=>e!==me);
+  $("#title").textContent=other?nameOf(other):"Chat";
+  $("#gate").hidden=true;$("#app").hidden=false;
+  document.title="Chat";
+  await loadHistory();subscribe();setupNotify();$("#box").focus();
+}
+async function loadHistory(){
+  const r=await sb.from("chat_messages").select("id,sender_email,body,created_at").order("created_at",{ascending:false}).limit(300);
+  if(r.error){setStatus(false,"Couldn't load messages");return}
+  msgs=r.data.reverse();render(true);
+}
+function subscribe(){
+  if(channel)sb.removeChannel(channel);
+  channel=sb.channel("chat-room")
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_messages"},p=>onNew(p.new))
+    .on("postgres_changes",{event:"DELETE",schema:"public",table:"chat_messages"},p=>{msgs=msgs.filter(m=>m.id!==p.old.id);render(false)})
+    .subscribe(st=>{if(st==="SUBSCRIBED"){setStatus(true);catchUp()}else if(st==="CHANNEL_ERROR"||st==="TIMED_OUT"||st==="CLOSED")setStatus(false)});
+}
+async function catchUp(){ // fetch anything missed while disconnected
+  const last=msgs.filter(m=>m.id>0).slice(-1)[0];if(!last)return;
+  const r=await sb.from("chat_messages").select("id,sender_email,body,created_at").gt("id",last.id).order("id");
+  if(!r.error&&r.data.length){r.data.forEach(onNew)}
+}
+function setStatus(on,txt){$("#dot").classList.toggle("on",on);$("#status").lastChild.textContent=txt||(on?"Connected":"Reconnecting…")}
+function onNew(m){
+  if(msgs.some(x=>x.id===m.id))return;
+  const pend=msgs.findIndex(x=>x.pending&&x.body===m.body&&m.sender_email===me);
+  if(pend>=0)msgs.splice(pend,1);
+  msgs.push(m);msgs.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  const near=isNearBottom();render(near||m.sender_email===me);
+  if(m.sender_email!==me)alertNew(m);
+}
+function isNearBottom(){const l=$("#list");return l.scrollHeight-l.scrollTop-l.clientHeight<120}
+function render(scroll){
+  const l=$("#list");l.innerHTML="";
+  if(!msgs.length){const e=document.createElement("div");e.className="empty";e.textContent="No messages yet. Say hello!";l.appendChild(e);return}
+  let lastDay="";
+  msgs.forEach(m=>{
+    const d=new Date(m.created_at),day=d.toDateString();
+    if(day!==lastDay){lastDay=day;const dv=document.createElement("div");dv.className="day";dv.textContent=fmtDay(d);l.appendChild(dv)}
+    const mine=m.sender_email===me,b=document.createElement("div");b.className="b "+(mine?"me":"them")+(m.pending?" pending":"");
+    if(!mine){const w=document.createElement("span");w.className="who";w.textContent=nameOf(m.sender_email);b.appendChild(w)}
+    b.appendChild(document.createTextNode(m.body));
+    const t=document.createElement("span");t.className="tm";t.textContent=m.pending?"Sending…":fmtTime(d);b.appendChild(t);
+    if(mine&&!m.pending){const x=document.createElement("button");x.className="del";x.title="Delete this message";x.textContent="✕";x.type="button";
+      x.onclick=()=>delMsg(m,x);b.appendChild(x)}
+    l.appendChild(b);
+  });
+  if(scroll)l.scrollTop=l.scrollHeight;
+}
+let delArm=0;
+async function delMsg(m,btn){
+  if(Date.now()-delArm>3000){delArm=Date.now();btn.textContent="?";btn.title="Press again to delete";setTimeout(()=>{if(btn.isConnected){btn.textContent="✕"}},3000);return}
+  const r=await sb.from("chat_messages").delete().eq("id",m.id);
+  if(!r.error){msgs=msgs.filter(x=>x.id!==m.id);render(false)}
+}
+/* sending */
+const box=$("#box");
+function grow(){box.style.height="auto";box.style.height=Math.min(160,box.scrollHeight)+"px"}
+box.addEventListener("input",grow);
+box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();$("#form").requestSubmit()}});
+$("#form").onsubmit=async e=>{
+  e.preventDefault();const body=box.value.trim();if(!body)return;
+  const temp={id:-Date.now(),sender_email:me,body,created_at:new Date().toISOString(),pending:true};
+  msgs.push(temp);box.value="";grow();render(true);
+  const r=await sb.from("chat_messages").insert({body}).select("id,sender_email,body,created_at").single();
+  msgs=msgs.filter(x=>x!==temp);
+  if(r.error){render(true);box.value=body;grow();alert1("Message not sent. Check your internet connection and try again.");return}
+  onNew(r.data);
+};
+function alert1(t){const l=$("#list"),d=document.createElement("div");d.className="day";d.style.color="var(--accent)";d.textContent=t;l.appendChild(d);l.scrollTop=l.scrollHeight}
+/* notifications */
+let actx=null;
+function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();
+  o.type="sine";o.frequency.value=880;g.gain.setValueAtTime(0.0001,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.2,actx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+0.35);
+  o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+0.4)}catch(e){}}
+function alertNew(m){
+  if(!document.hidden&&document.hasFocus())return;
+  unread++;document.title="("+unread+") Chat";beep();
+  try{if("Notification" in window&&Notification.permission==="granted"){const n=new Notification(nameOf(m.sender_email),{body:m.body.slice(0,140),tag:"chat"});n.onclick=()=>{window.focus();n.close()}}}catch(e){}
+}
+function clearUnread(){unread=0;document.title="Chat"}
+window.addEventListener("focus",clearUnread);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){clearUnread();if(started)catchUp()}});
+function setupNotify(){
+  const b=$("#notifyBtn");
+  if(!("Notification" in window)||Notification.permission!=="default"){b.hidden=true;return}
+  b.hidden=false;b.onclick=async()=>{try{await Notification.requestPermission()}catch(e){}b.hidden=true;beep()};
+}
+/* first load */
+start();
+})();
+</script>
+</body>
+</html>
