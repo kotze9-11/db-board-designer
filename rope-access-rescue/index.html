@@ -135,6 +135,8 @@ html.preview .draw,html.preview .drw img{-webkit-user-select:none;user-select:no
       <label>Main anchor type<select data-k="anchorType" id="anchorSel"></select></label>
       <label>Rigging<select data-k="anchorRig"><option value="y">Y-hang (each rope across two anchors)</option><option value="single">Single anchor per rope</option></select></label>
       <label>Confined space anchor<select data-k="cseAnchor"><option value="tripod">Tripod over the opening</option><option value="davit">Davit arm</option><option value="beam">Overhead beam above the opening</option></select></label>
+      <label id="rigPosLbl" style="grid-column:1/-1">Rigging position along the steel beam (open steel structure drawings)
+        <span style="display:flex;align-items:center;gap:10px;color:var(--fg)"><span class="muted">Near the frame</span><input type="range" min="0" max="80" step="5" data-k="rigPos" style="flex:1;accent-color:var(--accent)"><span class="muted">Out over the drop</span></span></label>
       <label style="grid-column:1/-1">Anchor description (where exactly)<input type="text" data-k="anchors" placeholder="e.g. Two slings round the main deck beam above Tank 3 hatch"></label>
     </div>
     <div class="scn" style="margin-top:12px">
@@ -498,7 +500,7 @@ function cseAncName(){return {tripod:"Tripod",davit:"Davit arm",beam:"Overhead b
 function blank(){
   return {ref:"",date:today(),client:"",site:"",task:"",height:20,env:"ground",anchors:"",hazards:"",
     team:[{name:"",level:"L3",role:"Supervisor"},{name:"",level:"L2",role:"Rescuer"},{name:"",level:"L1",role:"Technician"}],
-    loc:"edge",anchorType:"ya",anchorRig:"y",tankRope:"descent",tankEvac:"stretcher",cseAnchor:"tripod",evacMethod:"stretcher",cseDepth:"",cseTrained:false,drawing:null,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",signoff:[{role:"Prepared by",name:""},{role:"Approved by (Level 3)",name:""}],notes:"",
+    loc:"edge",rigPos:40,anchorType:"ya",anchorRig:"y",tankRope:"descent",tankEvac:"stretcher",cseAnchor:"tripod",evacMethod:"stretcher",cseDepth:"",cseTrained:false,drawing:null,radio:"",signals:"",emerg:"",medic:"",hospital:"",kitLoc:"",boat:"",prepBy:"",apprBy:"",signoff:[{role:"Prepared by",name:""},{role:"Approved by (Level 3)",name:""}],notes:"",
     cur:"lower",plans:{}};
 }
 function migrate(o){const n=Object.assign(blank(),o);if(!o.signoff){n.signoff=[{role:"Prepared by",name:o.prepBy||""},{role:"Approved by (Level 3)",name:o.apprBy||""}]}if(n.plans.ascent&&!n.plans.ascentMigrated){/* old ascent plan stays under same id */}if(!byId(n.cur))n.cur="lower";return n}
@@ -711,8 +713,9 @@ function draw(id){
   function casualtyOn(x,y){add(dev(x,y));add(person(x+18,y+6,C.cas,{slump:true}));add(`<line x1="${x}" y1="${y}" x2="${x+16}" y2="${y+6}" stroke="${C.ink}" stroke-width="1.6"/>`)}
   function frontPair(x,y0,y1){add(line([[x,y0],[x,y1]],C.work));add(line([[x+9,y0],[x+9,y1]],C.back))}
 
-  const shift=steel&&["lower","haul","descent","own","ascent"].includes(id)?40:0;
-  if(shift){overhead();add(`<g transform="translate(${shift},0)">`)}
+  const shift=steel&&["lower","haul","descent","own","ascent"].includes(id)?Math.max(0,Math.min(80,+(S.rigPos==null?40:S.rigPos))):0;
+  const inShift=steel&&["lower","haul","descent","own","ascent"].includes(id);
+  if(inShift){overhead();add(`<g transform="translate(${shift},0)">`)}
   switch(id){
   case "lower":{
     const cr=casRopes(ground-6,false),w=cr.a;
@@ -942,7 +945,7 @@ function draw(id){
     lz(a.x-50,a.x+60);key("Descend to "+landing(),a.x+5,ground-22);
     break}
   }
-  if(shift) add(`</g>`);
+  if(inShift) add(`</g>`);
   finishLegend(out,legend,sc,W,H);
   return {svg:out.join(""),keys};
 }
@@ -1234,7 +1237,7 @@ function bindFields(){
   });
   boatVis();
 }
-function boatVis(){$("#boatLbl").style.display=S.env==="water"?"":"none"}
+function boatVis(){$("#boatLbl").style.display=S.env==="water"?"":"none";const rl=$("#rigPosLbl");if(rl)rl.style.display=S.loc==="steel"?"":"none"}
 function refreshDefaults(){
   SCN.forEach(sc=>{const p=S.plans[sc.id]; if(!p) return;
     if(!p.edited){p.steps=defSteps(sc.id);const old={};p.equip.forEach(e=>old[e.t]=e.ok);p.equip=defEquip(sc.id).map(e=>({t:e.t,ok:!!old[e.t]}))}
