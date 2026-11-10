@@ -618,9 +618,10 @@ function draw(id){
   const sc=byId(id), W=440,H=600,top=sc.view==="side"?130:80,ground=500,wall=150;
   const h=+S.height||0, out=[], keys=[], legend=[[C.work,"Working rope"],[C.back,"Back-up rope"],[C.res,"Rescue / haul rope"],[C.resb,"Rescue back-up","6 3"]];
   const add=s=>out.push(s);
-  function key(text,x,y){keys.push(text);const n=keys.length;add(`<circle cx="${x}" cy="${y}" r="10" fill="${C.mk}" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" ${FONT}>${n}</text>`)}
-  function casLabel(x,y,t){add(TB(x,y,t||"Casualty",{c:C.cas,b:1,s:12,bc:C.cas}))}
-  function rescLabel(x,y,t){add(TB(x,y,t||"Rescuer",{c:C.resc,b:1,s:12}))}
+  let shiftX=0,F=0;const cx_=x=>shiftX?Math.min(Math.max(x,28-shiftX),W-70-shiftX):x;
+  function key(text,x,y){x=shiftX?Math.min(Math.max(x,12-shiftX),W-40-shiftX):x;keys.push(text);const n=keys.length;add(`<circle cx="${x}" cy="${y}" r="10" fill="${C.mk}" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${y+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" ${FONT}>${n}</text>`)}
+  function casLabel(x,y,t){x=cx_(x);add(TB(x,y,t||"Casualty",{c:C.cas,b:1,s:12,bc:C.cas}))}
+  function rescLabel(x,y,t){x=cx_(x);add(TB(x,y,t||"Rescuer",{c:C.resc,b:1,s:12}))}
   function lz(x1,x2,lbl){
     if(S.env==="water"){add(`<path d="M${x1+6} ${ground-2} L${x2-6} ${ground-2} L${x2-18} ${ground+14} L${x1+18} ${ground+14} Z" fill="#f97316" stroke="${C.ink}" stroke-width="1.4"/>`);add(T((x1+x2)/2,ground+30,"Rescue boat",{a:"middle",b:1}))}
     else{add(`<rect x="${x1}" y="${ground-4}" width="${x2-x1}" height="4" fill="#facc15"/>`);[x1-4,x2+4].forEach(cx=>add(`<path d="M${cx-6} ${ground} L${cx} ${ground-16} L${cx+6} ${ground} Z" fill="#f97316"/><rect x="${cx-3}" y="${ground-10}" width="6" height="2.5" fill="#fff"/>`));
@@ -711,18 +712,18 @@ function draw(id){
   function casualtyOn(x,y){add(dev(x,y));add(person(x+18,y+6,C.cas,{slump:true}));add(`<line x1="${x}" y1="${y}" x2="${x+16}" y2="${y+6}" stroke="${C.ink}" stroke-width="1.6"/>`)}
   function frontPair(x,y0,y1){add(line([[x,y0],[x,y1]],C.work));add(line([[x+9,y0],[x+9,y1]],C.back))}
 
-  const shift=steel&&["lower","haul","descent","own","ascent"].includes(id)?Math.max(0,Math.min(80,+(S.rigPos==null?40:S.rigPos))):0;
+  const shift=steel&&["lower","haul","descent","own","ascent"].includes(id)?Math.max(-120,Math.min(80,+(S.rigPos==null?40:S.rigPos))):0;
   const inShift=steel&&["lower","haul","descent","own","ascent"].includes(id);
-  if(inShift){overhead();add(`<g transform="translate(${shift},0)">`)}
+  if(inShift){overhead();add(`<g transform="translate(${shift},0)">`);shiftX=shift||0.0001;F=40-shift}
   switch(id){
   case "lower":{
     const cr=casRopes(ground-6,false),w=cr.a;
     if(hi()){
       add(`<rect x="${w.x-11}" y="${w.y+3}" width="20" height="13" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
       add(`<path d="M${w.x-4} ${w.y+16} q-10 22 -24 ${top-w.y-20}" stroke="${C.work}" stroke-width="2.2" fill="none"/><ellipse cx="${w.x-30}" cy="${top-3}" rx="12" ry="3.5" fill="none" stroke="${C.work}" stroke-width="2"/>`);
-      add(TB(10,top+26,"Releasable lowering device",{s:10,b:1}));add(TB(10,top+39,"at the rigging point",{s:10,b:1}));
-      add(person(70,top-26,C.resc));rescLabel(4,top-70,"Lowering");
-      key("Person at the top unlocks the lowering device and lowers; a second person tends the back-up",24,top-40);
+      add(TB(10+F,top+26,"Releasable lowering device",{s:10,b:1}));add(TB(10+F,top+39,"at the rigging point",{s:10,b:1}));
+      add(person(70+F,top-26,C.resc));rescLabel(4+F,top-70,"Lowering");
+      key("Person at the top unlocks the lowering device and lowers; a second person tends the back-up",24+F,top-40);
     }else{
       add(`<rect x="40" y="${top+66}" width="26" height="16" rx="3" fill="${C.work}" stroke="${C.ink}" stroke-width="1.2"/>`);
       add(TB(14,top+100,"Releasable lowering",{s:10,b:1}));add(TB(14,top+113,"device on anchor",{s:10,b:1}));
@@ -735,19 +736,19 @@ function draw(id){
     lz(wall+18,wall+128,steel&&S.env!=="water"?"Barriered drop zone":undefined);key("Ground team receives the casualty",wall+73,ground-20);
     break}
   case "haul":{
-    casRopes(ground-40);const px=hi()?66:100,py=hi()?top-12:top-40;
-    add(`<path d="M8 ${top} L8 ${py-20}" stroke="${C.struct}" stroke-width="3"/>`);add(anc(8,py-18));
-    add(line([[14,py-22],[px-30,py]],C.res,2.4));add(line([[px-30,py],[px+10,py-6],[px-24,py+10],[px+16,py+6]],C.res,2.4));
+    casRopes(ground-40);const px=(hi()?66:100)+F,py=hi()?top-12:top-40;
+    add(`<path d="M${8+F} ${top} L${8+F} ${py-20}" stroke="${C.struct}" stroke-width="3"/>`);add(anc(8+F,py-18));
+    add(line([[14+F,py-22],[px-30,py]],C.res,2.4));add(line([[px-30,py],[px+10,py-6],[px-24,py+10],[px+16,py+6]],C.res,2.4));
     add(pulley(px-30,py));add(pulley(px+12,py-4));
     add(line([[px+16,py+6],[wall+4,top-14],[wall+40,top-30]],C.res,2.4));add(pulley(wall+40,top-30));
     add(line([[wall+40,top-24],[wall+40,300-18],[cx1+18,300]],C.res,2.4));
     add(line([[wall+20,top-40],[wall+40,top-36],[wall+60,top]],C.struct,2.4));add(T(wall+64,top-34,"High directional",{c:C.muted,s:10}));
-    add(TB(hi()?8:px-64,hi()?top+24:top-64,"3:1 haul with progress capture",{s:10,b:1}));
-    key("Haul team at the top: 3:1 haul (green) with progress capture; independent back-up tended",hi()?24:px-84,hi()?top-34:top-34);
+    add(TB(hi()?8+F:px-64,hi()?top+24:top-64,"3:1 haul with progress capture",{s:10,b:1}));
+    key("Haul team at the top: 3:1 haul (green) with progress capture; independent back-up tended",hi()?24+F:px-84,hi()?top-34:top-34);
     casualtyOn(cx1,294);casLabel(wall-92,300);key("Casualty raised to the edge and helped over by a second team member",wall-104,296);
     add(arrow(wall+80,280,wall+80,top+30,C.res));
-    add(`<rect x="6" y="${top+74}" width="${wall-40}" height="22" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);add(T(14,top+89,"Safe area at top",{b:1}));
-    key("Safe area at the top, away from the edge",wall-22,top+85);
+    add(`<rect x="${6+F}" y="${top+74}" width="${wall-40}" height="22" rx="4" fill="#fef9c3" stroke="#ca8a04"/>`);add(T(14+F,top+89,"Safe area at top",{b:1}));
+    key("Safe area at the top, away from the edge",wall-22+F,top+85);
     break}
   case "cross":{
     if(steel){
@@ -1274,7 +1275,7 @@ const SHIFT_IDS=["lower","haul","descent","own","ascent"];
 function renderRigPos(){
   const box=$("#rigPosBox");if(!box)return;
   if(!(S.loc==="steel"&&SHIFT_IDS.includes(S.cur)&&S.anchorType!=="tripod")){box.innerHTML="";return}
-  if(!$("#rigPosIn")){box.innerHTML=`<label style="font-size:13px">Rigging position along the steel beam<span style="display:flex;align-items:center;gap:10px;color:var(--fg)"><span class="muted">Near the frame</span><input type="range" id="rigPosIn" min="0" max="80" step="5" style="flex:1;accent-color:var(--accent)"><span class="muted">Out over the drop</span></span></label>`;
+  if(!$("#rigPosIn")){box.innerHTML=`<label style="font-size:13px">Rigging position along the steel beam<span style="display:flex;align-items:center;gap:10px;color:var(--fg)"><span class="muted">Over the structure</span><input type="range" id="rigPosIn" min="-120" max="80" step="5" style="flex:1;accent-color:var(--accent)"><span class="muted">Out over the drop</span></span></label>`;
     const el=$("#rigPosIn");el.oninput=()=>{S.rigPos=+el.value;const d=draw(S.cur);$("#scnDraw").innerHTML=d.svg;$("#scnKeys").innerHTML=d.keys.map(k=>`<li>${esc(k)}</li>`).join("");save()}}
   $("#rigPosIn").value=S.rigPos==null?40:S.rigPos;
 }
