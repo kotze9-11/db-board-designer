@@ -35,16 +35,62 @@ async function getJson(url: string) {
   if (!r.ok) throw new Error(`VALR ${r.status} on ${url.replace(VALR, "")}`);
   return r.json();
 }
-async function candles(pair: string, seconds: number, count: number): Promise<Candle[]> {
-  const start = new Date(Date.now() - seconds * 1000 * (count + 2)).toISOString();
-  const rows = await getJson(`${VALR}/v1/public/${pair}/buckets?periodSeconds=${seconds}&startTime=${encodeURIComponent(start)}`);
-  return (rows as Record<string, unknown>[])
-    .map((b) => ({
-      t: Date.parse(String(b.startTime)), o: +String(b.open), h: +String(b.high),
-      l: +String(b.low), c: +String(b.close), v: +String(b.volume ?? 0),
-    }))
-    .filter((b) => isFinite(b.c) && b.c > 0)
+const notes: string[] = [];
+function parseBuckets(raw: unknown): Candle[] {
+  const arr = Array.isArray(raw) ? raw : (raw as Record<string, unknown>)?.buckets ?? (raw as Record<string, unknown>)?.data ?? [];
+  return (arr as Record<string, unknown>[])
+    .map((b) => {
+      const st = b.startTime ?? b.time ?? b.timestamp;
+      const t = typeof st === "number" ? (st < 1e12 ? st * 1000 : st) : Date.parse(String(st));
+      return { t, o: +String(b.open), h: +String(b.high), l: +String(b.low), c: +String(b.close), v: +String(b.volume ?? 0) };
+    })
+    .filter((b) => isFinite(b.c) && b.c > 0 && isFinite(b.t))
     .sort((a, b) => a.t - b.t);
+}
+// VALR price history. Tries a few address formats and keeps the first that works.
+async function candles(pair: string, seconds: number, count: number): Promise<Candle[]> {
+  const startMs = Date.now() - seconds * 1000 * (count + 2);
+  const tries = [
+    `periodSeconds=${seconds}&startTime=${Math.floor(startMs / 1000)}`,
+    `periodSeconds=${seconds}`,
+    `periodSeconds=${seconds}&startTime=${encodeURIComponent(new Date(startMs).toISOString())}`,
+  ];
+  for (const q of tries) {
+    try {
+      const rows = parseBuckets(await getJson(`${VALR}/v1/public/${pair}/buckets?${q}`));
+      if (rows.length >= 3) return rows.filter((r) => r.t >= startMs - seconds * 1000);
+      notes.push(`buckets ${q}: only ${rows.length} rows`);
+    } catch (e) {
+      notes.push(`buckets ${q}: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  return [];
+}
+// Backup source: CoinGecko's free Bitcoin price history in rand (no account needed).
+async function coingecko(pair: string, days: number, seconds: number): Promise<Candle[]> {
+  const ids: Record<string, string> = { BTC: "bitcoin", ETH: "ethereum", SOL: "solana", XRP: "ripple" };
+  const id = ids[pair.replace(/ZAR$/, "")];
+  if (!id) return [];
+  try {
+    const j = await getJson(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=zar&days=${days}`);
+    const pts = ((j.prices || []) as [number, number][]).map(([t, price]) => ({ at: new Date(t).toISOString(), price }));
+    return fromOwnChecks(pts, seconds);
+  } catch (e) {
+    notes.push(`coingecko: ${e instanceof Error ? e.message : e}`);
+    return [];
+  }
+}
+// Fallback: build price history from the bot's own checks (one price every 15 minutes).
+function fromOwnChecks(points: { at: string; price: number }[], seconds: number): Candle[] {
+  const groups = new Map<number, number[]>();
+  for (const p of points) {
+    if (!p.price) continue;
+    const k = Math.floor(Date.parse(p.at) / (seconds * 1000)) * seconds * 1000;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(+p.price);
+  }
+  return [...groups.entries()].sort((a, b) => a[0] - b[0])
+    .map(([t, v]) => ({ t, o: v[0], h: Math.max(...v), l: Math.min(...v), c: v[v.length - 1], v: 0 }));
 }
 const avg = (a: number[]) => a.reduce((s, x) => s + x, 0) / Math.max(a.length, 1);
 function rsi(closes: number[], n = 14) {
@@ -59,12 +105,23 @@ function rsi(closes: number[], n = 14) {
 const pct = (a: number, b: number) => (b ? ((a - b) / b) * 100 : 0);
 const r2 = (x: number) => Math.round(x * 100) / 100;
 
-async function marketPicture(pair: string) {
+async function marketPicture(pair: string, own: { at: string; price: number }[]) {
   const sum = await getJson(`${VALR}/v1/public/${pair}/marketsummary`);
   const price = +sum.lastTradedPrice;
   let m15: Candle[] = [], h1: Candle[] = [];
-  try { m15 = await candles(pair, 900, 96); } catch (_) { /* fall back to summary only */ }
-  try { h1 = await candles(pair, 3600, 168); } catch (_) { /* fall back */ }
+  m15 = await candles(pair, 900, 96);
+  h1 = await candles(pair, 3600, 168);
+  let source = "VALR price history";
+  if (!m15.length || !h1.length) {
+    source = "CoinGecko price history (VALR history was not available)";
+    if (!m15.length) m15 = await coingecko(pair, 1, 900);
+    if (!h1.length) h1 = await coingecko(pair, 7, 3600);
+  }
+  if (!m15.length || !h1.length) {
+    source = "the bot's own price checks (no outside history was available)";
+    if (!m15.length) m15 = fromOwnChecks(own, 900);
+    if (!h1.length) h1 = fromOwnChecks(own, 3600);
+  }
   const c15 = m15.map((c) => c.c), c1h = h1.map((c) => c.c);
   const ago = (arr: Candle[], ms: number) => {
     const t = Date.now() - ms; const x = arr.find((c) => c.t >= t); return x ? x.o : 0;
@@ -83,6 +140,8 @@ async function marketPicture(pair: string) {
     rsi_15m: c15.length ? (rsi(c15) === null ? null : Math.round(rsi(c15)!)) : null,
     rsi_1h: c1h.length ? (rsi(c1h) === null ? null : Math.round(rsi(c1h)!)) : null,
     last_8_hours_closes: c1h.slice(-8).map(Math.round),
+    history_source: source,
+    history_hours_available: h1.length ? Math.round((Date.now() - h1[0].t) / 3600e3) : 0,
   };
 }
 
@@ -167,7 +226,10 @@ async function runOnce(opts: { force?: boolean }) {
   if (!s) throw new Error("Run trader.sql in Supabase first.");
   if (!s.enabled && !opts.force) return { skipped: "Bot is switched off." };
 
-  const mkt = await marketPicture(s.pair);
+  const { data: own } = await db.from("trader_log").select("at,price")
+    .gte("at", new Date(Date.now() - 7 * 24 * 3600e3).toISOString()).not("price", "is", null)
+    .order("at", { ascending: true }).limit(1000);
+  const mkt = await marketPicture(s.pair, (own || []) as { at: string; price: number }[]);
   const price = mkt.price;
 
   // wallet
@@ -292,8 +354,9 @@ Deno.serve(async (req) => {
       const { data: s } = await db.from("trader_settings").select("pair").eq("id", 1).single();
       return reply(await liveBalances(s!.pair));
     }
+    notes.length = 0;
     const out = await runOnce({ force: !isTimer && body.action === "run_now" });
-    return reply({ ok: true, result: out });
+    return reply({ ok: true, result: out, history_notes: notes.slice(0, 6) });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     try {

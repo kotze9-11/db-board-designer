@@ -60,7 +60,7 @@ canvas{width:100%;height:200px;display:block}
 
 <div id="app" hidden>
   <div class="top">
-    <h1>Crypto Bot <span style="font-size:14px;color:var(--muted)">Bitcoin / Rand</span></h1>
+    <h1>Crypto Bot <span style="font-size:14px;color:var(--muted)" id="coinTitle">Bitcoin / Rand</span></h1>
     <div><span id="modeBadge" class="badge paper">Practice</span> <span id="onBadge" class="badge on">Running</span></div>
   </div>
 
@@ -68,8 +68,8 @@ canvas{width:100%;height:200px;display:block}
     <div class="grid">
       <div class="stat"><div class="k">Wallet now</div><div class="v" id="vNow">–</div></div>
       <div class="stat"><div class="k">Profit / loss</div><div class="v" id="vPl">–</div></div>
-      <div class="stat"><div class="k">Rand / Bitcoin held</div><div class="v" id="vHold" style="font-size:15px">–</div></div>
-      <div class="stat"><div class="k">Bitcoin price</div><div class="v" id="vPrice">–</div></div>
+      <div class="stat"><div class="k" id="kHold">Rand / Bitcoin held</div><div class="v" id="vHold" style="font-size:15px">–</div></div>
+      <div class="stat"><div class="k" id="kPrice">Bitcoin price</div><div class="v" id="vPrice">–</div></div>
     </div>
     <canvas id="chart" width="700" height="200" style="margin-top:14px"></canvas>
     <div class="hint" id="chartHint">Wallet value over time (rand).</div>
@@ -89,6 +89,20 @@ canvas{width:100%;height:200px;display:block}
     <div class="top" style="margin-bottom:6px"><h2 style="margin:0">What the bot did (newest first)</h2>
       <label style="margin:0;display:flex;gap:6px;align-items:center;font-size:14px"><input type="checkbox" id="showWaits" style="width:auto"> Show every check</label></div>
     <ul class="log" id="log"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Coin to trade</h2>
+    <div class="row">
+      <div><select id="coin">
+        <option value="BTCZAR">Bitcoin (BTC): the biggest and steadiest</option>
+        <option value="ETHZAR">Ethereum (ETH): second biggest</option>
+        <option value="SOLZAR">Solana (SOL): swings more, higher risk</option>
+        <option value="XRPZAR">XRP: swings more, higher risk</option>
+      </select></div>
+      <div style="flex:0 0 auto"><button class="primary" id="coinSave">Change coin</button></div>
+    </div>
+    <div class="hint">The bot trades one coin at a time. You can only change coin while it isn't holding any coins.</div>
   </div>
 
   <div class="card">
@@ -133,7 +147,9 @@ const cfg=window.DBB_CONFIG;
 const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"trader-auth"}});
 const $=s=>document.querySelector(s);
 const R=n=>n==null||isNaN(n)?"–":"R"+Math.round(n).toLocaleString("en-ZA");
-const BTC=n=>(+n||0).toFixed(6);
+const NAMES={BTC:"Bitcoin",ETH:"Ethereum",SOL:"Solana",XRP:"XRP"};
+let SYM="BTC";
+const BTC=n=>(+n||0).toFixed(SYM==="XRP"?2:SYM==="SOL"?4:6);
 let settings=null,paper=null,lastLog=[];
 
 function show(el,text,bad){el.hidden=false;el.textContent=text;el.className="msg"+(bad?" bad":"");}
@@ -176,6 +192,9 @@ async function load(){
 
 function render(){
   const s=settings,live=s.mode==="live";
+  SYM=s.pair.replace(/ZAR$/,"");const NM=NAMES[SYM]||SYM;
+  $("#coinTitle").textContent=NM+" / Rand";$("#kHold").textContent="Rand / "+NM+" held";$("#kPrice").textContent=NM+" price";
+  if(document.activeElement!==$("#coin"))$("#coin").value=s.pair;
   $("#modeBadge").textContent=live?"REAL MONEY":"Practice";$("#modeBadge").className="badge "+(live?"live":"paper");
   $("#onBadge").textContent=s.enabled?"Running":"Stopped";$("#onBadge").className="badge "+(s.enabled?"on":"off");
   $("#toggle").textContent=s.enabled?"STOP THE BOT":"START THE BOT";$("#toggle").className=s.enabled?"stop":"go";
@@ -198,7 +217,7 @@ function render(){
     $("#vPl").textContent=(d>=0?"+":"−")+R(Math.abs(d)).slice(0)+" ("+(d>=0?"+":"")+p.toFixed(1)+"%)";
     $("#vPl").className="v "+(d>=0?"up":"down");
   }else $("#vPl").textContent="–";
-  $("#vHold").textContent=latest?R(latest.zar)+" / "+BTC(latest.btc)+" BTC":(paper&&!live?R(paper.zar)+" / "+BTC(paper.btc)+" BTC":"–");
+  $("#vHold").textContent=latest?R(latest.zar)+" / "+BTC(latest.btc)+" "+SYM:(paper&&!live?R(paper.zar)+" / "+BTC(paper.btc)+" "+SYM:"–");
   $("#vPrice").textContent=latest?R(latest.price):"–";
   const last=lastLog[0];
   $("#nextHint").textContent=last
@@ -214,7 +233,7 @@ function render(){
     const h=document.createElement("div");h.className="h";
     const a=document.createElement("span");
     const act=document.createElement("span");act.className="act "+x.action;act.textContent=x.status==="error"?"Problem":words[x.action]||x.action;a.appendChild(act);
-    if(x.action!=="hold"&&x.status==="done"){const t=document.createElement("span");t.textContent=" "+R(x.amount_zar)+(x.amount_btc?" ("+BTC(x.amount_btc)+" BTC)":"");a.appendChild(t);}
+    if(x.action!=="hold"&&x.status==="done"){const t=document.createElement("span");t.textContent=" "+R(x.amount_zar)+(x.amount_btc?" ("+BTC(x.amount_btc)+" "+SYM+")":"");a.appendChild(t);}
     if(x.status!=="done"){const t=document.createElement("span");t.className="tag "+x.status;t.textContent=x.status==="skipped"?"not done":"error";a.appendChild(t);}
     if(x.confidence!=null){const t=document.createElement("span");t.className="tag";t.textContent=Math.round(x.confidence*100)+"% sure";a.appendChild(t);}
     const tm=document.createElement("span");tm.style.color="var(--muted)";tm.textContent=new Date(x.at).toLocaleString("en-ZA",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
@@ -261,12 +280,25 @@ $("#save").onclick=()=>{
 $("#runNow").onclick=async()=>{
   const b=$("#runNow");b.disabled=true;show($("#msg"),"Checking the market and asking Claude… (about 10–20 seconds)");
   try{const j=await call("run_now");const r=j.result||{};
-    show($("#msg"),r.skipped||((r.action==="hold"?"Decision: wait. ":"Decision: "+r.action.toUpperCase()+" ("+r.status+"). ")+(r.reason||"")));
+    let t=r.skipped||((r.action==="hold"?"Decision: wait. ":"Decision: "+r.action.toUpperCase()+" ("+r.status+"). ")+(r.reason||""));
+    if(j.history_notes&&j.history_notes.length>=3)t+="\n\nNote: VALR's price history didn't load, so the bot is building its own from its checks. Details: "+j.history_notes.join(" | ");
+    show($("#msg"),t);$("#msg").style.whiteSpace="pre-wrap";
     await load();
   }catch(e){show($("#msg"),e.message,true);}
   b.disabled=false;
 };
 $("#refresh").onclick=load;
+$("#coinSave").onclick=async()=>{
+  const pair=$("#coin").value;if(pair===settings.pair){show($("#msg"),"It's already trading that coin.");return;}
+  const held=lastLog.find(x=>x.btc!=null);
+  const coins=settings.mode==="live"?(held?+held.btc:0):(paper?+paper.btc:0);
+  const price=held?+held.price:0;
+  if(coins*price>=50){show($("#msg"),"The bot still holds "+BTC(coins)+" "+SYM+" (about "+R(coins*price)+"). "+(settings.mode==="live"?"Sell it on VALR first, then change coin.":"Restart practice first, then change coin."),true);return;}
+  if(await saveSettings({pair},"Now trading "+(NAMES[pair.replace(/ZAR$/,"")])+". The next check is within 15 minutes, or press Check now.")){
+    if(settings.mode==="paper"){try{await call("reset_paper",{start_zar:paper?+paper.zar||5000:5000});}catch(e){}}
+    load();
+  }
+};
 $("#showWaits").onchange=render;
 $("#reset").onclick=async()=>{
   const v=+$("#pStart").value||5000;
