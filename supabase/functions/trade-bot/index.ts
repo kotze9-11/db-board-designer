@@ -190,30 +190,53 @@ Principles:
 - "reason" is ONE short sentence in plain everyday English (no jargon like RSI or SMA) that a non-trader understands. Mention the coin by name.
 Reply with only JSON: {"action":"hold","coin":"BTC","size":0.5,"confidence":0.5,"reason":"..."}`;
 
-async function askClaude(context: unknown) {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("The ANTHROPIC_API_KEY secret is missing in Supabase.");
+async function claudeText(apiKey: string, messages: { role: string; content: string }[]) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
       model: Deno.env.get("TRADER_MODEL") || "claude-haiku-5-5",
-      max_tokens: 300,
+      max_tokens: 1200,
       system: SYSTEM,
-      messages: [{ role: "user", content: JSON.stringify(context) }],
+      messages,
     }),
   });
   if (!r.ok) throw new Error(`Claude API ${r.status}: ${(await r.text()).slice(0, 200)}`);
   const j = await r.json();
-  const text = (j.content || []).map((c: { text?: string }) => c.text || "").join("");
-  const m = text.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error("Claude's answer was not understood.");
-  const d = JSON.parse(m[0]);
-  const action = ["buy", "sell", "hold"].includes(d.action) ? d.action : "hold";
+  return (j.content || []).map((c: { type?: string; text?: string }) => (c.type === "text" ? c.text || "" : "")).join("");
+}
+// Read Claude's answer even if it adds words around the JSON or gets cut short.
+function readDecision(text: string): Record<string, unknown> | null {
+  const a = text.indexOf("{"), b = text.lastIndexOf("}");
+  if (a >= 0 && b > a) {
+    try { return JSON.parse(text.slice(a, b + 1)); } catch (_) { /* try the loose way */ }
+  }
+  const pick = (k: string) => {
+    const m = text.match(new RegExp(`"${k}"\\s*:\\s*("([^"]*)"?|[0-9.]+)`));
+    return m ? (m[2] !== undefined ? m[2] : m[1]) : undefined;
+  };
+  const action = pick("action");
+  if (!action) return null;
+  return { action, coin: pick("coin"), size: pick("size"), confidence: pick("confidence"), reason: pick("reason") || "" };
+}
+async function askClaude(context: unknown) {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("The ANTHROPIC_API_KEY secret is missing in Supabase.");
+  const messages = [{ role: "user", content: JSON.stringify(context) }];
+  let text = await claudeText(apiKey, messages);
+  let d = readDecision(text);
+  if (!d) {
+    // ask once more, very plainly
+    text = await claudeText(apiKey, [...messages, { role: "assistant", content: text.slice(0, 2000) || "..." },
+      { role: "user", content: 'Reply again with ONLY the JSON object, nothing else. Example: {"action":"hold","coin":"BTC","size":0.5,"confidence":0.5,"reason":"..."}' }]);
+    d = readDecision(text);
+  }
+  if (!d) throw new Error(`Claude's answer was not understood: "${text.slice(0, 160)}"`);
+  const action = ["buy", "sell", "hold"].includes(String(d.action).toLowerCase()) ? String(d.action).toLowerCase() : "hold";
   return {
     action,
-    size: Math.min(1, Math.max(0.1, +d.size || 0.5)),
-    confidence: Math.min(1, Math.max(0, +d.confidence || 0)),
+    size: Math.min(1, Math.max(0.1, +String(d.size) || 0.5)),
+    confidence: Math.min(1, Math.max(0, +String(d.confidence) || 0)),
     reason: String(d.reason || "").slice(0, 300),
     coin: String(d.coin || "").toUpperCase().replace(/ZAR$/, ""),
   };
