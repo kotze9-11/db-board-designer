@@ -95,6 +95,7 @@ canvas{width:100%;height:200px;display:block}
     <h2>Coin to trade</h2>
     <div class="row">
       <div><select id="coin">
+        <option value="AUTO">Let Claude choose (Bitcoin, Ethereum, Solana or XRP)</option>
         <option value="BTCZAR">Bitcoin (BTC): the biggest and steadiest</option>
         <option value="ETHZAR">Ethereum (ETH): second biggest</option>
         <option value="SOLZAR">Solana (SOL): swings more, higher risk</option>
@@ -102,7 +103,7 @@ canvas{width:100%;height:200px;display:block}
       </select></div>
       <div style="flex:0 0 auto"><button class="primary" id="coinSave">Change coin</button></div>
     </div>
-    <div class="hint">The bot trades one coin at a time. You can only change coin while it isn't holding any coins.</div>
+    <div class="hint">The bot holds one coin at a time. With "Let Claude choose", it compares all four coins whenever it holds only rand, and sticks with a coin until it has sold it. You can only change this setting while the bot isn't holding any coins.</div>
   </div>
 
   <div class="card">
@@ -192,8 +193,10 @@ async function load(){
 
 function render(){
   const s=settings,live=s.mode==="live";
-  SYM=s.pair.replace(/ZAR$/,"");const NM=NAMES[SYM]||SYM;
-  $("#coinTitle").textContent=NM+" / Rand";$("#kHold").textContent="Rand / "+NM+" held";$("#kPrice").textContent=NM+" price";
+  const auto=s.pair==="AUTO";
+  const cur=(lastLog.find(x=>x.pair)||{}).pair||(paper&&paper.coin)||(auto?"BTCZAR":s.pair);
+  SYM=(auto?cur:s.pair).replace(/ZAR$/,"");const NM=NAMES[SYM]||SYM;
+  $("#coinTitle").textContent=(auto?"Claude chooses · now: "+NM:NM)+" / Rand";$("#kHold").textContent="Rand / "+NM+" held";$("#kPrice").textContent=NM+" price";
   if(document.activeElement!==$("#coin"))$("#coin").value=s.pair;
   $("#modeBadge").textContent=live?"REAL MONEY":"Practice";$("#modeBadge").className="badge "+(live?"live":"paper");
   $("#onBadge").textContent=s.enabled?"Running":"Stopped";$("#onBadge").className="badge "+(s.enabled?"on":"off");
@@ -233,7 +236,9 @@ function render(){
     const h=document.createElement("div");h.className="h";
     const a=document.createElement("span");
     const act=document.createElement("span");act.className="act "+x.action;act.textContent=x.status==="error"?"Problem":words[x.action]||x.action;a.appendChild(act);
-    if(x.action!=="hold"&&x.status==="done"){const t=document.createElement("span");t.textContent=" "+R(x.amount_zar)+(x.amount_btc?" ("+BTC(x.amount_btc)+" "+SYM+")":"");a.appendChild(t);}
+    const xs=(x.pair||"BTCZAR").replace(/ZAR$/,"");
+    if(x.status!=="error"){const cn=document.createElement("span");cn.className="tag";cn.textContent=NAMES[xs]||xs;a.appendChild(cn);}
+    if(x.action!=="hold"&&x.status==="done"){const t=document.createElement("span");t.textContent=" "+R(x.amount_zar)+(x.amount_btc?" ("+(+x.amount_btc).toFixed(xs==="XRP"?2:xs==="SOL"?4:6)+" "+xs+")":"");a.appendChild(t);}
     if(x.status!=="done"){const t=document.createElement("span");t.className="tag "+x.status;t.textContent=x.status==="skipped"?"not done":"error";a.appendChild(t);}
     if(x.confidence!=null){const t=document.createElement("span");t.className="tag";t.textContent=Math.round(x.confidence*100)+"% sure";a.appendChild(t);}
     const tm=document.createElement("span");tm.style.color="var(--muted)";tm.textContent=new Date(x.at).toLocaleString("en-ZA",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
@@ -294,7 +299,7 @@ $("#coinSave").onclick=async()=>{
   const coins=settings.mode==="live"?(held?+held.btc:0):(paper?+paper.btc:0);
   const price=held?+held.price:0;
   if(coins*price>=50){show($("#msg"),"The bot still holds "+BTC(coins)+" "+SYM+" (about "+R(coins*price)+"). "+(settings.mode==="live"?"Sell it on VALR first, then change coin.":"Restart practice first, then change coin."),true);return;}
-  if(await saveSettings({pair},"Now trading "+(NAMES[pair.replace(/ZAR$/,"")])+". The next check is within 15 minutes, or press Check now.")){
+  if(await saveSettings({pair},(pair==="AUTO"?"Claude now chooses the coin":"Now trading "+(NAMES[pair.replace(/ZAR$/,"")]))+". The next check is within 15 minutes, or press Check now.")){
     if(settings.mode==="paper"){try{await call("reset_paper",{start_zar:paper?+paper.zar||5000:5000});}catch(e){}}
     load();
   }

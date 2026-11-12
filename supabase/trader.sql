@@ -12,7 +12,7 @@ create table if not exists public.trader_settings (
   id int primary key default 1 check (id = 1),
   enabled boolean not null default true,          -- the big on/off switch
   mode text not null default 'paper' check (mode in ('paper','live')),
-  pair text not null default 'BTCZAR',
+  pair text not null default 'BTCZAR',            -- BTCZAR, ETHZAR, SOLZAR, XRPZAR or AUTO (Claude chooses)
   max_trade_zar numeric not null default 500,     -- most it spends or sells in one trade
   daily_loss_limit_zar numeric not null default 1000, -- stops for the day after losing this much
   max_trades_per_day int not null default 6,
@@ -49,6 +49,9 @@ create table if not exists public.trader_log (
   btc numeric
 );
 create index if not exists trader_log_at on public.trader_log (at desc);
+-- added later: which coin each line is about, and which coin the practice wallet holds
+alter table public.trader_log add column if not exists pair text;
+alter table public.trader_paper add column if not exists coin text;
 
 -- Private key the timer uses to wake the bot (made automatically)
 create table if not exists public.trader_secret (

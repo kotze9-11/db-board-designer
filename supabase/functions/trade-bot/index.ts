@@ -165,25 +165,30 @@ async function valrPrivate(method: string, path: string, body?: unknown) {
   if (!r.ok) throw new Error(`VALR said ${r.status}: ${out.slice(0, 200)}`);
   return out ? JSON.parse(out) : {};
 }
-async function liveBalances(pair: string) {
-  const base = pair.replace(/ZAR$/, "");
+const COINS = ["BTCZAR", "ETHZAR", "SOLZAR", "XRPZAR"];
+const sym = (pair: string) => pair.replace(/ZAR$/, "");
+async function liveBalances(pairs: string[]) {
   const rows = await valrPrivate("GET", "/v1/account/balances") as { currency: string; available: string }[];
   const get = (c: string) => +(rows.find((r) => r.currency === c)?.available ?? 0);
-  return { zar: get("ZAR"), btc: get(base) };
+  const coins: Record<string, number> = {};
+  for (const p of pairs) coins[p] = get(sym(p));
+  return { zar: get("ZAR"), coins };
 }
 
 // ---------- Claude ----------
 const SYSTEM = `You are a careful, disciplined crypto trader managing a small amount of money for a South African owner who accepts he may lose it.
-Each time you are called you see the latest market picture for one coin priced in rand, the current wallet, the safety limits and your own recent decisions.
+Each time you are called you see the latest market picture for one or more coins priced in rand, the current wallet, the safety limits and your own recent decisions.
 Decide one of: "buy", "sell" or "hold".
 Principles:
 - Protect the money first. Holding is often the right answer. Fees are about 0.1% per trade, so tiny moves are not worth trading.
 - Do not flip-flop: respect your own recent decisions unless the market has clearly changed.
 - Prefer buying after a pull-back in an up-trend and selling into strength or when the trend clearly breaks down. Avoid chasing big spikes.
+- If several coins are offered, you may buy only ONE of them; pick the one with the best and safest set-up and name it in "coin" (e.g. "ETH"). Smaller coins (SOL, XRP) swing more: only pick them when the set-up is clearly better, and use a smaller size.
+- If only one coin is offered, you already hold it (or the owner chose it): manage that coin only.
 - "size" is the fraction (0.1 to 1) of the maximum trade size to use. Use smaller sizes when less sure.
 - "confidence" (0 to 1) is how sure you are. Be honest; low confidence trades will be skipped.
-- "reason" is ONE short sentence in plain everyday English (no jargon like RSI or SMA) that a non-trader understands.
-Reply with only JSON: {"action":"hold","size":0.5,"confidence":0.5,"reason":"..."}`;
+- "reason" is ONE short sentence in plain everyday English (no jargon like RSI or SMA) that a non-trader understands. Mention the coin by name.
+Reply with only JSON: {"action":"hold","coin":"BTC","size":0.5,"confidence":0.5,"reason":"..."}`;
 
 async function askClaude(context: unknown) {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
@@ -210,6 +215,7 @@ async function askClaude(context: unknown) {
     size: Math.min(1, Math.max(0.1, +d.size || 0.5)),
     confidence: Math.min(1, Math.max(0, +d.confidence || 0)),
     reason: String(d.reason || "").slice(0, 300),
+    coin: String(d.coin || "").toUpperCase().replace(/ZAR$/, ""),
   };
 }
 
@@ -225,32 +231,50 @@ async function runOnce(opts: { force?: boolean }) {
   const { data: s } = await db.from("trader_settings").select("*").eq("id", 1).single();
   if (!s) throw new Error("Run trader.sql in Supabase first.");
   if (!s.enabled && !opts.force) return { skipped: "Bot is switched off." };
+  const auto = s.pair === "AUTO";
+  const live = s.mode === "live";
+  const watch: string[] = auto ? COINS : [String(s.pair)];
 
-  const { data: own } = await db.from("trader_log").select("at,price")
-    .gte("at", new Date(Date.now() - 7 * 24 * 3600e3).toISOString()).not("price", "is", null)
-    .order("at", { ascending: true }).limit(1000);
-  const mkt = await marketPicture(s.pair, (own || []) as { at: string; price: number }[]);
-  const price = mkt.price;
-
-  // wallet
-  let wallet: { zar: number; btc: number };
-  if (s.mode === "live") wallet = await liveBalances(s.pair);
+  // wallet: rand plus coins
+  let zar = 0;
+  let coins: Record<string, number> = {};
+  if (live) ({ zar, coins } = await liveBalances(watch));
   else {
     const { data: p } = await db.from("trader_paper").select("*").eq("id", 1).single();
-    wallet = { zar: +p!.zar, btc: +p!.btc };
+    zar = +p!.zar;
+    const pc = p!.coin || (auto ? null : s.pair);
+    for (const w of watch) coins[w] = 0;
+    if (pc && (auto || pc === s.pair)) coins[pc] = +p!.btc;
   }
-  const value = wallet.zar + wallet.btc * price;
+
+  // market pictures for every coin we watch (and any coin still held)
+  const { data: own } = await db.from("trader_log").select("at,price,pair")
+    .gte("at", new Date(Date.now() - 7 * 24 * 3600e3).toISOString()).not("price", "is", null)
+    .order("at", { ascending: true }).limit(2000);
+  const pics: Record<string, Awaited<ReturnType<typeof marketPicture>>> = {};
+  for (const pr of Object.keys(coins)) {
+    const mine = (own || []).filter((o: { pair?: string }) => (o.pair || "BTCZAR") === pr) as { at: string; price: number }[];
+    pics[pr] = await marketPicture(pr, mine);
+  }
+  const priceOf = (pr: string) => pics[pr]?.price || 0;
+  const value = zar + Object.keys(coins).reduce((t, pr) => t + coins[pr] * priceOf(pr), 0);
+
+  // which coin is in play
+  const held = Object.keys(coins).filter((pr) => coins[pr] * priceOf(pr) >= 50)
+    .sort((a, b) => coins[b] * priceOf(b) - coins[a] * priceOf(a));
+  const offered: string[] = auto ? (held.length ? [held[0]] : COINS) : [String(s.pair)];
 
   // today so far
   const dayStart = sastDayStart();
   const { data: today } = await db.from("trader_log").select("at,status,action,value_zar,mode")
     .gte("at", dayStart).eq("mode", s.mode).order("at", { ascending: true });
-  const tradesToday = (today || []).filter((t) => t.status === "done" && t.action !== "hold");
-  const openValue = today && today.length ? +today[0].value_zar : value;
+  const tradesToday = (today || []).filter((t: { status: string; action: string }) => t.status === "done" && t.action !== "hold");
+  const firstToday = (today || []).find((t: { value_zar: number | null }) => t.value_zar != null);
+  const openValue = firstToday ? +firstToday.value_zar : value;
   const lossToday = Math.max(0, openValue - value);
   const lastTrade = tradesToday.length ? tradesToday[tradesToday.length - 1] : null;
 
-  const { data: recent } = await db.from("trader_log").select("at,action,status,confidence,reason,price")
+  const { data: recent } = await db.from("trader_log").select("at,pair,action,status,reason,price")
     .eq("mode", s.mode).order("at", { ascending: false }).limit(12);
 
   const limits = {
@@ -259,70 +283,88 @@ async function runOnce(opts: { force?: boolean }) {
     daily_loss_limit_zar: +s.daily_loss_limit_zar, min_confidence: +s.min_confidence,
   };
 
-  const log = async (row: Record<string, unknown>, w = wallet) => {
-    const v = w.zar + w.btc * price;
+  // write one line to the log
+  let logPair = offered[0];
+  const log = async (row: Record<string, unknown>, z = zar, c = coins) => {
+    const v = z + Object.keys(c).reduce((t, pr) => t + c[pr] * priceOf(pr), 0);
     await db.from("trader_log").insert({
-      mode: s.mode, price, zar: w.zar, btc: w.btc, value_zar: r2(v), ...row,
+      mode: s.mode, pair: logPair, price: priceOf(logPair), zar: z, btc: c[logPair] || 0, value_zar: r2(v), ...row,
     });
-    return { ...row, price, value_zar: r2(v) };
+    return { ...row, pair: logPair, price: priceOf(logPair), value_zar: r2(v) };
   };
 
-  // hard stops before even asking Claude
   if (lossToday >= +s.daily_loss_limit_zar)
     return await log({ action: "hold", status: "skipped", reason: `Daily loss limit reached (lost R${Math.round(lossToday)} today). Resting until tomorrow.` });
 
   const decision = await askClaude({
     now_south_africa: new Date(Date.now() + 2 * 3600e3).toISOString().slice(0, 16).replace("T", " "),
-    pair: s.pair, market: mkt,
-    wallet: { rand: r2(wallet.zar), coin: wallet.btc, coin_value_rand: r2(wallet.btc * price), total_rand: r2(value) },
+    coins_offered: offered.map(sym),
+    markets: Object.fromEntries(offered.map((pr) => [sym(pr), pics[pr]])),
+    wallet: {
+      rand: r2(zar),
+      holding: Object.fromEntries(Object.keys(coins).filter((pr) => coins[pr] > 0)
+        .map((pr) => [sym(pr), { amount: coins[pr], value_rand: r2(coins[pr] * priceOf(pr)) }])),
+      total_rand: r2(value),
+    },
     limits,
-    your_recent_decisions_newest_first: (recent || []).map((r) => ({
-      at: r.at, action: r.action, status: r.status, price: r.price, reason: r.reason,
+    your_recent_decisions_newest_first: (recent || []).map((r: Record<string, unknown>) => ({
+      at: r.at, coin: sym(String(r.pair || "BTCZAR")), action: r.action, status: r.status, price: r.price, reason: r.reason,
     })),
   });
 
+  // which coin did Claude mean?
+  const named = decision.coin && COINS.includes(decision.coin + "ZAR") ? decision.coin + "ZAR" : null;
+  const chosen = named ? (offered.includes(named) ? named : null) : (offered.length === 1 ? offered[0] : null);
+  if (chosen) logPair = chosen;
   const base = { action: decision.action, confidence: decision.confidence, reason: decision.reason };
   if (decision.action === "hold") return await log({ ...base, status: "done" });
 
-  // safety checks
   const skip = (why: string) => log({ ...base, status: "skipped", reason: `${decision.reason} (Not done: ${why})` });
+  if (!chosen) return await skip(named ? `${sym(named)} isn't allowed right now; it can only trade ${offered.map(sym).join(", ")}` : "it didn't say which coin");
   if (decision.confidence < +s.min_confidence) return await skip(`Claude was only ${Math.round(decision.confidence * 100)}% sure`);
   if (tradesToday.length >= s.max_trades_per_day) return await skip("daily trade limit reached");
   if (lastTrade && Date.now() - Date.parse(lastTrade.at) < s.min_minutes_between * 60e3)
     return await skip("too soon after the last trade");
 
+  const pic = pics[chosen];
   const want = +s.max_trade_zar * decision.size;
   const fee = +(Deno.env.get("TRADER_FEE") || 0.001);
+  const wait = () => new Promise((r) => setTimeout(r, 2500));
 
   if (decision.action === "buy") {
-    const spend = Math.floor(Math.min(want, wallet.zar * 0.995));
+    const spend = Math.floor(Math.min(want, zar * 0.995));
     if (spend < 50) return await skip("not enough rand to buy");
-    if (s.mode === "live") {
-      await valrPrivate("POST", "/v1/orders/market", { pair: s.pair, side: "BUY", quoteAmount: String(spend) });
-      await new Promise((r) => setTimeout(r, 2500));
-      const w = await liveBalances(s.pair);
-      return await log({ ...base, status: "done", amount_zar: spend, amount_btc: r2((w.btc - wallet.btc) * 1e8) / 1e8 }, w);
+    if (live) {
+      await valrPrivate("POST", "/v1/orders/market", { pair: chosen, side: "BUY", quoteAmount: String(spend) });
+      await wait();
+      const w = await liveBalances(watch);
+      return await log({ ...base, status: "done", amount_zar: spend, amount_btc: Math.round((w.coins[chosen] - coins[chosen]) * 1e8) / 1e8 }, w.zar, w.coins);
     }
-    const coins = (spend * (1 - fee)) / mkt.ask;
-    const w = { zar: wallet.zar - spend, btc: wallet.btc + coins };
-    await db.from("trader_paper").update({ zar: w.zar, btc: w.btc }).eq("id", 1);
-    return await log({ ...base, status: "done", amount_zar: spend, amount_btc: coins }, w);
+    // practice: small leftovers of another coin are cashed in first (one coin at a time)
+    let z = zar;
+    const c: Record<string, number> = { ...coins };
+    for (const pr of Object.keys(c)) if (pr !== chosen && c[pr] > 0) { z += c[pr] * priceOf(pr) * (1 - fee); c[pr] = 0; }
+    const got = (spend * (1 - fee)) / pic.ask;
+    c[chosen] = (c[chosen] || 0) + got;
+    z -= spend;
+    await db.from("trader_paper").update({ zar: z, btc: c[chosen], coin: chosen }).eq("id", 1);
+    return await log({ ...base, status: "done", amount_zar: spend, amount_btc: got }, z, c);
   }
 
   // sell
-  const coins = Math.min(want / price, wallet.btc);
-  const coinsRounded = Math.floor(coins * 1e8) / 1e8;
-  if (coinsRounded * price < 50) return await skip("no coins to sell");
-  if (s.mode === "live") {
-    await valrPrivate("POST", "/v1/orders/market", { pair: s.pair, side: "SELL", baseAmount: coinsRounded.toFixed(8) });
-    await new Promise((r) => setTimeout(r, 2500));
-    const w = await liveBalances(s.pair);
-    return await log({ ...base, status: "done", amount_btc: coinsRounded, amount_zar: r2(w.zar - wallet.zar) }, w);
+  const have = coins[chosen] || 0;
+  const amount = Math.floor(Math.min(want / pic.price, have) * 1e8) / 1e8;
+  if (amount * pic.price < 50) return await skip("no coins to sell");
+  if (live) {
+    await valrPrivate("POST", "/v1/orders/market", { pair: chosen, side: "SELL", baseAmount: amount.toFixed(8) });
+    await wait();
+    const w = await liveBalances(watch);
+    return await log({ ...base, status: "done", amount_btc: amount, amount_zar: r2(w.zar - zar) }, w.zar, w.coins);
   }
-  const got = coinsRounded * mkt.bid * (1 - fee);
-  const w = { zar: wallet.zar + got, btc: wallet.btc - coinsRounded };
-  await db.from("trader_paper").update({ zar: w.zar, btc: w.btc }).eq("id", 1);
-  return await log({ ...base, status: "done", amount_btc: coinsRounded, amount_zar: r2(got) }, w);
+  const got = amount * pic.bid * (1 - fee);
+  const c: Record<string, number> = { ...coins, [chosen]: have - amount };
+  await db.from("trader_paper").update({ zar: zar + got, btc: c[chosen], coin: chosen }).eq("id", 1);
+  return await log({ ...base, status: "done", amount_btc: amount, amount_zar: r2(got) }, zar + got, c);
 }
 
 Deno.serve(async (req) => {
@@ -346,13 +388,13 @@ Deno.serve(async (req) => {
   try {
     if (!isTimer && body.action === "reset_paper") {
       const start = Math.max(100, +(body.start_zar as number) || 5000);
-      await db.from("trader_paper").update({ zar: start, btc: 0, start_zar: start, started_at: new Date().toISOString() }).eq("id", 1);
+      await db.from("trader_paper").update({ zar: start, btc: 0, coin: null, start_zar: start, started_at: new Date().toISOString() }).eq("id", 1);
       await db.from("trader_log").delete().eq("mode", "paper");
       return reply({ ok: true });
     }
     if (!isTimer && body.action === "live_balance") {
       const { data: s } = await db.from("trader_settings").select("pair").eq("id", 1).single();
-      return reply(await liveBalances(s!.pair));
+      return reply(await liveBalances(s!.pair === "AUTO" ? COINS : [s!.pair]));
     }
     notes.length = 0;
     const out = await runOnce({ force: !isTimer && body.action === "run_now" });
