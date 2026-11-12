@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Crypto Bot</title>
+<meta name="theme-color" content="#0f1720">
+<style>
+:root{--bg:#0f1720;--card:#18222e;--line:#283545;--text:#e8eef5;--muted:#93a3b5;--green:#2ecc71;--red:#ff5d5d;--amber:#f5b041;--blue:#4aa3ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px;padding-bottom:40px}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-size:22px;margin:0}
+h2{font-size:16px;margin:0 0 10px;color:var(--muted);font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700}
+.paper{background:#24405f;color:#bfe0ff}.live{background:#5f2424;color:#ffd0d0}
+.off{background:#3a3a3a;color:#ccc}.on{background:#1f4d33;color:#b9f5cf}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:560px){.grid{grid-template-columns:repeat(4,1fr)}}
+.stat .k{font-size:13px;color:var(--muted)}.stat .v{font-size:20px;font-weight:700;margin-top:2px}
+.up{color:var(--green)}.down{color:var(--red)}
+button{font:inherit;border-radius:10px;border:1px solid var(--line);background:#223042;color:var(--text);padding:10px 14px;cursor:pointer}
+button.primary{background:var(--blue);border-color:var(--blue);color:#06121f;font-weight:700}
+button.stop{background:var(--red);border-color:var(--red);color:#fff;font-weight:800;font-size:18px;width:100%;padding:14px}
+button.go{background:var(--green);border-color:var(--green);color:#06210f;font-weight:800;font-size:18px;width:100%;padding:14px}
+button:disabled{opacity:.5}
+input,select{font:inherit;width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0f1720;color:var(--text)}
+label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+.hint{font-size:13px;color:var(--muted);margin-top:4px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+canvas{width:100%;height:200px;display:block}
+.log{list-style:none;margin:0;padding:0}
+.log li{border-top:1px solid var(--line);padding:10px 0}
+.log li:first-child{border-top:0}
+.log .h{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.log .r{font-size:14px;color:var(--muted);margin-top:3px}
+.act{font-weight:800}.act.buy{color:var(--green)}.act.sell{color:var(--red)}.act.hold{color:var(--muted)}
+.tag{font-size:12px;padding:1px 7px;border-radius:6px;background:#2a3646;color:var(--muted);margin-left:6px}
+.tag.error{background:#5f2424;color:#ffd0d0}
+.msg{padding:10px 12px;border-radius:10px;background:#223042;margin-top:10px;font-size:14px}
+.msg.bad{background:#5f2424}
+[hidden]{display:none!important}
+.warn{border-color:#7a3b3b;background:#2a1a1d}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- sign in -->
+<div id="login" class="card" hidden>
+  <h1>Crypto Bot</h1>
+  <p class="hint">Sign in with the same email and password you use for your other apps.</p>
+  <label>Email</label><input id="em" type="email" autocomplete="username">
+  <label>Password</label><input id="pw" type="password" autocomplete="current-password">
+  <div style="margin-top:14px"><button class="primary" id="signIn">Sign in</button></div>
+  <div id="loginMsg" class="msg" hidden></div>
+</div>
+
+<div id="app" hidden>
+  <div class="top">
+    <h1>Crypto Bot <span style="font-size:14px;color:var(--muted)">Bitcoin / Rand</span></h1>
+    <div><span id="modeBadge" class="badge paper">Practice</span> <span id="onBadge" class="badge on">Running</span></div>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div class="stat"><div class="k">Wallet now</div><div class="v" id="vNow">–</div></div>
+      <div class="stat"><div class="k">Profit / loss</div><div class="v" id="vPl">–</div></div>
+      <div class="stat"><div class="k">Rand / Bitcoin held</div><div class="v" id="vHold" style="font-size:15px">–</div></div>
+      <div class="stat"><div class="k">Bitcoin price</div><div class="v" id="vPrice">–</div></div>
+    </div>
+    <canvas id="chart" width="700" height="200" style="margin-top:14px"></canvas>
+    <div class="hint" id="chartHint">Wallet value over time (rand).</div>
+  </div>
+
+  <div class="card">
+    <button id="toggle" class="stop">STOP THE BOT</button>
+    <div class="row" style="margin-top:10px">
+      <button id="runNow">Check now</button>
+      <button id="refresh">Refresh</button>
+    </div>
+    <div id="msg" class="msg" hidden></div>
+    <div class="hint" id="nextHint">The bot checks the market every 15 minutes by itself, even when this page is closed.</div>
+  </div>
+
+  <div class="card">
+    <div class="top" style="margin-bottom:6px"><h2 style="margin:0">What the bot did (newest first)</h2>
+      <label style="margin:0;display:flex;gap:6px;align-items:center;font-size:14px"><input type="checkbox" id="showWaits" style="width:auto"> Show every check</label></div>
+    <ul class="log" id="log"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Safety limits</h2>
+    <div class="row">
+      <div><label>Most per trade (R)</label><input id="sMax" type="number" min="50" step="50"></div>
+      <div><label>Stop for the day after losing (R)</label><input id="sLoss" type="number" min="50" step="50"></div>
+    </div>
+    <div class="row">
+      <div><label>Most trades per day</label><input id="sTrades" type="number" min="1" max="48"></div>
+      <div><label>Rest between trades (minutes)</label><input id="sRest" type="number" min="15" step="15"></div>
+    </div>
+    <label>Claude must be at least this sure (%)</label><input id="sConf" type="number" min="50" max="95" step="5">
+    <div class="hint">Higher means fewer, more careful trades.</div>
+    <div style="margin-top:12px"><button class="primary" id="save">Save limits</button></div>
+  </div>
+
+  <div class="card" id="paperCard">
+    <h2>Practice money</h2>
+    <p class="hint">Practice mode uses pretend money with real Bitcoin prices, so you can see how Claude would have done.</p>
+    <div class="row">
+      <div><label>Start again with (R)</label><input id="pStart" type="number" min="100" step="500" value="5000"></div>
+      <div style="display:flex;align-items:flex-end"><button id="reset">Restart practice</button></div>
+    </div>
+  </div>
+
+  <div class="card warn">
+    <h2>Real money</h2>
+    <p class="hint" id="modeText"></p>
+    <button id="modeBtn">Switch to real money</button>
+  </div>
+
+  <p class="hint" style="text-align:center">This is an experiment, not financial advice. Only use money you can afford to lose.
+    <br><a href="#" id="signOut" style="color:var(--muted)">Sign out</a></p>
+</div>
+</div>
+
+<script src="../db-board/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const cfg=window.DBB_CONFIG;
+const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"trader-auth"}});
+const $=s=>document.querySelector(s);
+const R=n=>n==null||isNaN(n)?"–":"R"+Math.round(n).toLocaleString("en-ZA");
+const BTC=n=>(+n||0).toFixed(6);
+let settings=null,paper=null,lastLog=[];
+
+function show(el,text,bad){el.hidden=false;el.textContent=text;el.className="msg"+(bad?" bad":"");}
+async function call(action,extra){
+  const {data:{session}}=await sb.auth.getSession();
+  const r=await fetch(cfg.SUPABASE_URL+"/functions/v1/trade-bot",{method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":cfg.SUPABASE_ANON_KEY},
+    body:JSON.stringify({action,...(extra||{})})});
+  const j=await r.json().catch(()=>({error:"No answer from the bot. Is the trade-bot function deployed?"}));
+  if(!r.ok||j.error)throw new Error(j.error||("Error "+r.status));
+  return j;
+}
+
+// ---------- sign in ----------
+$("#signIn").onclick=async()=>{
+  const m=$("#loginMsg");show(m,"Signing in…");
+  const {error}=await sb.auth.signInWithPassword({email:$("#em").value.trim(),password:$("#pw").value});
+  if(error)show(m,error.message,true);
+};
+$("#signOut").onclick=async e=>{e.preventDefault();await sb.auth.signOut();};
+sb.auth.onAuthStateChange((_ev,session)=>setTimeout(()=>start(session),0));
+
+async function start(session){
+  $("#login").hidden=!!session;$("#app").hidden=!session;
+  if(session)load();
+}
+
+// ---------- load ----------
+async function load(){
+  const [s,p,l]=await Promise.all([
+    sb.from("trader_settings").select("*").eq("id",1).maybeSingle(),
+    sb.from("trader_paper").select("*").eq("id",1).maybeSingle(),
+    sb.from("trader_log").select("*").order("at",{ascending:false}).limit(400)
+  ]);
+  if(s.error||!s.data){show($("#msg"),s.error?s.error.message:"Nothing found. Run trader.sql in Supabase, and check you're signed in as the owner.",true);return;}
+  settings=s.data;paper=p.data;
+  lastLog=(l.data||[]).filter(x=>x.mode===settings.mode);
+  render();
+}
+
+function render(){
+  const s=settings,live=s.mode==="live";
+  $("#modeBadge").textContent=live?"REAL MONEY":"Practice";$("#modeBadge").className="badge "+(live?"live":"paper");
+  $("#onBadge").textContent=s.enabled?"Running":"Stopped";$("#onBadge").className="badge "+(s.enabled?"on":"off");
+  $("#toggle").textContent=s.enabled?"STOP THE BOT":"START THE BOT";$("#toggle").className=s.enabled?"stop":"go";
+  $("#sMax").value=s.max_trade_zar;$("#sLoss").value=s.daily_loss_limit_zar;$("#sTrades").value=s.max_trades_per_day;
+  $("#sRest").value=s.min_minutes_between;$("#sConf").value=Math.round(s.min_confidence*100);
+  $("#paperCard").hidden=live;
+  $("#modeText").textContent=live
+    ?"The bot is trading your real VALR money. Switch back to practice at any time."
+    :"Only switch once you've watched practice mode for a few weeks and you're happy with it. You'll first need to add your VALR keys in Supabase.";
+  $("#modeBtn").textContent=live?"Switch back to practice":"Switch to real money";
+
+  // stats
+  const withVal=lastLog.filter(x=>x.value_zar!=null);
+  const latest=withVal[0];
+  const startVal=live?(withVal.length?+withVal[withVal.length-1].value_zar:null):(paper?+paper.start_zar:null);
+  const now=latest?+latest.value_zar:(paper&&!live?+paper.zar:null);
+  $("#vNow").textContent=R(now);
+  if(now!=null&&startVal){
+    const d=now-startVal,p=d/startVal*100;
+    $("#vPl").textContent=(d>=0?"+":"−")+R(Math.abs(d)).slice(0)+" ("+(d>=0?"+":"")+p.toFixed(1)+"%)";
+    $("#vPl").className="v "+(d>=0?"up":"down");
+  }else $("#vPl").textContent="–";
+  $("#vHold").textContent=latest?R(latest.zar)+" / "+BTC(latest.btc)+" BTC":(paper&&!live?R(paper.zar)+" / "+BTC(paper.btc)+" BTC":"–");
+  $("#vPrice").textContent=latest?R(latest.price):"–";
+  const last=lastLog[0];
+  $("#nextHint").textContent=last
+    ?"Last check: "+new Date(last.at).toLocaleString("en-ZA",{dateStyle:"short",timeStyle:"short"})+". The bot checks every 15 minutes by itself, even when this page is closed."
+    :"No checks yet. The first one happens within 15 minutes, or press Check now.";
+
+  // log
+  const words={buy:"BUY",sell:"SELL",hold:"Wait"};
+  $("#log").innerHTML="";
+  const showAll=$("#showWaits").checked;
+  lastLog.filter((x,i)=>showAll||i===0||x.action!=="hold"||x.status==="error").slice(0,60).forEach(x=>{
+    const li=document.createElement("li");
+    const h=document.createElement("div");h.className="h";
+    const a=document.createElement("span");
+    const act=document.createElement("span");act.className="act "+x.action;act.textContent=x.status==="error"?"Problem":words[x.action]||x.action;a.appendChild(act);
+    if(x.action!=="hold"&&x.status==="done"){const t=document.createElement("span");t.textContent=" "+R(x.amount_zar)+(x.amount_btc?" ("+BTC(x.amount_btc)+" BTC)":"");a.appendChild(t);}
+    if(x.status!=="done"){const t=document.createElement("span");t.className="tag "+x.status;t.textContent=x.status==="skipped"?"not done":"error";a.appendChild(t);}
+    if(x.confidence!=null){const t=document.createElement("span");t.className="tag";t.textContent=Math.round(x.confidence*100)+"% sure";a.appendChild(t);}
+    const tm=document.createElement("span");tm.style.color="var(--muted)";tm.textContent=new Date(x.at).toLocaleString("en-ZA",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+    h.append(a,tm);
+    const r=document.createElement("div");r.className="r";r.textContent=(x.reason||"")+(x.price?" · Price "+R(x.price):"");
+    li.append(h,r);$("#log").appendChild(li);
+  });
+  if(!lastLog.length)$("#log").innerHTML='<li class="r">Nothing yet.</li>';
+  drawChart(withVal.slice().reverse(),startVal);
+}
+
+function drawChart(pts,startVal){
+  const c=$("#chart"),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
+  c.width=w*dpr;c.height=h*dpr;const g=c.getContext("2d");g.scale(dpr,dpr);g.clearRect(0,0,w,h);
+  if(pts.length<2){g.fillStyle="#93a3b5";g.font="14px system-ui";g.fillText("The chart appears after a few checks.",10,h/2);return;}
+  const vals=pts.map(p=>+p.value_zar);if(startVal)vals.push(startVal);
+  let lo=Math.min(...vals),hi=Math.max(...vals);if(hi-lo<1){hi+=1;lo-=1;}
+  const pad=(hi-lo)*0.1;lo-=pad;hi+=pad;
+  const t0=Date.parse(pts[0].at),t1=Date.parse(pts[pts.length-1].at)||t0+1;
+  const X=t=>40+(w-50)*((t-t0)/Math.max(1,t1-t0)),Y=v=>10+(h-30)*(1-(v-lo)/(hi-lo));
+  g.font="11px system-ui";g.fillStyle="#93a3b5";g.strokeStyle="#283545";g.lineWidth=1;
+  [lo+pad,(lo+hi)/2,hi-pad].forEach(v=>{g.beginPath();g.moveTo(40,Y(v));g.lineTo(w,Y(v));g.stroke();g.fillText(Math.round(v),0,Y(v)+4);});
+  if(startVal){g.setLineDash([4,4]);g.strokeStyle="#93a3b5";g.beginPath();g.moveTo(40,Y(startVal));g.lineTo(w,Y(startVal));g.stroke();g.setLineDash([]);}
+  const end=+pts[pts.length-1].value_zar;
+  g.strokeStyle=!startVal||end>=startVal?"#2ecc71":"#ff5d5d";g.lineWidth=2;g.beginPath();
+  pts.forEach((p,i)=>{const x=X(Date.parse(p.at)),y=Y(+p.value_zar);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+  pts.forEach(p=>{if(p.status==="done"&&p.action!=="hold"){g.fillStyle=p.action==="buy"?"#2ecc71":"#ff5d5d";g.beginPath();g.arc(X(Date.parse(p.at)),Y(+p.value_zar),4,0,7);g.fill();}});
+  $("#chartHint").textContent="Wallet value over time (rand). Dotted line = starting amount. Green dots = buys, red dots = sells.";
+}
+
+// ---------- actions ----------
+async function saveSettings(patch,okText){
+  const {error}=await sb.from("trader_settings").update({...patch,updated_at:new Date().toISOString()}).eq("id",1);
+  if(error){show($("#msg"),error.message,true);return false;}
+  Object.assign(settings,patch);render();if(okText)show($("#msg"),okText);return true;
+}
+$("#toggle").onclick=()=>saveSettings({enabled:!settings.enabled},settings.enabled?"Bot stopped. It won't trade until you start it again.":"Bot started.");
+$("#save").onclick=()=>{
+  const n=id=>+$(id).value;
+  if(n("#sMax")<50||n("#sLoss")<50||n("#sTrades")<1||n("#sRest")<15||n("#sConf")<50){show($("#msg"),"Please check the limits: some numbers are too small.",true);return;}
+  saveSettings({max_trade_zar:n("#sMax"),daily_loss_limit_zar:n("#sLoss"),max_trades_per_day:Math.round(n("#sTrades")),
+    min_minutes_between:Math.round(n("#sRest")),min_confidence:n("#sConf")/100},"Limits saved.");
+};
+$("#runNow").onclick=async()=>{
+  const b=$("#runNow");b.disabled=true;show($("#msg"),"Checking the market and asking Claude… (about 10–20 seconds)");
+  try{const j=await call("run_now");const r=j.result||{};
+    show($("#msg"),r.skipped||((r.action==="hold"?"Decision: wait. ":"Decision: "+r.action.toUpperCase()+" ("+r.status+"). ")+(r.reason||"")));
+    await load();
+  }catch(e){show($("#msg"),e.message,true);}
+  b.disabled=false;
+};
+$("#refresh").onclick=load;
+$("#showWaits").onchange=render;
+$("#reset").onclick=async()=>{
+  const v=+$("#pStart").value||5000;
+  if(!confirm("Start practice again with R"+v+"? This clears the practice history."))return;
+  try{await call("reset_paper",{start_zar:v});show($("#msg"),"Practice restarted with R"+v+".");await load();}catch(e){show($("#msg"),e.message,true);}
+};
+$("#modeBtn").onclick=async()=>{
+  if(settings.mode==="live"){await saveSettings({mode:"paper"},"Back to practice mode. No real trades will be made.");return;}
+  const t=prompt("This will trade REAL money on your VALR account.\nType LIVE to confirm:");
+  if((t||"").trim().toUpperCase()!=="LIVE")return;
+  try{await call("live_balance");}catch(e){show($("#msg"),"Couldn't reach your VALR account: "+e.message,true);return;}
+  await saveSettings({mode:"live"},"Real money mode is on.");load();
+};
+setInterval(()=>{if(!$("#app").hidden&&document.visibilityState==="visible")load();},60000);
+window.addEventListener("resize",()=>settings&&render());
+</script>
+</body>
+</html>
