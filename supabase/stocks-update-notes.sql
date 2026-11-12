@@ -1,0 +1,3 @@
+-- Run once in Supabase > SQL Editor: adds the "Instructions for Claude" box to the stock bot
+alter table public.stock_settings add column if not exists owner_notes text not null default '';
+update public.stock_settings set owner_notes = 'Keep a close eye on Nvidia (NVDA). Its CEO Jensen Huang resigned on 11 Nov 2026 over a scandal and the share fell about 10-14%. Its quarterly results come out on Tuesday 17 Nov after the US market closes, so the price may swing a lot. Be careful about buying Nvidia before the 17th. After the results, if the price settles or recovers, a small buy can make sense. Mention Nvidia''s move in your reason whenever it moves more than 3% in a day.' where id = 1 and owner_notes = '';

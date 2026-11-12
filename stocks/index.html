@@ -105,6 +105,13 @@ textarea{font:inherit;width:100%;padding:10px;border-radius:10px;border:1px soli
   </div>
 
   <div class="card">
+    <h2>Instructions for Claude</h2>
+    <textarea id="notes" style="min-height:120px" maxlength="2000"></textarea>
+    <div class="hint">Claude reads this at every check. Tell it what to watch, news it can't see (it only sees prices), or how careful to be. It still can't break the safety limits.</div>
+    <div style="margin-top:10px"><button class="primary" id="saveNotes">Save instructions</button></div>
+  </div>
+
+  <div class="card">
     <h2>Shares Claude may choose from</h2>
     <textarea id="watch"></textarea>
     <div class="hint">Separate with commas. US shares by their code (AAPL = Apple). JSE shares end in .JO (NPN.JO = Naspers, STX40.JO = Satrix 40). Up to 20.</div>
@@ -191,6 +198,7 @@ function render(){
   const mk=(open)=>open==null?'<span class="mk c">…</span>':open?'<span class="mk o">Open</span>':'<span class="mk c">Closed</span>';
   $("#markets").innerHTML="US "+mk(prices.SPY?prices.SPY.open:null)+" &nbsp; JSE "+mk(prices["STX40.JO"]?prices["STX40.JO"].open:null);
   if(document.activeElement!==$("#watch"))$("#watch").value=(s.watchlist||[]).join(", ");
+  if(document.activeElement!==$("#notes")&&!$("#notes").dataset.dirty)$("#notes").value=s.owner_notes||"";
   $("#sMax").value=s.max_trade_zar;$("#sLoss").value=s.daily_loss_limit_zar;$("#sTrades").value=s.max_trades_per_day;
   $("#sHold").value=s.max_holdings;$("#sRest").value=s.min_minutes_between;$("#sConf").value=Math.round(s.min_confidence*100);
 
@@ -276,6 +284,8 @@ $("#runNow").onclick=async()=>{const b=$("#runNow");b.disabled=true;show($("#msg
     show($("#msg"),t);await load();
   }catch(e){show($("#msg"),e.message,true);}b.disabled=false;};
 $("#refresh").onclick=load;$("#showWaits").onchange=render;
+$("#notes").oninput=()=>{$("#notes").dataset.dirty="1";};
+$("#saveNotes").onclick=async()=>{if(await saveSettings({owner_notes:$("#notes").value.trim()},"Instructions saved. Claude will use them from the next check.")){delete $("#notes").dataset.dirty;}};
 $("#reset").onclick=async()=>{const v=+$("#pStart").value||20000;
   if(!confirm("Start practice again with R"+v+"? This sells everything (pretend) and clears the history."))return;
   try{await call("reset_paper",{start_zar:v});show($("#msg"),"Practice restarted with R"+v+".");await load();}catch(e){show($("#msg"),e.message,true);}};

@@ -109,7 +109,8 @@ Principles:
 - Spread risk: don't put everything in one company; broad funds (S&P 500, Nasdaq 100, Satrix 40) are steadier than single companies.
 - Don't flip-flop on your recent decisions unless something clearly changed. Cut a position that keeps falling well below what was paid; take some profit after a strong rise.
 - "size": for a buy, the fraction (0.1 to 1) of the maximum trade amount; for a sell, the fraction (0.1 to 1) of that holding to sell (1 = all).
-- "confidence" 0 to 1, honestly. "reason": ONE short sentence in plain everyday English, naming the company.
+- The owner may give you instructions or news (in "owner_instructions"). Follow them where sensible, but never break the safety limits.
+- "confidence" 0 to 1, honestly. "reason": ONE short sentence in plain everyday English (no jargon like "moving average"), naming the company.
 Reply with only JSON: {"action":"hold","symbol":"SPY","size":0.5,"confidence":0.5,"reason":"..."}`;
 
 async function claudeText(apiKey: string, messages: { role: string; content: string }[]) {
@@ -212,6 +213,7 @@ async function runOnce(opts: { force?: boolean }) {
 
   const decision = await askClaude({
     now_south_africa: new Date(Date.now() + 2 * 3600e3).toISOString().slice(0, 16).replace("T", " "),
+    owner_instructions: String(s.owner_notes || "").slice(0, 2000) || "none",
     markets_open: { US: usOpen, JSE: jseOpen },
     usd_to_zar: r2(usdzar),
     watch_list: Object.fromEntries(watch.filter((x) => charts[x] && rate(x) > 0).map((x) => [x, picture(charts[x], rate(x))])),

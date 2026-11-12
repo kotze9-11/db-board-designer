@@ -15,6 +15,7 @@ create table if not exists public.stock_settings (
   updated_at timestamptz not null default now()
 );
 insert into public.stock_settings (id) values (1) on conflict (id) do nothing;
+alter table public.stock_settings add column if not exists owner_notes text not null default '';  -- your instructions for Claude
 
 create table if not exists public.stock_paper (
   id int primary key default 1 check (id = 1),
