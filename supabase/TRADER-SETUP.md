@@ -27,3 +27,9 @@ From then on it runs every 15 minutes by itself, in practice mode with R5,000 of
 ## Costs
 Claude is asked about 96 times a day with the small, cheap model (claude-haiku-5-5): roughly R1–R3 a day.
 Set a monthly spend limit on console.anthropic.com.
+
+# Stock Bot (US + JSE, practice money)
+Page: https://kotze9-11.github.io/designer/stocks/
+1. SQL Editor > New query: paste `supabase/stocks.sql`, press Run.
+2. Edge Functions > Deploy a new function > Via Editor: name it `stock-bot`, paste `supabase/functions/stock-bot/index.ts`, Deploy. Turn OFF "Verify JWT".
+3. Open the page, press Check now (only does something while the US or JSE market is open).

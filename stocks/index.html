@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stock Bot</title>
+<meta name="theme-color" content="#0f1720">
+<style>
+:root{--bg:#0f1720;--card:#18222e;--line:#283545;--text:#e8eef5;--muted:#93a3b5;--green:#2ecc71;--red:#ff5d5d;--amber:#f5b041;--blue:#4aa3ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px;padding-bottom:40px}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-size:22px;margin:0}
+h2{font-size:16px;margin:0 0 10px;color:var(--muted);font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700}
+.paper{background:#24405f;color:#bfe0ff}.live{background:#5f2424;color:#ffd0d0}
+.off{background:#3a3a3a;color:#ccc}.on{background:#1f4d33;color:#b9f5cf}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:560px){.grid{grid-template-columns:repeat(4,1fr)}}
+.stat .k{font-size:13px;color:var(--muted)}.stat .v{font-size:20px;font-weight:700;margin-top:2px}
+.up{color:var(--green)}.down{color:var(--red)}
+button{font:inherit;border-radius:10px;border:1px solid var(--line);background:#223042;color:var(--text);padding:10px 14px;cursor:pointer}
+button.primary{background:var(--blue);border-color:var(--blue);color:#06121f;font-weight:700}
+button.stop{background:var(--red);border-color:var(--red);color:#fff;font-weight:800;font-size:18px;width:100%;padding:14px}
+button.go{background:var(--green);border-color:var(--green);color:#06210f;font-weight:800;font-size:18px;width:100%;padding:14px}
+button:disabled{opacity:.5}
+input,select{font:inherit;width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0f1720;color:var(--text)}
+label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+.hint{font-size:13px;color:var(--muted);margin-top:4px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+canvas{width:100%;height:200px;display:block}
+.log{list-style:none;margin:0;padding:0}
+.log li{border-top:1px solid var(--line);padding:10px 0}
+.log li:first-child{border-top:0}
+.log .h{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.log .r{font-size:14px;color:var(--muted);margin-top:3px}
+.act{font-weight:800}.act.buy{color:var(--green)}.act.sell{color:var(--red)}.act.hold{color:var(--muted)}
+.tag{font-size:12px;padding:1px 7px;border-radius:6px;background:#2a3646;color:var(--muted);margin-left:6px}
+.tag.error{background:#5f2424;color:#ffd0d0}
+.msg{padding:10px 12px;border-radius:10px;background:#223042;margin-top:10px;font-size:14px}
+.msg.bad{background:#5f2424}
+[hidden]{display:none!important}
+.warn{border-color:#7a3b3b;background:#2a1a1d}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-top:1px solid var(--line)}
+th{color:var(--muted);font-weight:600;border-top:0}
+td.n,th.n{text-align:right}
+.mk{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;margin-left:6px}
+.mk.o{background:#1f4d33;color:#b9f5cf}.mk.c{background:#3a3a3a;color:#ccc}
+textarea{font:inherit;width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0f1720;color:var(--text);min-height:96px}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+<div id="login" class="card" hidden>
+  <h1>Stock Bot</h1>
+  <p class="hint">Sign in with the same email and password you use for your other apps.</p>
+  <label>Email</label><input id="em" type="email" autocomplete="username">
+  <label>Password</label><input id="pw" type="password" autocomplete="current-password">
+  <div style="margin-top:14px"><button class="primary" id="signIn">Sign in</button></div>
+  <div id="loginMsg" class="msg" hidden></div>
+</div>
+
+<div id="app" hidden>
+  <div class="top">
+    <h1>Stock Bot <span style="font-size:14px;color:var(--muted)">US + JSE, in rand</span></h1>
+    <div><span class="badge paper">Practice</span> <span id="onBadge" class="badge on">Running</span></div>
+  </div>
+  <div class="hint" id="markets">US <span class="mk c">…</span> &nbsp; JSE <span class="mk c">…</span></div>
+
+  <div class="card">
+    <div class="grid">
+      <div class="stat"><div class="k">Portfolio now</div><div class="v" id="vNow">–</div></div>
+      <div class="stat"><div class="k">Profit / loss</div><div class="v" id="vPl">–</div></div>
+      <div class="stat"><div class="k">Cash</div><div class="v" id="vCash">–</div></div>
+      <div class="stat"><div class="k">Dollar</div><div class="v" id="vFx">–</div></div>
+    </div>
+    <canvas id="chart" width="700" height="200" style="margin-top:14px"></canvas>
+    <div class="hint" id="chartHint">Portfolio value over time (rand).</div>
+  </div>
+
+  <div class="card">
+    <h2>Shares owned</h2>
+    <div style="overflow-x:auto"><table id="pos"></table></div>
+  </div>
+
+  <div class="card">
+    <button id="toggle" class="stop">STOP THE BOT</button>
+    <div class="row" style="margin-top:10px">
+      <button id="runNow">Check now</button>
+      <button id="refresh">Refresh</button>
+    </div>
+    <div id="msg" class="msg" hidden style="white-space:pre-wrap"></div>
+    <div class="hint" id="nextHint">The bot checks every 30 minutes on weekdays while a market is open, even when this page is closed.</div>
+  </div>
+
+  <div class="card">
+    <div class="top" style="margin-bottom:6px"><h2 style="margin:0">What the bot did (newest first)</h2>
+      <label style="margin:0;display:flex;gap:6px;align-items:center;font-size:14px"><input type="checkbox" id="showWaits" style="width:auto"> Show every check</label></div>
+    <ul class="log" id="log"></ul>
+  </div>
+
+  <div class="card">
+    <h2>Shares Claude may choose from</h2>
+    <textarea id="watch"></textarea>
+    <div class="hint">Separate with commas. US shares by their code (AAPL = Apple). JSE shares end in .JO (NPN.JO = Naspers, STX40.JO = Satrix 40). Up to 20.</div>
+    <div style="margin-top:10px"><button class="primary" id="saveWatch">Save list</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Safety limits</h2>
+    <div class="row">
+      <div><label>Most per buy (R)</label><input id="sMax" type="number" min="100" step="100"></div>
+      <div><label>Stop for the day after losing (R)</label><input id="sLoss" type="number" min="100" step="100"></div>
+    </div>
+    <div class="row">
+      <div><label>Most trades per day</label><input id="sTrades" type="number" min="1" max="20"></div>
+      <div><label>Most different shares owned</label><input id="sHold" type="number" min="1" max="15"></div>
+    </div>
+    <div class="row">
+      <div><label>Rest between trades (minutes)</label><input id="sRest" type="number" min="30" step="30"></div>
+      <div><label>Claude must be at least this sure (%)</label><input id="sConf" type="number" min="50" max="95" step="5"></div>
+    </div>
+    <div style="margin-top:12px"><button class="primary" id="save">Save limits</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Practice money</h2>
+    <p class="hint">Pretend money with real share prices. Real money comes later, once we pick a broker that allows automatic trading.</p>
+    <div class="row">
+      <div><label>Start again with (R)</label><input id="pStart" type="number" min="1000" step="1000" value="20000"></div>
+      <div style="display:flex;align-items:flex-end"><button id="reset">Restart practice</button></div>
+    </div>
+  </div>
+
+  <p class="hint" style="text-align:center">This is an experiment, not financial advice.
+    <br><a href="../trader/" style="color:var(--muted)">Crypto bot</a> · <a href="#" id="signOut" style="color:var(--muted)">Sign out</a></p>
+</div>
+</div>
+
+<script src="../db-board/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const cfg=window.DBB_CONFIG;
+const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"trader-auth"}});
+const $=s=>document.querySelector(s);
+const R=n=>n==null||isNaN(n)?"–":(n<0?"−":"")+"R"+Math.round(Math.abs(n)).toLocaleString("en-ZA");
+const NAMES={SPY:"S&P 500 fund",QQQ:"Nasdaq 100 fund",AAPL:"Apple",MSFT:"Microsoft",NVDA:"Nvidia",AMZN:"Amazon",GOOGL:"Alphabet (Google)",META:"Meta",TSLA:"Tesla",
+ "STX40.JO":"Satrix 40","NPN.JO":"Naspers","CPI.JO":"Capitec","FSR.JO":"FirstRand","SBK.JO":"Standard Bank","MTN.JO":"MTN","SOL.JO":"Sasol","AGL.JO":"Anglo American"};
+const nm=s=>NAMES[s]||s;
+let settings=null,paper=null,positions=[],logRows=[],prices={},fx=null;
+
+function show(el,text,bad){el.hidden=false;el.textContent=text;el.className="msg"+(bad?" bad":"");}
+async function call(action,extra){
+  const {data:{session}}=await sb.auth.getSession();
+  const r=await fetch(cfg.SUPABASE_URL+"/functions/v1/stock-bot",{method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":cfg.SUPABASE_ANON_KEY},
+    body:JSON.stringify({action,...(extra||{})})});
+  const j=await r.json().catch(()=>({error:"No answer from the bot. Is the stock-bot function deployed?"}));
+  if(!r.ok||j.error)throw new Error(j.error||("Error "+r.status));
+  return j;
+}
+$("#signIn").onclick=async()=>{const m=$("#loginMsg");show(m,"Signing in…");
+  const {error}=await sb.auth.signInWithPassword({email:$("#em").value.trim(),password:$("#pw").value});if(error)show(m,error.message,true);};
+$("#signOut").onclick=async e=>{e.preventDefault();await sb.auth.signOut();};
+sb.auth.onAuthStateChange((_e,session)=>setTimeout(()=>{$("#login").hidden=!!session;$("#app").hidden=!session;if(session)load();},0));
+
+async function load(){
+  const [s,p,pos,l]=await Promise.all([
+    sb.from("stock_settings").select("*").eq("id",1).maybeSingle(),
+    sb.from("stock_paper").select("*").eq("id",1).maybeSingle(),
+    sb.from("stock_positions").select("*"),
+    sb.from("stock_log").select("*").order("at",{ascending:false}).limit(400)]);
+  if(s.error||!s.data){show($("#msg"),s.error?s.error.message:"Nothing found. Run stocks.sql in Supabase.",true);return;}
+  settings=s.data;paper=p.data;positions=pos.data||[];logRows=l.data||[];
+  render();
+  loadPrices();
+}
+async function loadPrices(){
+  const syms=[...new Set([...positions.map(p=>p.symbol),"SPY","STX40.JO"])];
+  try{const j=await call("prices",{symbols:syms});prices=j.prices||{};fx=j.usdzar;render();}catch(e){/* prices are optional */}
+}
+function render(){
+  const s=settings;
+  $("#onBadge").textContent=s.enabled?"Running":"Stopped";$("#onBadge").className="badge "+(s.enabled?"on":"off");
+  $("#toggle").textContent=s.enabled?"STOP THE BOT":"START THE BOT";$("#toggle").className=s.enabled?"stop":"go";
+  const mk=(open)=>open==null?'<span class="mk c">…</span>':open?'<span class="mk o">Open</span>':'<span class="mk c">Closed</span>';
+  $("#markets").innerHTML="US "+mk(prices.SPY?prices.SPY.open:null)+" &nbsp; JSE "+mk(prices["STX40.JO"]?prices["STX40.JO"].open:null);
+  if(document.activeElement!==$("#watch"))$("#watch").value=(s.watchlist||[]).join(", ");
+  $("#sMax").value=s.max_trade_zar;$("#sLoss").value=s.daily_loss_limit_zar;$("#sTrades").value=s.max_trades_per_day;
+  $("#sHold").value=s.max_holdings;$("#sRest").value=s.min_minutes_between;$("#sConf").value=Math.round(s.min_confidence*100);
+
+  // holdings
+  const t=$("#pos");t.innerHTML="";
+  let worth=0;
+  if(!positions.length){t.innerHTML='<tr><td class="hint" style="border:0">None yet. The bot only holds cash so far.</td></tr>';}
+  else{
+    t.innerHTML='<tr><th>Share</th><th class="n">Paid</th><th class="n">Worth now</th><th class="n">Profit</th></tr>';
+    positions.forEach(p=>{
+      const px=prices[p.symbol]?prices[p.symbol].price_zar:null;
+      const w=px?p.shares*px:null;if(w)worth+=w;
+      const tr=document.createElement("tr");
+      const a=document.createElement("td");a.textContent=nm(p.symbol);const sm=document.createElement("div");sm.className="hint";sm.textContent=p.symbol+" · "+(+p.shares).toFixed(4)+" shares";a.appendChild(sm);
+      const b=document.createElement("td");b.className="n";b.textContent=R(p.cost_zar);
+      const c=document.createElement("td");c.className="n";c.textContent=w?R(w):"…";
+      const d=document.createElement("td");d.className="n";
+      if(w){const pl=w-p.cost_zar;d.textContent=(pl>=0?"+":"")+R(pl)+" ("+(pl/p.cost_zar*100).toFixed(1)+"%)";d.className="n "+(pl>=0?"up":"down");}else d.textContent="…";
+      tr.append(a,b,c,d);t.appendChild(tr);
+    });
+  }
+  const cash=paper?+paper.cash_zar:null;
+  const allPriced=positions.every(p=>prices[p.symbol]);
+  const latest=logRows.find(x=>x.value_zar!=null);
+  const now=cash!=null&&allPriced?cash+worth:(latest?+latest.value_zar:cash);
+  $("#vNow").textContent=R(now);$("#vCash").textContent=R(cash);$("#vFx").textContent=fx?"R"+(+fx).toFixed(2):"–";
+  const start=paper?+paper.start_zar:null;
+  if(now!=null&&start){const d=now-start;$("#vPl").textContent=(d>=0?"+":"")+R(d)+" ("+(d>=0?"+":"")+(d/start*100).toFixed(1)+"%)";$("#vPl").className="v "+(d>=0?"up":"down");}
+
+  const last=logRows[0];
+  $("#nextHint").textContent=(last?"Last check: "+new Date(last.at).toLocaleString("en-ZA",{dateStyle:"short",timeStyle:"short"})+". ":"No checks yet. ")+
+    "The bot checks every 30 minutes on weekdays while a market is open (JSE 09:00–17:00, US about 16:30–23:00 SA time), even when this page is closed.";
+
+  // log
+  const words={buy:"BUY",sell:"SELL",hold:"Wait"},showAll=$("#showWaits").checked;
+  $("#log").innerHTML="";
+  logRows.filter((x,i)=>showAll||i===0||x.action!=="hold"||x.status==="error").slice(0,60).forEach(x=>{
+    const li=document.createElement("li");const h=document.createElement("div");h.className="h";const a=document.createElement("span");
+    const act=document.createElement("span");act.className="act "+x.action;act.textContent=x.status==="error"?"Problem":words[x.action]||x.action;a.appendChild(act);
+    if(x.symbol&&x.status!=="error"){const t=document.createElement("span");t.className="tag";t.textContent=nm(x.symbol);a.appendChild(t);}
+    if(x.action!=="hold"&&x.status==="done"){const t=document.createElement("span");t.textContent=" "+R(x.amount_zar);a.appendChild(t);}
+    if(x.status!=="done"){const t=document.createElement("span");t.className="tag "+x.status;t.textContent=x.status==="skipped"?"not done":"error";a.appendChild(t);}
+    if(x.confidence!=null){const t=document.createElement("span");t.className="tag";t.textContent=Math.round(x.confidence*100)+"% sure";a.appendChild(t);}
+    const tm=document.createElement("span");tm.style.color="var(--muted)";tm.textContent=new Date(x.at).toLocaleString("en-ZA",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+    h.append(a,tm);const r=document.createElement("div");r.className="r";r.textContent=x.reason||"";li.append(h,r);$("#log").appendChild(li);
+  });
+  if(!logRows.length)$("#log").innerHTML='<li class="r">Nothing yet.</li>';
+  drawChart(logRows.filter(x=>x.value_zar!=null).slice().reverse(),start);
+}
+function drawChart(pts,startVal){
+  const c=$("#chart"),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
+  c.width=w*dpr;c.height=h*dpr;const g=c.getContext("2d");g.scale(dpr,dpr);g.clearRect(0,0,w,h);
+  if(pts.length<2){g.fillStyle="#93a3b5";g.font="14px system-ui";g.fillText("The chart appears after a few checks.",10,h/2);return;}
+  const vals=pts.map(p=>+p.value_zar);if(startVal)vals.push(startVal);
+  let lo=Math.min(...vals),hi=Math.max(...vals);if(hi-lo<1){hi+=1;lo-=1;}const pad=(hi-lo)*0.1;lo-=pad;hi+=pad;
+  const t0=Date.parse(pts[0].at),t1=Date.parse(pts[pts.length-1].at)||t0+1;
+  const X=t=>46+(w-56)*((t-t0)/Math.max(1,t1-t0)),Y=v=>10+(h-30)*(1-(v-lo)/(hi-lo));
+  g.font="11px system-ui";g.fillStyle="#93a3b5";g.strokeStyle="#283545";g.lineWidth=1;
+  [lo+pad,(lo+hi)/2,hi-pad].forEach(v=>{g.beginPath();g.moveTo(46,Y(v));g.lineTo(w,Y(v));g.stroke();g.fillText(Math.round(v),0,Y(v)+4);});
+  if(startVal){g.setLineDash([4,4]);g.strokeStyle="#93a3b5";g.beginPath();g.moveTo(46,Y(startVal));g.lineTo(w,Y(startVal));g.stroke();g.setLineDash([]);}
+  const end=+pts[pts.length-1].value_zar;g.strokeStyle=!startVal||end>=startVal?"#2ecc71":"#ff5d5d";g.lineWidth=2;g.beginPath();
+  pts.forEach((p,i)=>{const x=X(Date.parse(p.at)),y=Y(+p.value_zar);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+  pts.forEach(p=>{if(p.status==="done"&&p.action!=="hold"){g.fillStyle=p.action==="buy"?"#2ecc71":"#ff5d5d";g.beginPath();g.arc(X(Date.parse(p.at)),Y(+p.value_zar),4,0,7);g.fill();}});
+  $("#chartHint").textContent="Portfolio value over time (rand). Dotted line = starting amount. Green dots = buys, red dots = sells.";
+}
+async function saveSettings(patch,okText){
+  const {error}=await sb.from("stock_settings").update({...patch,updated_at:new Date().toISOString()}).eq("id",1);
+  if(error){show($("#msg"),error.message,true);return false;}Object.assign(settings,patch);render();if(okText)show($("#msg"),okText);return true;
+}
+$("#toggle").onclick=()=>saveSettings({enabled:!settings.enabled},settings.enabled?"Bot stopped.":"Bot started.");
+$("#save").onclick=()=>{const n=id=>+$(id).value;
+  if(n("#sMax")<100||n("#sLoss")<100||n("#sTrades")<1||n("#sHold")<1||n("#sRest")<30||n("#sConf")<50){show($("#msg"),"Please check the limits: some numbers are too small.",true);return;}
+  saveSettings({max_trade_zar:n("#sMax"),daily_loss_limit_zar:n("#sLoss"),max_trades_per_day:Math.round(n("#sTrades")),max_holdings:Math.round(n("#sHold")),
+    min_minutes_between:Math.round(n("#sRest")),min_confidence:n("#sConf")/100},"Limits saved.");};
+$("#saveWatch").onclick=()=>{
+  const list=[...new Set($("#watch").value.split(/[,\s]+/).map(x=>x.trim().toUpperCase()).filter(x=>/^[A-Z0-9.\-^=]{1,15}$/.test(x)))].slice(0,20);
+  if(!list.length){show($("#msg"),"The list is empty.",true);return;}
+  saveSettings({watchlist:list},"List saved: "+list.join(", "));};
+$("#runNow").onclick=async()=>{const b=$("#runNow");b.disabled=true;show($("#msg"),"Checking the markets and asking Claude… (about 20–40 seconds)");
+  try{const j=await call("run_now");const r=j.result||{};
+    let t=r.skipped||((r.action==="hold"?"Decision: wait. ":"Decision: "+r.action.toUpperCase()+(r.symbol?" "+nm(r.symbol):"")+" ("+r.status+"). ")+(r.reason||""));
+    if(j.notes&&j.notes.length)t+="\n\nSome prices didn't load: "+j.notes.join(" | ");
+    show($("#msg"),t);await load();
+  }catch(e){show($("#msg"),e.message,true);}b.disabled=false;};
+$("#refresh").onclick=load;$("#showWaits").onchange=render;
+$("#reset").onclick=async()=>{const v=+$("#pStart").value||20000;
+  if(!confirm("Start practice again with R"+v+"? This sells everything (pretend) and clears the history."))return;
+  try{await call("reset_paper",{start_zar:v});show($("#msg"),"Practice restarted with R"+v+".");await load();}catch(e){show($("#msg"),e.message,true);}};
+setInterval(()=>{if(!$("#app").hidden&&document.visibilityState==="visible")load();},120000);
+window.addEventListener("resize",()=>settings&&render());
+</script>
+</body>
+</html>
