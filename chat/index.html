@@ -385,7 +385,18 @@ function clearShown(){if(swReg&&swReg.getNotifications)swReg.getNotifications().
 window.addEventListener("focus",clearShown);document.addEventListener("visibilitychange",()=>{if(!document.hidden)clearShown()});
 
 /* ---------- calls (WebRTC, call setup locked with the chat password) ---------- */
-const ICE={iceServers:[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},{urls:"stun:stun.cloudflare.com:3478"}]};
+const STUN=[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},{urls:"stun:stun.cloudflare.com:3478"}];
+let ICE={iceServers:STUN},iceAt=0,relayOK=false;
+// Get call-relay logins (TURN) so calls pass strict firewalls. Falls back to direct calls if the relay isn't set up.
+async function getIce(){
+  if(relayOK&&Date.now()-iceAt<6*3600e3)return ICE;
+  try{
+    const r=await Promise.race([sb.functions.invoke("chat-push",{body:{action:"turn"}}),new Promise(res=>setTimeout(()=>res(null),6000))]);
+    const list=r&&r.data&&r.data.iceServers;
+    if(list&&list.length){ICE={iceServers:[...STUN,...list]};relayOK=true;iceAt=Date.now();}
+  }catch(e){}
+  return ICE;
+}
 let pc=null,localStream=null,callId="",callState="idle",withVideo=true,pendingIce=[],ringTimer=null,ringLoop=null,peerOnline=false;
 function joinCalls(){
   if(callCh)sb.removeChannel(callCh);
@@ -413,7 +424,7 @@ function makePC(){
   pc.onconnectionstatechange=()=>{
     const s=pc&&pc.connectionState;
     if(s==="connected"){callState="incall";callInfo(nameOf(other),withVideo?"":"Voice call");setTimeout(()=>{if(callState==="incall")$("#callInfo").innerHTML=withVideo?"":$("#callInfo").innerHTML},3000)}
-    else if(s==="failed"){callInfo("Call couldn't connect","A network in between may be blocking calls. Try another network, e.g. mobile data.");setTimeout(()=>endCall(),4000)}
+    else if(s==="failed"){callInfo("Call couldn't connect",relayOK?"The network is blocking even the call relay. Try another network, e.g. mobile data.":"A network in between is blocking direct calls, and the call relay isn't set up yet.");setTimeout(()=>endCall(),4000)}
     else if(s==="disconnected"){callInfo("Connection lost…","Trying to reconnect")}
   };
 }
@@ -422,7 +433,7 @@ async function flushIce(){const q=pendingIce;pendingIce=[];for(const c of q){try
 async function startCall(video){
   if(callState!=="idle"||!KEY)return;
   withVideo=video;localStream=await getMedia(video);if(!localStream)return;
-  callId=Math.random().toString(36).slice(2);callState="calling";showCallUI();
+  callId=Math.random().toString(36).slice(2);callState="calling";showCallUI();getIce();
   callInfo("Calling "+nameOf(other)+"…",peerOnline?"":"They don't have the chat open right now. It will ring if they open it.");
   await sig("ring",{video});pushOther("call");
   ringLoop=setInterval(()=>{if(callState==="calling")sig("ring",{video})},4000);
@@ -434,7 +445,7 @@ async function handleSig(m){
     if(callState==="idle"){callId=m.callId;withVideo=!!(m.data&&m.data.video);callState="ringing";
       $("#ringWho").textContent=nameOf(m.from)+" is calling";$("#ringWhat").textContent=withVideo?"Video call":"Voice call";$("#ring").hidden=false;
       clearInterval(ringLoop);ringLoop=setInterval(()=>{tone(660,0.25,0.25);setTimeout(()=>tone(880,0.3,0.25),300)},1600);tone(660,0.25,0.25);
-      notify(nameOf(m.from)+" is calling",withVideo?"Video call":"Voice call");
+      notify(nameOf(m.from)+" is calling",withVideo?"Video call":"Voice call");getIce();
       clearTimeout(ringTimer);ringTimer=setTimeout(()=>{if(callState==="ringing"){stopRinging();callState="idle";sysNote("Missed call from "+nameOf(m.from))}},10000);
     }else if(callState==="ringing"&&m.callId===callId){clearTimeout(ringTimer);ringTimer=setTimeout(()=>{if(callState==="ringing"){stopRinging();callState="idle";sysNote("Missed call from "+nameOf(m.from))}},10000)}
     else if(m.callId!==callId){const keep=callId;callId=m.callId;sig("busy");callId=keep}
@@ -443,6 +454,7 @@ async function handleSig(m){
   if(m.callId!==callId)return;
   if(m.type==="accept"&&callState==="calling"){
     clearInterval(ringLoop);clearTimeout(ringTimer);callState="connecting";callInfo("Connecting…");
+    await getIce();if(callState!=="connecting")return;
     makePC();const off=await pc.createOffer();await pc.setLocalDescription(off);sig("offer",off);
   }else if(m.type==="offer"&&pc){
     await pc.setRemoteDescription(m.data);await flushIce();const ans=await pc.createAnswer();await pc.setLocalDescription(ans);sig("answer",ans);
@@ -458,7 +470,7 @@ function stopRinging(){$("#ring").hidden=true;clearInterval(ringLoop);clearTimeo
 $("#acceptBtn").onclick=async()=>{
   stopRinging();localStream=await getMedia(withVideo);
   if(!localStream){sig("decline");callState="idle";return}
-  callState="connecting";showCallUI();callInfo("Connecting…");makePC();sig("accept");
+  callState="connecting";showCallUI();callInfo("Connecting…");await getIce();if(callState!=="connecting")return;makePC();sig("accept");
 };
 $("#declineBtn").onclick=()=>{stopRinging();sig("decline");callState="idle"};
 function endCall(silent){

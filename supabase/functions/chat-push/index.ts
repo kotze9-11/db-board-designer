@@ -48,6 +48,31 @@ Deno.serve(async (req) => {
   let body: { action?: string; sub?: { endpoint?: string }; endpoint?: string; kind?: string } = {};
   try { body = await req.json(); } catch { /* empty */ }
 
+  // Call relay (TURN) logins from Cloudflare, so calls get through strict networks like offshore Wi-Fi.
+  // Needs two secrets: CF_TURN_KEY_ID and CF_TURN_KEY_TOKEN (Cloudflare > Realtime > TURN Server).
+  if (body.action === "turn") {
+    const id = Deno.env.get("CF_TURN_KEY_ID"), tok = Deno.env.get("CF_TURN_KEY_TOKEN");
+    if (!id || !tok) return reply({ iceServers: [], note: "No relay set up yet (CF_TURN_KEY_ID / CF_TURN_KEY_TOKEN secrets missing)." });
+    for (const path of ["generate-ice-servers", "generate"]) {
+      try {
+        const r = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${id}/credentials/${path}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ ttl: 43200 }),
+        });
+        if (!r.ok) continue;
+        const j = await r.json();
+        const list = Array.isArray(j.iceServers) ? j.iceServers : [j.iceServers];
+        // browsers block port 53, so leave those out
+        const clean = list.filter(Boolean).map((s: { urls: string | string[]; username?: string; credential?: string }) => ({
+          ...s, urls: (Array.isArray(s.urls) ? s.urls : [s.urls]).filter((u) => !/:53\b/.test(u)),
+        })).filter((s: { urls: string[] }) => s.urls.length);
+        if (clean.length) return reply({ iceServers: clean });
+      } catch { /* try the other address */ }
+    }
+    return reply({ iceServers: [], note: "Cloudflare didn't give relay logins. Check the two secrets." });
+  }
+
   try {
     const publicKey = await vapid();
     if (body.action === "key") return reply({ publicKey });
