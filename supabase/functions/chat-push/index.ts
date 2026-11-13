@@ -51,8 +51,9 @@ Deno.serve(async (req) => {
   // Call relay (TURN) logins from Cloudflare, so calls get through strict networks like offshore Wi-Fi.
   // Needs two secrets: CF_TURN_KEY_ID and CF_TURN_KEY_TOKEN (Cloudflare > Realtime > TURN Server).
   if (body.action === "turn") {
-    const id = Deno.env.get("CF_TURN_KEY_ID"), tok = Deno.env.get("CF_TURN_KEY_TOKEN");
+    const id = (Deno.env.get("CF_TURN_KEY_ID") || "").trim(), tok = (Deno.env.get("CF_TURN_KEY_TOKEN") || "").trim();
     if (!id || !tok) return reply({ iceServers: [], note: "No relay set up yet (CF_TURN_KEY_ID / CF_TURN_KEY_TOKEN secrets missing)." });
+    let why = "";
     for (const path of ["generate-ice-servers", "generate"]) {
       try {
         const r = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${id}/credentials/${path}`, {
@@ -60,7 +61,7 @@ Deno.serve(async (req) => {
           headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
           body: JSON.stringify({ ttl: 43200 }),
         });
-        if (!r.ok) continue;
+        if (!r.ok) { why = `Cloudflare said ${r.status}: ${(await r.text()).slice(0, 150)}`; continue; }
         const j = await r.json();
         const list = Array.isArray(j.iceServers) ? j.iceServers : [j.iceServers];
         // browsers block port 53, so leave those out
@@ -68,9 +69,9 @@ Deno.serve(async (req) => {
           ...s, urls: (Array.isArray(s.urls) ? s.urls : [s.urls]).filter((u) => !/:53\b/.test(u)),
         })).filter((s: { urls: string[] }) => s.urls.length);
         if (clean.length) return reply({ iceServers: clean });
-      } catch { /* try the other address */ }
+      } catch (e) { why = `Couldn't reach Cloudflare: ${e instanceof Error ? e.message : e}`; }
     }
-    return reply({ iceServers: [], note: "Cloudflare didn't give relay logins. Check the two secrets." });
+    return reply({ iceServers: [], note: `Cloudflare didn't give relay logins (${why || "no reason given"}). Key ID length ${id.trim().length}, token length ${tok.trim().length}.` });
   }
 
   try {
