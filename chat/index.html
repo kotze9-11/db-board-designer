@@ -103,6 +103,7 @@ form.send button{height:44px}
 <div class="app" id="app" hidden>
   <header>
     <div class="t"><strong id="title">Chat</strong><span id="status"><span class="dot" id="dot"></span><span id="stText">Connecting…</span></span></div>
+    <button class="icon" id="testBtn" title="Test call connection">🛠</button>
     <button class="icon" id="voiceBtn" title="Voice call">📞</button>
     <button class="icon" id="videoBtn" title="Video call">📹</button>
     <button class="lock" id="lockBtn" title="Your check code. It should match on both devices."></button>
@@ -440,6 +441,37 @@ async function startCall(video){
   ringTimer=setTimeout(()=>{if(callState==="calling"){sig("cancel");callInfo("No answer");setTimeout(()=>endCall(true),2000)}},45000);
 }
 $("#videoBtn").onclick=()=>startCall(true);$("#voiceBtn").onclick=()=>startCall(false);
+// Call connection test: checks the relay logins, then which kinds of connection this network allows.
+async function gather(servers,policy){
+  const p=new RTCPeerConnection({iceServers:servers,iceTransportPolicy:policy||"all"});
+  const kinds={host:0,srflx:0,relay:0,prflx:0},relayVia=new Set();
+  p.createDataChannel("t");
+  p.onicecandidate=e=>{const c=e.candidate;if(!c||!c.candidate)return;const m=c.candidate.match(/ typ (\w+)/);const t=m?m[1]:"?";kinds[t]=(kinds[t]||0)+1;
+    if(t==="relay"){const pr=(c.candidate.match(/ (udp|tcp) /i)||[])[1]||"";relayVia.add(pr.toLowerCase()+(c.url?" "+c.url.replace(/\?.*/,""):""))}};
+  await p.setLocalDescription(await p.createOffer());
+  await new Promise(res=>{const t=setTimeout(res,9000);p.onicegatheringstatechange=()=>{if(p.iceGatheringState==="complete"){clearTimeout(t);res()}}});
+  p.close();return {kinds,relayVia:[...relayVia]};
+}
+$("#testBtn").onclick=async()=>{
+  const b=$("#testBtn");if(b.disabled)return;b.disabled=true;
+  sysNote("Testing call connection… (about 20 seconds)");
+  let note="";
+  try{
+    const r=await sb.functions.invoke("chat-push",{body:{action:"turn"}});
+    const list=r&&r.data&&r.data.iceServers;
+    if(r&&r.error)note="Step 1 FAILED: couldn't reach the chat-push function ("+(r.error.message||r.error)+").";
+    else if(!list||!list.length)note="Step 1 FAILED: no relay logins. "+((r.data&&r.data.note)||"")+" Check the CF_TURN_KEY_ID and CF_TURN_KEY_TOKEN secrets, and that chat-push has the new code.";
+    else{
+      sysNote("Step 1 OK: got relay logins from Cloudflare.");
+      const all=await gather([...STUN,...list]);
+      sysNote("Step 2: direct "+all.kinds.host+", internet "+all.kinds.srflx+", relay "+all.kinds.relay+".");
+      const relayOnly=await gather(list,"relay");
+      if(relayOnly.kinds.relay>0)note="Step 3 OK: the relay works on this network ("+relayOnly.relayVia.join(", ")+"). Calls should connect. If they still don't, the other phone may be on an old version: close and reopen the chat there.";
+      else note="Step 3 FAILED: this network blocks the Cloudflare relay too. Calls can't get through it this way.";
+    }
+  }catch(e){note="Test error: "+(e.message||e);}
+  sysNote(note);b.disabled=false;
+};
 async function handleSig(m){
   if(m.type==="ring"){
     if(callState==="idle"){callId=m.callId;withVideo=!!(m.data&&m.data.video);callState="ringing";
